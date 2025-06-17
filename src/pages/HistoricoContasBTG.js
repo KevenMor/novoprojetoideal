@@ -71,7 +71,7 @@ export default function HistoricoContasBTG() {
     } finally {
       setLoading(false);
     }
-  }, [filtros, contasBTGService]);
+  }, [filtros]);
 
   useEffect(() => {
     if (availableUnits.length > 0) {

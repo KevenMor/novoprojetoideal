@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -121,9 +121,9 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
     filteredMenuItems = menuItems;
   }
 
-  const closeSidebar = () => {
+  const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
-  };
+  }, [setSidebarOpen]);
 
   const toggleCollapse = () => {
     if (!isMobile && setIsCollapsed) {
