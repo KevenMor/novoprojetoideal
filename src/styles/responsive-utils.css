@@ -1,0 +1,260 @@
+/* Responsive Utilities for Autoescola Ideal System */
+
+/* Container Utilities */
+.container-fluid {
+  @apply w-full px-4 sm:px-6 lg:px-8 xl:px-12;
+}
+
+.container-narrow {
+  @apply w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.container-wide {
+  @apply w-full max-w-8xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Grid Utilities */
+.grid-auto-fit {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.grid-auto-fill {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* Flexbox Utilities */
+.flex-center {
+  @apply flex items-center justify-center;
+}
+
+.flex-between {
+  @apply flex items-center justify-between;
+}
+
+.flex-start {
+  @apply flex items-center justify-start;
+}
+
+.flex-end {
+  @apply flex items-center justify-end;
+}
+
+.flex-col-center {
+  @apply flex flex-col items-center justify-center;
+}
+
+.flex-col-between {
+  @apply flex flex-col justify-between;
+}
+
+/* Text Utilities */
+.text-responsive {
+  @apply text-sm sm:text-base lg:text-lg;
+}
+
+.text-heading-responsive {
+  @apply text-xl sm:text-2xl lg:text-3xl;
+}
+
+.text-subtitle-responsive {
+  @apply text-base sm:text-lg lg:text-xl;
+}
+
+/* Spacing Utilities */
+.space-responsive {
+  @apply space-y-4 sm:space-y-6 lg:space-y-8;
+}
+
+.space-x-responsive {
+  @apply space-x-2 sm:space-x-4 lg:space-x-6;
+}
+
+.gap-responsive {
+  @apply gap-4 sm:gap-6 lg:gap-8;
+}
+
+.p-responsive {
+  @apply p-4 sm:p-6 lg:p-8;
+}
+
+.px-responsive {
+  @apply px-4 sm:px-6 lg:px-8;
+}
+
+.py-responsive {
+  @apply py-4 sm:py-6 lg:py-8;
+}
+
+.m-responsive {
+  @apply m-4 sm:m-6 lg:m-8;
+}
+
+.mx-responsive {
+  @apply mx-4 sm:mx-6 lg:mx-8;
+}
+
+.my-responsive {
+  @apply my-4 sm:my-6 lg:my-8;
+}
+
+/* Card Utilities */
+.card-responsive {
+  @apply p-4 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl lg:rounded-3xl;
+}
+
+.card-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+}
+
+.card-grid-auto {
+  @apply grid grid-auto-fit;
+}
+
+/* Button Utilities */
+.btn-responsive {
+  @apply px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base;
+}
+
+.btn-icon-responsive {
+  @apply w-10 h-10 sm:w-12 sm:h-12;
+}
+
+/* Form Utilities */
+.form-responsive {
+  @apply space-y-4 sm:space-y-6;
+}
+
+.form-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6;
+}
+
+.form-grid-full {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
+}
+
+/* Image Utilities */
+.img-responsive {
+  @apply w-full h-auto;
+}
+
+.img-avatar-responsive {
+  @apply w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12;
+}
+
+.img-icon-responsive {
+  @apply w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6;
+}
+
+/* Modal/Dialog Utilities */
+.modal-responsive {
+  @apply w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl;
+}
+
+.modal-wide {
+  @apply w-full max-w-md sm:max-w-lg lg:max-w-2xl xl:max-w-4xl;
+}
+
+/* Hide/Show Utilities */
+.mobile-only {
+  @apply block sm:hidden;
+}
+
+.tablet-up {
+  @apply hidden sm:block;
+}
+
+.desktop-only {
+  @apply hidden lg:block;
+}
+
+.mobile-tablet {
+  @apply block lg:hidden;
+}
+
+/* Interactive Utilities */
+.hover-lift {
+  @apply hover:transform hover:-translate-y-1 transition-transform duration-200;
+}
+
+.hover-scale {
+  @apply hover:scale-105 transition-transform duration-200;
+}
+
+.hover-shadow {
+  @apply hover:shadow-lg transition-shadow duration-200;
+}
+
+.active-scale {
+  @apply active:scale-95 transition-transform duration-100;
+}
+
+/* Focus Utilities */
+.focus-visible-ring {
+  @apply focus-visible:ring-2 focus-visible:ring-autoescola-primary focus-visible:ring-offset-2;
+}
+
+.focus-visible-ring-white {
+  @apply focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-autoescola-primary;
+}
+
+/* Accessibility Utilities */
+.sr-only-focusable {
+  @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-autoescola-primary focus:text-white focus:rounded-lg;
+}
+
+/* Print Utilities */
+@media print {
+  .print-hidden {
+    display: none !important;
+  }
+  
+  .print-visible {
+    display: block !important;
+  }
+  
+  .print-break-before {
+    page-break-before: always;
+  }
+  
+  .print-break-after {
+    page-break-after: always;
+  }
+  
+  .print-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+}
+
+/* Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe-only {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .high-contrast-border {
+    @apply border-2 border-gray-900;
+  }
+  
+  .high-contrast-text {
+    @apply text-gray-900;
+  }
+}
+
+/* Dark Mode Support (for future implementation) */
+@media (prefers-color-scheme: dark) {
+  .dark-mode-bg {
+    @apply bg-gray-900;
+  }
+  
+  .dark-mode-text {
+    @apply text-gray-100;
+  }
+  
+  .dark-mode-border {
+    @apply border-gray-700;
+  }
+} 

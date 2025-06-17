@@ -1,0 +1,718 @@
+/* ============================================
+   SISTEMA AUTOESCOLA IDEAL - CSS RESPONSIVO
+   ============================================ */
+
+/* 6. Variáveis para facilitar ajustes futuros */
+:root {
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  --icon-size-lg: 24px;
+  --icon-size-md: 20px;
+  --icon-size-sm: 16px;
+  
+  --sidebar-width: 240px;
+  --header-height: 68px;
+  --border-radius: 12px;
+  
+  --shadow-light: 0 2px 8px rgba(0,0,0,0.05);
+  --shadow-medium: 0 4px 12px rgba(0,0,0,0.1);
+  
+  --primary-color: #3B82F6;
+  --secondary-color: #64748B;
+  --success-color: #10B981;
+  --warning-color: #F59E0B;
+  --error-color: #EF4444;
+}
+
+/* 5. Harmonização de espaçamentos e tipografia */
+body {
+  font-size: 16px;
+  line-height: 1.5;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.125rem; }
+h5 { font-size: 1rem; }
+h6 { font-size: 0.875rem; }
+
+.card {
+  padding: 1.25rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-light);
+  background: white;
+  border: 1px solid #E5E7EB;
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-medium);
+}
+
+/* 1. Layout responsivo para desktop */
+@media (min-width: 1024px) {
+  /* Centralizar e limitar largura do conteúdo principal */
+  .main-content {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-lg);
+  }
+
+  /* Menu horizontal superior removido - mantém apenas navegação lateral */
+
+  /* Ajustar a sidebar para ocupar toda a altura */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    z-index: 1000;
+    background: white;
+    border-right: 1px solid #E5E7EB;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+  }
+
+  .content-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    background: #F8FAFC;
+  }
+
+  /* Header ajustado para desktop */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: white;
+    border-bottom: 1px solid #E5E7EB;
+    padding: 0 var(--spacing-lg);
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Melhorar alinhamento do header */
+  .header .container-responsive > div {
+    align-items: center;
+  }
+
+  .header img {
+    vertical-align: middle;
+  }
+
+  .header h1 {
+    margin-bottom: 0;
+    line-height: 1.2;
+  }
+
+  .header p {
+    margin-bottom: 0;
+    line-height: 1.2;
+  }
+
+  /* Melhorar navegação lateral */
+  .sidebar-nav {
+    padding: var(--spacing-lg) 0;
+  }
+
+  .sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin: var(--spacing-xs) var(--spacing-md);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--secondary-color);
+    transition: all 0.2s ease;
+    font-weight: 500;
+  }
+
+  .sidebar-nav-item:hover {
+    background: #F1F5F9;
+    color: var(--primary-color);
+  }
+
+  .sidebar-nav-item.active {
+    background: var(--primary-color);
+    color: white;
+  }
+}
+
+/* 1.5. Telas ultra-wide (2560px+) - máximo aproveitamento do espaço */
+@media (min-width: 2560px) {
+  .main-content {
+    max-width: 2400px;
+    padding: 0 var(--spacing-xl);
+  }
+
+  /* Cards de estatísticas maiores em telas muito grandes */
+  .stat-card {
+    padding: 2.5rem;
+  }
+
+  /* Grid de unidades com mais colunas */
+  .units-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 2rem;
+  }
+
+  /* Atividades recentes com mais espaçamento */
+  .activity-item {
+    padding: 2rem;
+  }
+}
+
+/* 1.4. Telas desktop grandes (1920px+) */
+@media (min-width: 1920px) {
+  .main-content {
+    max-width: 1800px;
+  }
+
+  /* Aumentar grid de unidades para 6 colunas */
+  .units-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* 1.3. Telas desktop médias (1440px+) */
+@media (min-width: 1440px) {
+  .main-content {
+    max-width: 1400px;
+  }
+}
+
+/* 2. Mobile: manter menu lateral colapsável */
+@media (max-width: 1023px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    z-index: 1001;
+    background: white;
+    box-shadow: 2px 0 16px rgba(0,0,0,0.2);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .content-wrapper {
+    margin-left: 0;
+    padding: 0 var(--spacing-md);
+    min-height: 100vh;
+    background: #F8FAFC;
+  }
+
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: white;
+    border-bottom: 1px solid #E5E7EB;
+    padding: 0 var(--spacing-md);
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Melhorar alinhamento no mobile */
+  .header .container-responsive > div {
+    align-items: center;
+    min-height: 100%;
+  }
+
+  .header img {
+    vertical-align: middle;
+  }
+
+  .header h1 {
+    margin-bottom: 0;
+    line-height: 1.2;
+  }
+
+  .header p {
+    margin-bottom: 0;
+    line-height: 1.2;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+  }
+
+  .mobile-menu-btn:hover {
+    background: #F1F5F9;
+  }
+}
+
+/* 3. Tamanhos e proporções de ícones */
+.sidebar-icon,
+.header-icon,
+.btn-icon {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.input-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  margin-right: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.sidebar-nav-item .sidebar-icon {
+  margin-right: var(--spacing-md);
+}
+
+/* 4. Ajustes de formulário para desktop */
+@media (min-width: 768px) {
+  .form-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+  }
+
+  .form-row {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .form-row .form-group {
+    flex: 1;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid #E5E7EB;
+  }
+}
+
+/* Formulários mobile */
+@media (max-width: 767px) {
+  .form-container {
+    padding: var(--spacing-md);
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Componentes base */
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input:disabled {
+  background: #F9FAFB;
+  color: #6B7280;
+  cursor: not-allowed;
+}
+
+/* Placeholder styling */
+.form-input::placeholder,
+.input-field::placeholder {
+  color: #9CA3AF !important;
+  opacity: 1 !important;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.form-input:focus::placeholder,
+.input-field:focus::placeholder {
+  color: #D1D5DB;
+  transition: color 0.2s ease;
+}
+
+/* Input with icons - adjust padding to prevent text cut */
+.input-field.pl-10 {
+  padding-left: 2.75rem !important;
+}
+
+.input-field.pr-10 {
+  padding-right: 2.75rem !important;
+}
+
+.input-field.pl-10.pr-10 {
+  padding-left: 2.75rem !important;
+  padding-right: 2.75rem !important;
+}
+
+/* Improve input field spacing */
+.input-field {
+  line-height: 1.5;
+  min-height: 44px;
+  font-size: 1rem;
+  padding: 12px 16px;
+  text-overflow: ellipsis;
+}
+
+/* Select fields with same spacing */
+.select-field {
+  line-height: 1.5;
+  min-height: 44px;
+  font-size: 1rem;
+  padding: 12px 16px;
+}
+
+/* Textarea fields */
+.textarea-field {
+  line-height: 1.5;
+  min-height: 88px;
+  font-size: 1rem;
+  padding: 12px 16px;
+  resize: vertical;
+}
+
+/* Icon positioning improvements */
+.absolute.inset-y-0.left-0.pl-3 {
+  padding-left: 12px !important;
+}
+
+.absolute.inset-y-0.right-0.pr-3 {
+  padding-right: 12px !important;
+}
+
+/* Botões */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  gap: var(--spacing-sm);
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563EB;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary {
+  background: #F1F5F9;
+  color: var(--secondary-color);
+  border: 1px solid #E5E7EB;
+}
+
+.btn-secondary:hover {
+  background: #E2E8F0;
+  border-color: #CBD5E1;
+}
+
+.btn-success {
+  background: var(--success-color);
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+}
+
+.btn-warning {
+  background: var(--warning-color);
+  color: white;
+}
+
+.btn-warning:hover {
+  background: #D97706;
+}
+
+.btn-danger {
+  background: var(--error-color);
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #DC2626;
+}
+
+/* Tabelas responsivas */
+@media (max-width: 768px) {
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 600px;
+  }
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-light);
+}
+
+.table th,
+.table td {
+  padding: var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.table th {
+  background: #F8FAFC;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table tbody tr:hover {
+  background: #F8FAFC;
+}
+
+/* Utilitários */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+
+.d-flex { display: flex; }
+.d-grid { display: grid; }
+.d-block { display: block; }
+.d-none { display: none; }
+
+.align-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+
+.gap-xs { gap: var(--spacing-xs); }
+.gap-sm { gap: var(--spacing-sm); }
+.gap-md { gap: var(--spacing-md); }
+.gap-lg { gap: var(--spacing-lg); }
+
+.p-xs { padding: var(--spacing-xs); }
+.p-sm { padding: var(--spacing-sm); }
+.p-md { padding: var(--spacing-md); }
+.p-lg { padding: var(--spacing-lg); }
+
+.m-xs { margin: var(--spacing-xs); }
+.m-sm { margin: var(--spacing-sm); }
+.m-md { margin: var(--spacing-md); }
+.m-lg { margin: var(--spacing-lg); }
+
+.mb-0 { margin-bottom: 0; }
+.mb-xs { margin-bottom: var(--spacing-xs); }
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+
+.mt-0 { margin-top: 0; }
+.mt-xs { margin-top: var(--spacing-xs); }
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+
+/* Animações */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Estados de loading */
+.loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid #E5E7EB;
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Header Alignment - Garantir alinhamento perfeito */
+.header-shadow {
+  min-height: var(--header-height);
+}
+
+.header-shadow .container-responsive {
+  height: 100%;
+}
+
+.header-shadow .container-responsive > div {
+  height: 100%;
+  align-items: center;
+}
+
+/* Logo e texto alignment */
+.header-shadow img[alt="Autoescola Ideal"] {
+  display: block;
+  vertical-align: middle;
+}
+
+/* User profile alignment */
+.header-shadow [class*="relative"] button {
+  display: flex;
+  align-items: center;
+  height: auto;
+  min-height: 44px;
+}
+
+/* Notificação alignment */
+.header-shadow button[class*="notification"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sidebar logo styling */
+.sidebar-shadow img[alt="Autoescola Ideal"] {
+  transition: transform 0.2s ease;
+}
+
+.sidebar-shadow img[alt="Autoescola Ideal"]:hover {
+  transform: scale(1.05);
+}
+
+/* Sidebar logo containers */
+.sidebar-shadow div[class*="bg-white rounded-"] {
+  transition: all 0.2s ease;
+}
+
+.sidebar-shadow div[class*="bg-white rounded-"]:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+} 

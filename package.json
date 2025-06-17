@@ -1,0 +1,67 @@
+{
+  "name": "sistema-autoescola-ideal",
+  "version": "0.1.0",
+  "private": true,
+  "homepage": ".",
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "axios": "^1.6.2",
+    "cross-env": "^7.0.3",
+    "firebase": "^10.7.1",
+    "lucide-react": "^0.294.0",
+    "node-fetch": "^2.7.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "react-input-mask": "^2.0.4",
+    "react-router-dom": "^6.20.1",
+    "react-scripts": "5.0.1",
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
+  },
+  "scripts": {
+    "start": "cross-env REACT_APP_API_URL=http://localhost:3001 craco start",
+    "start:windows": "set REACT_APP_API_URL=http://localhost:3001 && craco start",
+    "start:prod": "cross-env REACT_APP_API_URL=https://seu-backend.herokuapp.com craco start",
+    "build": "cross-env REACT_APP_API_URL=https://seu-backend.herokuapp.com craco build",
+    "build:dev": "cross-env REACT_APP_API_URL=http://localhost:3001 craco build",
+    "test": "craco test",
+    "eject": "react-scripts eject",
+    "firebase:setup": "echo Por favor, configure o arquivo .env com suas credenciais Firebase",
+    "dev:backend": "cd server && npm run dev",
+    "dev:full": "concurrently \"npm run dev:backend\" \"npm start\""
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "assert": "^2.1.0",
+    "browserify-zlib": "^0.2.0",
+    "buffer": "^6.0.3",
+    "concurrently": "^8.2.2",
+    "crypto-browserify": "^3.12.1",
+    "process": "^0.11.10",
+    "stream-browserify": "^3.0.0",
+    "tailwindcss": "^3.3.6",
+    "url": "^0.11.4",
+    "util": "^0.12.5"
+  }
+}
