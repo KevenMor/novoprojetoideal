@@ -3,7 +3,6 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { X, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
-import * as XLSX from 'xlsx';
 
 function formatDate(date) {
   if (!date) return '-';
