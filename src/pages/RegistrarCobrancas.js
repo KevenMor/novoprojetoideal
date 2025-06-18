@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUnitSelection } from '../hooks/useUnitSelection';
-import { Receipt, User, Mail, Phone, CreditCard, Plus, X } from 'lucide-react';
+import { Receipt, CreditCard, Plus } from 'lucide-react';
 import InputMask from 'react-input-mask';
 import toast from 'react-hot-toast';
 import axios from 'axios';
@@ -30,7 +30,7 @@ export default function RegistrarCobrancas() {
         unidade: selectedUnit
       }));
     }
-  }, [selectedUnit]);
+  }, [selectedUnit, formData.unidade]);
 
   const servicos = [
     '1º CNH A',
