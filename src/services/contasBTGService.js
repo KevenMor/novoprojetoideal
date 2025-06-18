@@ -325,24 +325,33 @@ export const contasBTGService = {
     return erros;
   },
 
-  // Baixa em lote (marcar várias contas como pagas)
+  // Baixa em lote (marcar várias contas como pagas) - Firestore direto
   async baixaEmLote(ids) {
     try {
-      const response = await fetch('/api/btg-accounts/batch-pay', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ids }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao dar baixa em lote');
+      const { auth } = await import('../firebase/config');
+      if (!auth.currentUser) {
+        throw new Error('Usuário não autenticado.');
       }
-      return await response.json();
+      const results = [];
+      for (const contaId of ids) {
+        try {
+          const contaRef = doc(db, 'contas_btg', contaId);
+          await updateDoc(contaRef, {
+            status: 'PAGO',
+            dataPagamento: Timestamp.now(),
+            dataUltimaAlteracao: Timestamp.now(),
+            alteradoPor: auth.currentUser.uid,
+            emailAlterador: auth.currentUser.email
+          });
+          results.push({ contaId, success: true });
+        } catch (err) {
+          results.push({ contaId, success: false, error: err.message });
+        }
+      }
+      return results;
     } catch (error) {
       console.error('❌ Erro ao dar baixa em lote:', error);
-      throw error;
+      throw new Error('Erro ao dar baixa em lote: ' + error.message);
     }
   },
 };

@@ -275,7 +275,7 @@ export default function ModalLancamento({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Building2 className="w-4 h-4 inline mr-1" />
+                {/* <Building2 className="w-4 h-4 inline mr-1" /> */}
                 Unidade *
               </label>
               <select

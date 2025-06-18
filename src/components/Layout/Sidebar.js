@@ -48,11 +48,28 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
       description: 'Visão geral do sistema'
     },
     {
-      name: 'Enviar Mensagem',
-      href: '/mensagem',
+      name: 'Mensagens',
       icon: MessageSquare,
       permission: PERMISSIONS.MESSAGES_VIEW,
-      description: 'WhatsApp automático'
+      description: 'Envio e histórico de mensagens',
+      submenu: [
+        {
+          name: 'Enviar Mensagem',
+          href: '/mensagem',
+          description: 'WhatsApp automático'
+        },
+        {
+          name: 'Histórico de Mensagens',
+          href: '/historico-mensagens',
+          description: 'Mensagens enviadas'
+        },
+        // Adicionar submenu de gerenciamento de modelos para admin
+        ...(userProfile?.perfil === 'admin' ? [{
+          name: 'Gerenciar Modelos',
+          href: '/gerenciar-modelos-mensagem',
+          description: 'Modelos de mensagem rápidas'
+        }] : [])
+      ]
     },
     {
       name: 'Contas BTG',
@@ -73,11 +90,23 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
       ]
     },
     {
-      name: 'Registrar Cobranças',
+      name: 'Cobranças',
       href: '/cobrancas',
       icon: Receipt,
       permission: PERMISSIONS.CHARGES_VIEW,
-      description: 'Gestão de pagamentos'
+      description: 'Gestão de cobranças',
+      submenu: [
+        {
+          name: 'Registrar',
+          href: '/cobrancas',
+          description: 'Nova cobrança'
+        },
+        {
+          name: 'Histórico',
+          href: '/historico-cobrancas',
+          description: 'Cobranças registradas'
+        }
+      ]
     },
     {
       name: 'Extratos',
@@ -116,6 +145,9 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
         return hasPermission(item.permission);
       });
     }
+
+    // Remover menu de configuração de conteúdo para admin
+    filteredMenuItems = filteredMenuItems.filter(item => item.href !== '/config-conteudo');
   } catch (error) {
     console.error('Erro na filtragem de menus:', error);
     filteredMenuItems = menuItems;
@@ -173,11 +205,13 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
           {/* Header */}
           <div className="flex flex-col items-center justify-between p-4 border-b border-gray-200">
             <div className="flex items-center space-x-2 w-full justify-center">
-              <img
-                src="https://static.wixstatic.com/media/030da1_fec378b6fe8d4ee2b9a5a51b96f6febb~mv2.png"
-                alt="Logo Autoescola Ideal"
-                className={`h-20 w-auto object-contain transition-all duration-300 ${isCollapsed ? 'mx-auto' : ''}`}
-              />
+              <div className="rounded-full bg-white shadow-md p-2 flex items-center justify-center">
+                <img
+                  src="https://static.wixstatic.com/media/030da1_fec378b6fe8d4ee2b9a5a51b96f6febb~mv2.png"
+                  alt="Logo Autoescola Ideal"
+                  className={`h-24 w-24 object-contain transition-all duration-300 ${isCollapsed ? 'mx-auto' : ''}`}
+                />
+              </div>
             </div>
             {/* UnitSelector abaixo do logo, só quando sidebar não está colapsado */}
             {hasMultipleUnits() && !isCollapsed && (
@@ -231,20 +265,20 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                       <button
                         onClick={() => toggleSubmenu(item.name)}
                         className={`
-                          group flex items-center justify-between w-full p-2 rounded-lg transition-all duration-200
-                          ${hasActiveSubmenu 
-                            ? 'bg-blue-50 text-blue-700' 
-                            : 'text-gray-700 hover:bg-gray-100'
-                          }
+                          group flex items-center w-full px-4 py-2 my-1 rounded-full transition
+                          ${hasActiveSubmenu
+                            ? 'bg-blue-100 text-blue-700 font-semibold shadow-sm'
+                            : 'text-gray-700 hover:bg-blue-50'}
                         `}
                       >
                         <div className="flex items-center space-x-3">
-                          <Icon className="h-5 w-5 flex-shrink-0" />
+                          <Icon className={`w-5 h-5 flex-shrink-0 mr-2 ${hasActiveSubmenu ? 'text-blue-600' : 'text-gray-400'}`} />
                           <span className="text-sm font-medium">{item.name}</span>
                         </div>
                         <ChevronRight className={`
-                          h-4 w-4 transition-transform duration-200
+                          h-4 w-4 ml-2 transition-transform duration-200
                           ${isExpanded ? 'rotate-90' : ''}
+                          ${hasActiveSubmenu ? 'text-blue-600' : 'text-gray-400'}
                         `} />
                       </button>
                       
@@ -286,16 +320,16 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                     to={item.href}
                     onClick={closeSidebar}
                     className={`
-                      group flex items-center p-2 rounded-lg transition-all duration-200
-                      ${isActive 
-                        ? 'bg-blue-600 text-white' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                      }
+                      group flex items-center w-full px-4 py-2 my-1
+                      rounded-full transition
+                      ${isActive
+                        ? 'bg-blue-100 text-blue-700 font-semibold shadow-sm'
+                        : 'text-gray-700 hover:bg-blue-50'}
                       ${isCollapsed ? 'justify-center' : 'space-x-3'}
                     `}
                     title={isCollapsed ? item.name : ''}
                   >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <Icon className={`w-5 h-5 flex-shrink-0 mr-2 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
                     {!isCollapsed && (
                       <span className="text-sm font-medium">{item.name}</span>
                     )}
@@ -327,18 +361,6 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
           )}
         </div>
       </div>
-
-      {/* Botão de retração flutuante */}
-      {!isMobile && (
-        <button
-          onClick={toggleCollapse}
-          className={`fixed top-1/2 -translate-y-1/2 z-50 bg-white border border-gray-200 shadow-lg rounded-full w-9 h-9 flex items-center justify-center transition-all duration-200 hover:bg-gray-100
-            ${isCollapsed ? 'left-16' : 'left-64'}`}
-          aria-label="Retract sidebar"
-        >
-          <ChevronLeft className={`h-5 w-5 text-blue-600 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`} />
-        </button>
-      )}
     </>
   );
 } 

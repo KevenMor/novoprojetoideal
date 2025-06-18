@@ -21,6 +21,9 @@ import TestPermissions from './pages/TestPermissions';
 import DebugAuth from './pages/DebugAuth';
 import DebugUser from './pages/DebugUser';
 import DebugFirebase from './pages/DebugFirebase';
+import HistoricoMensagens from './pages/HistoricoMensagens';
+import GerenciarModelosMensagem from './pages/GerenciarModelosMensagem';
+import HistoricoCobrancas from './pages/HistoricoCobrancas';
 
 function App() {
   return (
@@ -63,6 +66,9 @@ function App() {
                   <Route path="usuarios" element={<GerenciarUsuarios />} />
                   <Route path="perfil" element={<Perfil />} />
                   <Route path="configuracoes" element={<Configuracoes />} />
+                  <Route path="historico-mensagens" element={<HistoricoMensagens />} />
+                  <Route path="gerenciar-modelos-mensagem" element={<PrivateRoute><GerenciarModelosMensagem /></PrivateRoute>} />
+                  <Route path="historico-cobrancas" element={<PrivateRoute><HistoricoCobrancas /></PrivateRoute>} />
                   
                   {/* Rotas de debug */}
                   <Route path="test-permissions" element={<TestPermissions />} />

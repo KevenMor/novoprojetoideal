@@ -587,7 +587,7 @@ export default function Extratos() {
               {shouldShowUnitSelector ? 'Unidade' : 'Unidade'}
             </label>
             <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              {/* <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" /> */}
               {shouldShowUnitSelector ? (
                 <select
                   value={selectedUnit === 'all' ? '' : selectedUnit}
@@ -735,7 +735,7 @@ export default function Extratos() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="flex items-center gap-1">
-                          <Building2 className="w-4 h-4 text-gray-400" />
+                          {/* <Building2 className="w-4 h-4 text-gray-400" /> */}
                           {extrato.unidade || 'N/A'}
                         </div>
                       </td>

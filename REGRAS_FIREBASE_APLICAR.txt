@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regra para usuários autenticados
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Regra para lançamentos (extratos)
+    match /lancamentos/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regra para contas BTG (nova coleção)
+    match /contas_btg/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regra para outras coleções que possam existir
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+} 

@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Menu, LogOut, User, Settings, X, ChevronDown } from 'lucide-react';
+import { Menu, LogOut, User, Settings, X, ChevronDown, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { fetchNotifications, markNotificationAsRead } from '../../services/notificationsService';
 
 export default function Header({ sidebarOpen, setSidebarOpen }) {
   const { userProfile, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const unreadCount = notifications.filter(n => !n.lida).length;
 
   const handleLogout = async () => {
     try {
@@ -25,6 +29,20 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
   const handleNavigate = (path) => {
     navigate(path);
     setUserMenuOpen(false);
+  };
+
+  // Buscar notificações ao carregar
+  React.useEffect(() => {
+    async function load() {
+      const notifs = await fetchNotifications(userProfile?.uid);
+      setNotifications(notifs);
+    }
+    load();
+  }, [userProfile]);
+
+  const handleMarkAsRead = async (id) => {
+    await markNotificationAsRead(id);
+    setNotifications(notifications => notifications.map(n => n.id === id ? { ...n, lida: true } : n));
   };
 
   return (
@@ -57,14 +75,36 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
             {/* Right side - Notifications and User Menu */}
             <div className="flex items-center space-x-3">
               {/* Notifications */}
-              <button className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  3
-                </span>
-              </button>
+              <div className="relative">
+                <button onClick={() => setNotifOpen(v => !v)} className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+                {notifOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 max-h-96 overflow-y-auto">
+                    <div className="px-4 py-2 border-b border-gray-100 font-semibold text-gray-900">Notificações</div>
+                    {notifications.length === 0 && (
+                      <div className="px-4 py-6 text-gray-500 text-sm text-center">Nenhuma notificação</div>
+                    )}
+                    {notifications.map(n => (
+                      <div key={n.id} className={`px-4 py-3 border-b last:border-b-0 flex flex-col gap-1 ${n.lida ? 'bg-gray-50' : 'bg-blue-50'}`}> 
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-gray-800">{n.titulo || 'Atualização'}</span>
+                          {!n.lida && (
+                            <button onClick={() => handleMarkAsRead(n.id)} className="text-xs text-blue-600 hover:underline">Marcar como lida</button>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-600">{n.mensagem}</span>
+                        <span className="text-xs text-gray-400 mt-1">{n.createdAt && (new Date(n.createdAt.seconds ? n.createdAt.seconds * 1000 : n.createdAt).toLocaleString('pt-BR'))}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* User Profile Dropdown */}
               <div className="relative">

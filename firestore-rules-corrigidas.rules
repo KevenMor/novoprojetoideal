@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Função para verificar se é admin
+    function isAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil == 'admin';
+    }
+    
+    // Função para verificar se é manager ou admin
+    function isManagerOrAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil in ['admin', 'manager'];
+    }
+    
+    // Função para verificar se é operator, manager ou admin
+    function isOperatorOrAbove() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil in ['admin', 'manager', 'operator'];
+    }
+    
+    // Função para verificar se é o próprio usuário
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    // REGRAS PARA USUÁRIOS - CORRIGIDAS
+    match /usuarios/{userId} {
+      // IMPORTANTE: Qualquer usuário autenticado pode ler seu próprio perfil
+      // Isso é necessário para o sistema verificar permissões
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Admin pode criar/editar/deletar todos os usuários
+      allow write, delete: if isAdmin();
+      
+      // Admin e Manager podem ler todos os usuários (para relatórios e gerenciamento)
+      allow read: if isAdmin();
+      allow read: if isManagerOrAdmin();
+    }
+    
+    // Regras para mensagens
+    match /messages/{messageId} {
+      // Operator ou superior pode enviar mensagens
+      allow read, write: if isOperatorOrAbove();
+      // Viewer pode apenas ler
+      allow read: if request.auth != null;
+    }
+    
+    // Regras para cobranças
+    match /charges/{chargeId} {
+      // Operator ou superior pode registrar cobranças
+      allow read, write: if isOperatorOrAbove();
+      // Viewer pode apenas ler
+      allow read: if request.auth != null;
+    }
+    
+    // Regras para contas BTG
+    match /btg_accounts/{accountId} {
+      // Operator ou superior pode cadastrar contas BTG
+      allow read, write: if isOperatorOrAbove();
+      // Viewer pode apenas ler
+      allow read: if request.auth != null;
+    }
+    
+    // Regras para extratos
+    match /extratos/{extratoId} {
+      // Todos os usuários autenticados podem ler extratos
+      // (o filtro por unidade é feito no frontend)
+      allow read: if request.auth != null;
+      // Operator ou superior pode criar/editar
+      allow write: if isOperatorOrAbove();
+    }
+    
+    // Regras para logs de auditoria (apenas admin)
+    match /audit_log/{logId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Regras para configurações do sistema (apenas admin)
+    match /system_config/{configId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // REGRA PADRÃO MAIS PERMISSIVA PARA EVITAR BLOQUEIOS
+    match /{document=**} {
+      // Todos os usuários autenticados podem ler (filtros no frontend)
+      allow read: if request.auth != null;
+      // Apenas Operator ou superior pode escrever
+      allow write: if isOperatorOrAbove();
+    }
+  }
+} 

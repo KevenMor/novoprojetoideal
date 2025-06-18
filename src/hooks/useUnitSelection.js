@@ -62,21 +62,18 @@ export const useUnitSelection = () => {
     setSelectedUnit(unit);
   };
 
-  const getUnitDisplayName = () => {
-    if (!userProfile) return 'Carregando informações...';
-    
-    if (isAdmin) {
-      return selectedUnit || '🏢 Todas as unidades';
-    } else {
-      const userUnits = userProfile.unidades || [];
-      if (userUnits.length === 0) {
-        return '⚠️ Nenhuma unidade atribuída';
-      } else if (userUnits.length === 1) {
-        return userUnits[0];
-      } else {
-        return selectedUnit || '📋 Selecione uma unidade';
-      }
-    }
+  const getUnitDisplayName = (unidade) => {
+    if (!unidade) return '';
+    const nomes = {
+      'Julio de Mesquita': 'Julio de Mesquita',
+      'Aparecidinha': 'Aparecidinha',
+      'Coop': 'Coop',
+      'Progresso': 'Progresso',
+      'Vila Haro': 'Vila Haro',
+      'Vila Helena': 'Vila Helena',
+      // Adicione outros slugs/códigos se necessário
+    };
+    return nomes[unidade] || unidade;
   };
 
   const shouldShowUnitSelector = () => {

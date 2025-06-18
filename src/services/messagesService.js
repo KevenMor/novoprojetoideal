@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
+import { db } from '../firebase/config';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
 // Configurar URL base do backend
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -240,6 +242,56 @@ export const messagesService = {
    */
   cleanWhatsApp(phone) {
     return phone ? phone.replace(/\D/g, '') : '';
+  },
+
+  /**
+   * Enviar mensagem diretamente para o webhook externo (Make.com)
+   * @param {Object} messageData - Dados da mensagem a ser enviada
+   * @param {string} [webhookUrl] - URL do webhook (opcional, padrão do Make.com)
+   */
+  async sendMessageToWebhook(messageData, webhookUrl = 'https://hook.us2.make.com/6o2ul55xv36k4wmxo12ctnwrn2rw1779') {
+    try {
+      const response = await axios.post(webhookUrl, messageData, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      // Sempre retorna o JSON do webhook, independente do status HTTP
+      return {
+        success: response.data?.success === true,
+        ...response.data
+      };
+    } catch (error) {
+      // Tente extrair o JSON do erro, se possível
+      const data = error?.response?.data;
+      return {
+        success: false,
+        ...data,
+        message: data?.message || error.message || 'Erro desconhecido ao enviar via webhook'
+      };
+    }
+  },
+
+  /**
+   * Salvar histórico da mensagem no Firestore
+   * @param {Object} messageData - Dados da mensagem enviada
+   * @param {Object} webhookResponse - Resposta do webhook (status, mensagem, etc)
+   */
+  async saveMessageHistory(messageData, webhookResponse) {
+    try {
+      const status = webhookResponse && webhookResponse.success === true ? 'success' : 'error';
+      const docRef = await addDoc(collection(db, 'historico_mensagens'), {
+        ...messageData,
+        status,
+        mensagemRetorno: webhookResponse?.message || '',
+        whatsapp_id: webhookResponse?.whatsapp_id || '',
+        dataEnvio: Timestamp.now()
+      });
+      console.log('✅ Histórico de mensagem salvo:', docRef.id);
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error('❌ Erro ao salvar histórico de mensagem:', error);
+      return { success: false, error: error.message };
+    }
   }
 };
 

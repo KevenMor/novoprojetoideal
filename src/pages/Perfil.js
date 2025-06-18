@@ -169,7 +169,7 @@ export default function Perfil() {
 
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center space-x-2 mb-2">
-              <Building2 className="h-5 w-5 text-green-600" />
+              {/* <Building2 className="h-5 w-5 text-green-600" /> */}
               <span className="font-medium text-gray-900">Unidades</span>
             </div>
             <p className="text-sm text-gray-600">

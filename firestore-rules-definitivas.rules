@@ -1,0 +1,104 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Regra padrão: usuários autenticados podem ler
+    match /{document=**} {
+      allow read: if request.auth != null;
+    }
+    
+    // USUÁRIOS - Regras específicas para criação e gerenciamento
+    match /usuarios/{userId} {
+      // Permitir leitura para usuários autenticados
+      allow read: if request.auth != null;
+      
+      // Permitir criação de usuários:
+      // 1. Por usuários autenticados E
+      // 2. Que tenham email de admin OU perfil admin no documento
+      allow create: if request.auth != null && 
+        (request.auth.token.email == 'admin@autoescolaideal.com' ||
+         isAdmin(request.auth.uid));
+      
+      // Permitir atualização apenas do próprio perfil ou por admins
+      allow update: if request.auth != null && 
+        (request.auth.uid == userId ||
+         request.auth.token.email == 'admin@autoescolaideal.com' ||
+         isAdmin(request.auth.uid));
+      
+      // Permitir exclusão apenas por admins
+      allow delete: if request.auth != null && 
+        (request.auth.token.email == 'admin@autoescolaideal.com' ||
+         isAdmin(request.auth.uid));
+    }
+    
+    // MENSAGENS - Usuários podem criar e ler suas próprias mensagens
+    match /messages/{messageId} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if request.auth != null && 
+        (request.auth.uid == resource.data.userId ||
+         isAdmin(request.auth.uid));
+    }
+    
+    // CONTAS BTG - Baseado nas unidades do usuário
+    match /btg_accounts/{accountId} {
+      allow read, create, update: if request.auth != null && 
+        (isAdmin(request.auth.uid) || 
+         hasAccessToUnit(request.auth.uid, resource.data.unidade));
+      allow delete: if request.auth != null && isAdmin(request.auth.uid);
+    }
+    
+    // COBRANÇAS - Baseado nas unidades do usuário
+    match /charges/{chargeId} {
+      allow read, create, update: if request.auth != null && 
+        (isAdmin(request.auth.uid) || 
+         hasAccessToUnit(request.auth.uid, resource.data.unidade));
+      allow delete: if request.auth != null && isAdmin(request.auth.uid);
+    }
+    
+    // EXTRATOS - Apenas leitura baseada nas unidades
+    match /extracts/{extractId} {
+      allow read: if request.auth != null && 
+        (isAdmin(request.auth.uid) || 
+         hasAccessToUnit(request.auth.uid, resource.data.unidade));
+      allow create, update, delete: if request.auth != null && isAdmin(request.auth.uid);
+    }
+    
+    // CONFIGURAÇÕES - Apenas admins
+    match /settings/{settingId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && isAdmin(request.auth.uid);
+    }
+    
+    // LOGS - Apenas leitura por admins
+    match /logs/{logId} {
+      allow read: if request.auth != null && isAdmin(request.auth.uid);
+      allow create: if request.auth != null; // Permitir criação de logs
+    }
+    
+    // UNIDADES - Apenas admins podem modificar
+    match /unidades/{unidadeId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && isAdmin(request.auth.uid);
+    }
+    
+    // DOCUMENTOS DE TESTE - Remover após setup
+    match /teste_permissoes/{testId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+  
+  // FUNÇÕES AUXILIARES
+  function isAdmin(uid) {
+    return exists(/databases/$(database)/documents/usuarios/$(uid)) &&
+           get(/databases/$(database)/documents/usuarios/$(uid)).data.perfil == 'admin';
+  }
+  
+  function hasAccessToUnit(uid, unidade) {
+    return exists(/databases/$(database)/documents/usuarios/$(uid)) &&
+           unidade in get(/databases/$(database)/documents/usuarios/$(uid)).data.unidades;
+  }
+  
+  function isOwner(uid, resourceUserId) {
+    return request.auth.uid == resourceUserId;
+  }
+} 

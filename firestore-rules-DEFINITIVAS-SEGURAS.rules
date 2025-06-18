@@ -1,0 +1,199 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // REGRAS DEFINITIVAS E SEGURAS - PRODUÇÃO
+    // Sistema Autoescola Ideal
+    // ========================================
+    
+    // Função para verificar se o usuário é admin
+    function isAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil == 'admin' &&
+             get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.ativo == true;
+    }
+    
+    // Função para verificar se o usuário está ativo
+    function isActiveUser() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.ativo == true;
+    }
+    
+    // Função para verificar se o usuário tem uma permissão específica
+    function hasPermission(permission) {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+             permission in get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.permissions;
+    }
+    
+    // Função para verificar se é o próprio usuário
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    // ========================================
+    // COLEÇÃO: usuarios
+    // ========================================
+    match /usuarios/{userId} {
+      // LEITURA: Admin pode ler todos, usuário pode ler apenas o próprio
+      allow read: if isAdmin() || isOwner(userId);
+      
+      // CRIAÇÃO: Apenas admin pode criar novos usuários
+      allow create: if isAdmin() && 
+                       request.resource.data.keys().hasAll(['nome', 'email', 'perfil', 'ativo', 'permissions']) &&
+                       request.resource.data.nome is string &&
+                       request.resource.data.email is string &&
+                       request.resource.data.perfil in ['admin', 'manager', 'operator', 'viewer', 'custom'] &&
+                       request.resource.data.ativo is bool &&
+                       request.resource.data.permissions is list;
+      
+      // ATUALIZAÇÃO: Admin pode atualizar todos, usuário pode atualizar apenas dados básicos próprios
+      allow update: if (isAdmin()) || 
+                       (isOwner(userId) && 
+                        !('perfil' in request.resource.data.diff(resource.data).affectedKeys()) &&
+                        !('permissions' in request.resource.data.diff(resource.data).affectedKeys()) &&
+                        !('ativo' in request.resource.data.diff(resource.data).affectedKeys()));
+      
+      // EXCLUSÃO: Apenas admin pode excluir usuários
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // COLEÇÃO: mensagens
+    // ========================================
+    match /mensagens/{messageId} {
+      // LEITURA: Usuários com permissão de visualizar mensagens
+      allow read: if isActiveUser() && hasPermission('enviar_mensagens');
+      
+      // CRIAÇÃO: Usuários com permissão de enviar mensagens
+      allow create: if isActiveUser() && hasPermission('enviar_mensagens') &&
+                       request.resource.data.keys().hasAll(['destinatario', 'mensagem', 'criadoEm']) &&
+                       request.resource.data.destinatario is string &&
+                       request.resource.data.mensagem is string &&
+                       request.resource.data.criadoEm is timestamp;
+      
+      // ATUALIZAÇÃO: Apenas admin ou criador da mensagem
+      allow update: if isAdmin() || 
+                       (isActiveUser() && hasPermission('enviar_mensagens') && 
+                        resource.data.criadoPor == request.auth.uid);
+      
+      // EXCLUSÃO: Apenas admin
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // COLEÇÃO: contas_btg
+    // ========================================
+    match /contas_btg/{contaId} {
+      // LEITURA: Usuários com permissão de visualizar contas BTG
+      allow read: if isActiveUser() && hasPermission('cadastrar_contas_btg');
+      
+      // CRIAÇÃO: Usuários com permissão de cadastrar contas BTG
+      allow create: if isActiveUser() && hasPermission('cadastrar_contas_btg') &&
+                       request.resource.data.keys().hasAll(['nome', 'email', 'unidade', 'criadoEm']) &&
+                       request.resource.data.nome is string &&
+                       request.resource.data.email is string &&
+                       request.resource.data.unidade is string &&
+                       request.resource.data.criadoEm is timestamp;
+      
+      // ATUALIZAÇÃO: Usuários com permissão ou admin
+      allow update: if isAdmin() || 
+                       (isActiveUser() && hasPermission('cadastrar_contas_btg'));
+      
+      // EXCLUSÃO: Apenas admin
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // COLEÇÃO: cobrancas
+    // ========================================
+    match /cobrancas/{cobrancaId} {
+      // LEITURA: Usuários com permissão de visualizar cobranças
+      allow read: if isActiveUser() && hasPermission('registrar_cobrancas');
+      
+      // CRIAÇÃO: Usuários com permissão de registrar cobranças
+      allow create: if isActiveUser() && hasPermission('registrar_cobrancas') &&
+                       request.resource.data.keys().hasAll(['valor', 'descricao', 'unidade', 'criadoEm']) &&
+                       request.resource.data.valor is number &&
+                       request.resource.data.descricao is string &&
+                       request.resource.data.unidade is string &&
+                       request.resource.data.criadoEm is timestamp;
+      
+      // ATUALIZAÇÃO: Usuários com permissão ou admin
+      allow update: if isAdmin() || 
+                       (isActiveUser() && hasPermission('registrar_cobrancas'));
+      
+      // EXCLUSÃO: Apenas admin
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // COLEÇÃO: extratos
+    // ========================================
+    match /extratos/{extratoId} {
+      // LEITURA: Usuários com permissão de visualizar extratos
+      allow read: if isActiveUser() && hasPermission('visualizar_extratos');
+      
+      // CRIAÇÃO: Usuários com permissão de visualizar extratos (para salvar filtros/relatórios)
+      allow create: if isActiveUser() && hasPermission('visualizar_extratos');
+      
+      // ATUALIZAÇÃO: Usuários com permissão ou admin
+      allow update: if isAdmin() || 
+                       (isActiveUser() && hasPermission('visualizar_extratos'));
+      
+      // EXCLUSÃO: Apenas admin
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // COLEÇÃO: configuracoes
+    // ========================================
+    match /configuracoes/{configId} {
+      // LEITURA: Usuários com permissão de configurar sistema
+      allow read: if isActiveUser() && hasPermission('configurar_sistema');
+      
+      // CRIAÇÃO/ATUALIZAÇÃO: Apenas admin ou usuários com permissão específica
+      allow create, update: if isAdmin() || 
+                              (isActiveUser() && hasPermission('configurar_sistema'));
+      
+      // EXCLUSÃO: Apenas admin
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // COLEÇÃO: logs (para auditoria)
+    // ========================================
+    match /logs/{logId} {
+      // LEITURA: Apenas admin
+      allow read: if isAdmin();
+      
+      // CRIAÇÃO: Qualquer usuário autenticado pode criar logs
+      allow create: if request.auth != null;
+      
+      // ATUALIZAÇÃO/EXCLUSÃO: Apenas admin
+      allow update, delete: if isAdmin();
+    }
+    
+    // ========================================
+    // COLEÇÃO: unidades
+    // ========================================
+    match /unidades/{unidadeId} {
+      // LEITURA: Usuários ativos podem ler informações das unidades
+      allow read: if isActiveUser();
+      
+      // CRIAÇÃO/ATUALIZAÇÃO/EXCLUSÃO: Apenas admin
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // ========================================
+    // REGRA PADRÃO: Negar tudo que não foi explicitamente permitido
+    // ========================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+} 

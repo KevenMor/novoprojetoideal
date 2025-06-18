@@ -205,10 +205,10 @@ export default function Dashboard() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-              Bem-vindo, {userProfile?.nome}! 👋
+              Bem-vindo, {userProfile?.nome}!
             </h1>
             <div className="flex items-center space-x-2 text-blue-100">
-              <Building2 className="h-5 w-5" />
+              {/* <Building2 className="h-5 w-5" /> */}
               <span>{getSelectedUnitDisplay()}</span>
             </div>
           </div>

@@ -5,6 +5,9 @@ import { Receipt, User, Mail, Phone, CreditCard, Calendar, DollarSign, FileText,
 import InputMask from 'react-input-mask';
 import { asaasService, formatCurrency, formatDate, getStatusText } from '../services/asaasService';
 import toast from 'react-hot-toast';
+import axios from 'axios';
+import { db } from '../firebase/config';
+import { collection, addDoc, Timestamp, getDocs, query, orderBy } from 'firebase/firestore';
 
 export default function RegistrarCobrancas() {
   const { 
@@ -16,13 +19,12 @@ export default function RegistrarCobrancas() {
   } = useUnitSelection();
   
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('nova');
   const [cobrancas, setCobrancas] = useState([]);
   const [loadingCobrancas, setLoadingCobrancas] = useState(false);
   const [selectedCobranca, setSelectedCobranca] = useState(null);
   
   const [formData, setFormData] = useState({
-    unidade: selectedUnit || '',
+    unidade: '',
     nome: '',
     cpf: '',
     email: '',
@@ -35,11 +37,13 @@ export default function RegistrarCobrancas() {
   });
 
   // Atualizar unidade no form quando selectedUnit mudar
-  React.useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      unidade: selectedUnit || ''
-    }));
+  useEffect(() => {
+    if (selectedUnit && formData.unidade !== selectedUnit) {
+      setFormData(prev => ({
+        ...prev,
+        unidade: selectedUnit
+      }));
+    }
   }, [selectedUnit]);
 
   const servicos = [
@@ -63,17 +67,12 @@ export default function RegistrarCobrancas() {
     { value: 'recorrente', label: 'Recorrente' }
   ];
 
-  useEffect(() => {
-    if (activeTab === 'historico') {
-      carregarCobrancas();
-    }
-  }, [activeTab]);
-
   const carregarCobrancas = async () => {
     setLoadingCobrancas(true);
     try {
-      const resultado = await asaasService.listarCobrancas({ limit: 100 });
-      setCobrancas(resultado.data || []);
+      const q = query(collection(db, 'cobrancas'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      setCobrancas(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
       toast.error('Erro ao carregar cobranças');
     } finally {
@@ -90,13 +89,94 @@ export default function RegistrarCobrancas() {
     return (parseFloat(formData.valorTotal) / parseInt(formData.parcelas)).toFixed(2);
   };
 
+  const enviarParaWebhookCobranca = async (dados) => {
+    try {
+      await axios.post('https://hook.us2.make.com/ihg35mjrciqihgiu4hm8jj4ej4ft5nca', dados, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      console.log('✅ Dados enviados para o webhook de cobrança');
+    } catch (error) {
+      console.error('❌ Erro ao enviar para o webhook de cobrança:', error);
+    }
+  };
+
+  // Função para formatar valor monetário
+  const formatarValorMonetario = (valor) => {
+    if (!valor) return '';
+    const num = Number(valor.toString().replace(/[^\d]/g, '')) / 100;
+    return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const handleValorChange = (e) => {
+    const raw = e.target.value.replace(/[^\d]/g, '');
+    setFormData(prev => ({ ...prev, valorTotal: raw }));
+  };
+
+  // Função para capitalizar o nome
+  function capitalizeName(name) {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  // Função para formatar valor com casas decimais e ponto
+  function formatValor(valor) {
+    const num = Number(valor);
+    return num.toFixed(2).replace(',', '.');
+  }
+
+  // Função robusta para formatar datas de vários formatos
+  function formatDateBR(date) {
+    if (!date) return '';
+    // Firestore Timestamp
+    if (typeof date === 'object' && date.seconds) {
+      const d = new Date(date.seconds * 1000);
+      return d.toLocaleDateString('pt-BR');
+    }
+    // String ISO
+    if (/^\d{4}-\d{2}-\d{2}/.test(date)) {
+      const [ano, mes, dia] = date.split('-');
+      return `${dia}/${mes}/${ano}`;
+    }
+    // String BR
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(date)) {
+      return date;
+    }
+    // Tenta converter
+    const d = new Date(date);
+    if (!isNaN(d)) return d.toLocaleDateString('pt-BR');
+    return '';
+  }
+
+  function formatDateISO(date) {
+    if (!date) return '';
+    // Se já estiver no formato ISO
+    if (/^\d{4}-\d{2}-\d{2}/.test(date)) return date;
+    // Se vier como dd/mm/aaaa
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(date)) {
+      const [dia, mes, ano] = date.split('/');
+      return `${ano}-${mes}-${dia}`;
+    }
+    // Tenta converter
+    const d = new Date(date);
+    if (!isNaN(d)) return d.toISOString().slice(0, 10);
+    return '';
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    console.log('Formulário enviado:', formData);
+    const unidadeParaValidar = formData.unidade || '';
+    console.log('Unidade para validação:', JSON.stringify(unidadeParaValidar));
+    const unidadeInvalida = !unidadeParaValidar || unidadeParaValidar.trim().length === 0;
+    const valorTotalNumerico = Number(formData.valorTotal) / 100;
+    const valorTotalInvalido = !valorTotalNumerico || valorTotalNumerico <= 0;
     if (!formData.nome || !formData.cpf || !formData.email || !formData.whatsapp || 
-        !formData.servico || !formData.tipoPagamento || !formData.valorTotal || 
-        !formData.dataVencimento || !formData.unidade) {
-      toast.error('Por favor, preencha todos os campos obrigatórios');
+        !formData.servico || !formData.tipoPagamento || valorTotalInvalido || 
+        !formData.dataVencimento || unidadeInvalida) {
+      toast.error('Por favor, preencha todos os campos obrigatórios e selecione uma unidade válida.');
       return;
     }
 
@@ -124,60 +204,37 @@ export default function RegistrarCobrancas() {
     setLoading(true);
     
     try {
-      // Verificar se cliente já existe
-      let cliente = await asaasService.buscarClientePorCpf(formData.cpf);
-      
-      // Criar cliente se não existir
-      if (!cliente) {
-        cliente = await asaasService.criarCliente({
-          nome: formData.nome,
-          cpf: formData.cpf,
-          email: formData.email,
-          whatsapp: formData.whatsapp,
-          unidade: formData.unidade
-        });
-      }
-
-      // Criar cobrança ou assinatura
-      if (formData.tipoPagamento === 'recorrente') {
-        await asaasService.criarAssinatura({
-          customerId: cliente.id,
-          tipoPagamento: 'boleto',
-          valor: parseFloat(formData.valorTotal),
-          proximoVencimento: formData.dataVencimento,
-          servico: formData.servico,
-          unidade: formData.unidade
-        });
-        toast.success('Assinatura recorrente criada com sucesso!');
-      } else {
-        const dadosCobranca = {
-          customerId: cliente.id,
-          tipoPagamento: formData.tipoPagamento,
-          valor: parseFloat(formData.valorTotal),
-          vencimento: formData.dataVencimento,
-          servico: formData.servico,
-          unidade: formData.unidade,
-          parcelas: parseInt(formData.parcelas),
-          valorTotal: parseFloat(formData.valorTotal)
-        };
-
-        await asaasService.criarCobranca(dadosCobranca);
-        toast.success('Cobrança criada com sucesso!');
-      }
-      
-      // Reset form
-      setFormData({
-        unidade: selectedUnit || '',
-        nome: '',
-        cpf: '',
-        email: '',
-        whatsapp: '',
-        servico: '',
-        tipoPagamento: '',
-        valorTotal: '',
-        parcelas: 1,
-        dataVencimento: ''
+      // Enviar apenas para o webhook do Make
+      await enviarParaWebhookCobranca({
+        nome: capitalizeName(formData.nome),
+        cpf: formData.cpf,
+        email: formData.email,
+        whatsapp: formData.whatsapp,
+        servico: formData.servico,
+        tipoPagamento: formData.tipoPagamento,
+        valorTotal: formatValor(formData.valorTotal / 100),
+        parcelas: formData.parcelas,
+        valorParcela: formatValor((formData.valorTotal / 100) / Number(formData.parcelas)),
+        dataVencimento: formatDateISO(formData.dataVencimento),
+        unidade: unidadeParaValidar
       });
+      // Salvar no Firestore
+      await addDoc(collection(db, 'cobrancas'), {
+        nome: capitalizeName(formData.nome),
+        cpf: formData.cpf,
+        email: formData.email,
+        whatsapp: formData.whatsapp,
+        servico: formData.servico,
+        tipoPagamento: formData.tipoPagamento,
+        valorTotal: formatValor(formData.valorTotal / 100),
+        parcelas: formData.parcelas,
+        valorParcela: formatValor((formData.valorTotal / 100) / Number(formData.parcelas)),
+        dataVencimento: formatDateISO(formData.dataVencimento),
+        unidade: unidadeParaValidar,
+        status: 'ENVIADO',
+        createdAt: Timestamp.now()
+      });
+      toast.success('Cobrança enviada para o webhook com sucesso!');
       
     } catch (error) {
       console.error('Erro ao criar cobrança:', error);
@@ -188,12 +245,7 @@ export default function RegistrarCobrancas() {
   };
 
   const handleViewCobranca = async (cobranca) => {
-    try {
-      const detalhes = await asaasService.buscarCobranca(cobranca.id);
-      setSelectedCobranca(detalhes);
-    } catch (error) {
-      toast.error('Erro ao carregar detalhes da cobrança');
-    }
+    setSelectedCobranca(cobranca);
   };
 
   return (
@@ -209,168 +261,134 @@ export default function RegistrarCobrancas() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('nova')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'nova'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Unidade */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Unidade *
+            </label>
+            <select
+              className="input-field"
+              value={formData.unidade}
+              onChange={e => setFormData({ ...formData, unidade: e.target.value })}
+              required
             >
-              <Plus className="w-4 h-4 inline mr-2" />
-              Nova Cobrança
-            </button>
-            <button
-              onClick={() => setActiveTab('historico')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'historico'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <FileText className="w-4 h-4 inline mr-2" />
-              Histórico
-            </button>
-          </nav>
-        </div>
+              <option value="">Selecione a unidade</option>
+              {availableUnits.map(unit => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* Nova Cobrança */}
-        {activeTab === 'nova' && (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Unidade */}
-            <div>
-              <UnitSelector
-                selectedUnit={formData.unidade}
-                availableUnits={availableUnits}
-                onUnitChange={(unit) => {
-                  setFormData({...formData, unidade: unit});
-                  handleUnitChange(unit);
-                }}
-                shouldShowSelector={shouldShowUnitSelector}
-                displayName={getUnitDisplayName()}
-                label="Unidade *"
-                className="w-full"
-              />
-              {!shouldShowUnitSelector && !formData.unidade && (
-                <p className="mt-1 text-sm text-red-600">
-                  ⚠️ Nenhuma unidade atribuída. Entre em contato com o administrador.
-                </p>
-              )}
-            </div>
+          {/* Dados do Aluno */}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="font-medium text-gray-900 mb-4 flex items-center">
+              <User className="h-5 w-5 mr-2 text-blue-600" />
+              Dados do Aluno
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome Completo *
+                </label>
+                <input
+                  type="text"
+                  required
+                  className="input-field"
+                  placeholder="Digite o nome completo do aluno"
+                  value={formData.nome}
+                  onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                />
+              </div>
 
-            {/* Dados do Aluno */}
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-4 flex items-center">
-                <User className="h-5 w-5 mr-2 text-blue-600" />
-                Dados do Aluno
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nome Completo *
-                  </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  CPF *
+                </label>
+                <InputMask
+                  mask="999.999.999-99"
+                  value={formData.cpf}
+                  onChange={(e) => setFormData({...formData, cpf: e.target.value})}
+                  className="input-field"
+                  placeholder="Digite o CPF (000.000.000-00)"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email *
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
                   <input
-                    type="text"
+                    type="email"
                     required
-                    className="input-field"
-                    placeholder="Digite o nome completo do aluno"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                    className="input-field pl-10"
+                    placeholder="Digite o email do aluno"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    CPF *
-                  </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  WhatsApp *
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-gray-400" />
+                  </div>
                   <InputMask
-                    mask="999.999.999-99"
-                    value={formData.cpf}
-                    onChange={(e) => setFormData({...formData, cpf: e.target.value})}
-                    className="input-field"
-                    placeholder="Digite o CPF (000.000.000-00)"
+                    mask="(99) 99999-9999"
+                    value={formData.whatsapp}
+                    onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
+                    className="input-field pl-10"
+                    placeholder="Digite o WhatsApp (11) 99999-9999"
                     required
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email *
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="email"
-                      required
-                      className="input-field pl-10"
-                      placeholder="Digite o email do aluno"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    WhatsApp *
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <InputMask
-                      mask="(99) 99999-9999"
-                      value={formData.whatsapp}
-                      onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
-                      className="input-field pl-10"
-                      placeholder="Digite o WhatsApp (11) 99999-9999"
-                      required
-                    />
-                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Serviço */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Serviço *
-              </label>
-              <select
-                required
-                className="select-field"
-                value={formData.servico}
-                onChange={(e) => setFormData({...formData, servico: e.target.value})}
-              >
-                <option value="">📋 Selecione o serviço</option>
-                {servicos.map((servico) => (
-                  <option key={servico} value={servico}>{servico}</option>
-                ))}
-              </select>
-            </div>
+          {/* Serviço */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Serviço *
+            </label>
+            <select
+              required
+              className="select-field"
+              value={formData.servico}
+              onChange={(e) => setFormData({...formData, servico: e.target.value})}
+            >
+              <option value="">Selecione o serviço</option>
+              {servicos.map((servico) => (
+                <option key={servico} value={servico}>{servico}</option>
+              ))}
+            </select>
+          </div>
 
-            {/* Pagamento */}
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-4 flex items-center">
-                <CreditCard className="h-5 w-5 mr-2 text-green-600" />
-                Dados do Pagamento
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de Pagamento *
-                  </label>
+          {/* Pagamento */}
+          <div className="bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100">
+            <h3 className="font-semibold text-lg text-gray-900 mb-4 flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-green-600" />
+              Dados do Pagamento
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Tipo de Pagamento *</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><CreditCard className="w-4 h-4" /></span>
                   <select
-                    required
-                    className="select-field"
+                    className="input-field pl-10"
                     value={formData.tipoPagamento}
+                    required
                     onChange={(e) => {
                       setFormData({
                         ...formData, 
@@ -379,193 +397,82 @@ export default function RegistrarCobrancas() {
                       });
                     }}
                   >
-                    <option value="">💳 Selecione o tipo de pagamento</option>
+                    <option value="">Selecione o tipo de pagamento</option>
                     {tiposPagamento.map((tipo) => (
                       <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
                     ))}
                   </select>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Valor Total *
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <DollarSign className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      className="input-field pl-10"
-                      placeholder="Digite o valor total (ex: 1500,00)"
-                      value={formData.valorTotal}
-                      onChange={(e) => setFormData({...formData, valorTotal: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nº de Parcelas *
-                  </label>
-                  <select
-                    required
-                    className="select-field"
-                    value={formData.parcelas}
-                    onChange={(e) => setFormData({...formData, parcelas: e.target.value})}
-                    disabled={formData.tipoPagamento === 'a_vista'}
-                  >
-                    {[1,2,3,4,5,6].map(num => (
-                      <option key={num} value={num}>{num}x</option>
-                    ))}
-                  </select>
-                  {formData.valorTotal && formData.parcelas > 1 && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formData.parcelas}x de R$ {calcularValorParcela()}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Data 1º Vencimento *
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="date"
-                      required
-                      className="input-field pl-10"
-                      value={formData.dataVencimento}
-                      onChange={(e) => setFormData({...formData, dataVencimento: e.target.value})}
-                    />
-                  </div>
-                </div>
               </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary flex items-center space-x-2"
-            >
-              {loading ? (
-                <>
-                  <div className="loading-spinner"></div>
-                  <span>Criando Cobrança...</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="h-5 w-5" />
-                  <span>Criar Cobrança</span>
-                </>
-              )}
-            </button>
-          </form>
-        )}
-
-        {/* Histórico de Cobranças */}
-        {activeTab === 'historico' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Valor Total *</label>
                 <div className="relative">
-                  <Search className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">R$</span>
                   <input
                     type="text"
-                    placeholder="Digite nome ou CPF para buscar..."
-                    className="input-field pl-10 w-64"
+                    required
+                    className="input-field pl-10 text-right font-semibold"
+                    placeholder="0,00"
+                    value={formatarValorMonetario(formData.valorTotal).replace('R$', '').trim()}
+                    onChange={handleValorChange}
+                    maxLength={12}
+                    inputMode="numeric"
                   />
                 </div>
               </div>
-              <button
-                onClick={carregarCobrancas}
-                className="btn-secondary"
-                disabled={loadingCobrancas}
-              >
-                {loadingCobrancas ? 'Carregando...' : 'Atualizar'}
-              </button>
-            </div>
-
-            {loadingCobrancas ? (
-              <div className="flex justify-center py-8">
-                <div className="loading-spinner w-8 h-8"></div>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full table-auto">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Cliente
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Valor
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Vencimento
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Ações
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {cobrancas.map((cobranca) => (
-                      <tr key={cobranca.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {cobranca.customer?.name || 'N/A'}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {cobranca.customer?.cpfCnpj ? formatCPF(cobranca.customer.cpfCnpj) : 'N/A'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatCurrency(cobranca.value)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(cobranca.dueDate)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            cobranca.status === 'RECEIVED' ? 'bg-green-100 text-green-800' :
-                            cobranca.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                            cobranca.status === 'OVERDUE' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {getStatusText(cobranca.status)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={() => handleViewCobranca(cobranca)}
-                            className="text-blue-600 hover:text-blue-900 mr-3"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {cobrancas.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    Nenhuma cobrança encontrada
-                  </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Nº de Parcelas *</label>
+                <select
+                  className="input-field"
+                  value={formData.parcelas}
+                  required
+                  onChange={(e) => setFormData({...formData, parcelas: e.target.value})}
+                  disabled={formData.tipoPagamento === 'a_vista'}
+                >
+                  {[1,2,3,4,5,6].map(num => (
+                    <option key={num} value={num}>{num}x</option>
+                  ))}
+                </select>
+                {formData.valorTotal && formData.parcelas > 1 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formData.parcelas}x de R$ {formatValor((Number(formData.valorTotal) / 100) / Number(formData.parcelas))}
+                  </p>
                 )}
               </div>
-            )}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Data 1º Vencimento *</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Calendar className="w-4 h-4" /></span>
+                  <input
+                    type="date"
+                    required
+                    className="input-field pl-10"
+                    value={formData.dataVencimento}
+                    onChange={(e) => setFormData({...formData, dataVencimento: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary flex items-center space-x-2"
+          >
+            {loading ? (
+              <>
+                <div className="loading-spinner"></div>
+                <span>Criando Cobrança...</span>
+              </>
+            ) : (
+              <>
+                <Plus className="h-5 w-5" />
+                <span>Criar Cobrança</span>
+              </>
+            )}
+          </button>
+        </form>
       </div>
 
       {/* Modal de Detalhes da Cobrança */}
@@ -601,7 +508,11 @@ export default function RegistrarCobrancas() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Vencimento</label>
-                    <p className="text-sm text-gray-900">{formatDate(selectedCobranca.dueDate)}</p>
+                    <p className="text-sm text-gray-900">{formatDateBR(selectedCobranca.dataVencimento)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Criado em</label>
+                    <p className="text-sm text-gray-900">{formatDateBR(selectedCobranca.createdAt)}</p>
                   </div>
                 </div>
                 

@@ -1,0 +1,210 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // REGRAS PARA COLEÇÃO DE USUÁRIOS
+    // ========================================
+    match /usuarios/{userId} {
+      // Permitir leitura apenas para usuários autenticados
+      allow read: if request.auth != null;
+      
+      // Permitir criação apenas para admins
+      allow create: if request.auth != null 
+        && isAdmin(request.auth.uid);
+      
+      // Permitir atualização apenas para admins ou o próprio usuário (dados básicos)
+      allow update: if request.auth != null 
+        && (isAdmin(request.auth.uid) || 
+            (request.auth.uid == userId && isBasicUserUpdate()));
+      
+      // Permitir exclusão apenas para admins
+      allow delete: if request.auth != null 
+        && isAdmin(request.auth.uid);
+    }
+    
+    // ========================================
+    // REGRAS PARA COLEÇÃO DE MENSAGENS
+    // ========================================
+    match /mensagens/{messageId} {
+      // Permitir leitura para usuários com permissão
+      allow read: if request.auth != null 
+        && hasPermission(request.auth.uid, 'messages.view');
+      
+      // Permitir criação para usuários com permissão
+      allow create: if request.auth != null 
+        && hasPermission(request.auth.uid, 'messages.send')
+        && isValidMessage();
+      
+      // Permitir atualização apenas para admins
+      allow update: if request.auth != null 
+        && isAdmin(request.auth.uid);
+      
+      // Permitir exclusão apenas para admins
+      allow delete: if request.auth != null 
+        && isAdmin(request.auth.uid);
+    }
+    
+    // ========================================
+    // REGRAS PARA COLEÇÃO DE CONTAS BTG
+    // ========================================
+    match /contas_btg/{accountId} {
+      // Permitir leitura para usuários com permissão
+      allow read: if request.auth != null 
+        && hasPermission(request.auth.uid, 'btg_accounts.view');
+      
+      // Permitir criação para usuários com permissão
+      allow create: if request.auth != null 
+        && hasPermission(request.auth.uid, 'btg_accounts.create')
+        && isValidBTGAccount();
+      
+      // Permitir atualização para usuários com permissão
+      allow update: if request.auth != null 
+        && hasPermission(request.auth.uid, 'btg_accounts.edit');
+      
+      // Permitir exclusão para usuários com permissão
+      allow delete: if request.auth != null 
+        && hasPermission(request.auth.uid, 'btg_accounts.delete');
+    }
+    
+    // ========================================
+    // REGRAS PARA COLEÇÃO DE COBRANÇAS
+    // ========================================
+    match /cobrancas/{chargeId} {
+      // Permitir leitura para usuários com permissão
+      allow read: if request.auth != null 
+        && hasPermission(request.auth.uid, 'charges.view');
+      
+      // Permitir criação para usuários com permissão
+      allow create: if request.auth != null 
+        && hasPermission(request.auth.uid, 'charges.create')
+        && isValidCharge();
+      
+      // Permitir atualização para usuários com permissão
+      allow update: if request.auth != null 
+        && hasPermission(request.auth.uid, 'charges.edit');
+      
+      // Permitir exclusão para usuários com permissão
+      allow delete: if request.auth != null 
+        && hasPermission(request.auth.uid, 'charges.delete');
+    }
+    
+    // ========================================
+    // REGRAS PARA COLEÇÃO DE EXTRATOS
+    // ========================================
+    match /extratos/{extractId} {
+      // Permitir leitura para usuários com permissão
+      allow read: if request.auth != null 
+        && hasPermission(request.auth.uid, 'extracts.view');
+      
+      // Permitir criação apenas para admins (extratos são gerados automaticamente)
+      allow create: if request.auth != null 
+        && isAdmin(request.auth.uid);
+      
+      // Permitir atualização apenas para admins
+      allow update: if request.auth != null 
+        && isAdmin(request.auth.uid);
+      
+      // Permitir exclusão apenas para admins
+      allow delete: if request.auth != null 
+        && isAdmin(request.auth.uid);
+    }
+    
+    // ========================================
+    // REGRAS PARA COLEÇÃO DE CONFIGURAÇÕES
+    // ========================================
+    match /configuracoes/{configId} {
+      // Permitir leitura para usuários com permissão
+      allow read: if request.auth != null 
+        && hasPermission(request.auth.uid, 'settings.view');
+      
+      // Permitir escrita apenas para admins
+      allow write: if request.auth != null 
+        && isAdmin(request.auth.uid);
+    }
+    
+    // ========================================
+    // REGRAS PARA COLEÇÃO DE LOGS
+    // ========================================
+    match /logs/{logId} {
+      // Permitir leitura apenas para admins
+      allow read: if request.auth != null 
+        && isAdmin(request.auth.uid);
+      
+      // Permitir criação para usuários autenticados (logs do sistema)
+      allow create: if request.auth != null;
+      
+      // Não permitir atualização ou exclusão de logs
+      allow update, delete: if false;
+    }
+    
+    // ========================================
+    // REGRAS PARA COLEÇÃO DE UNIDADES
+    // ========================================
+    match /unidades/{unitId} {
+      // Permitir leitura para usuários autenticados
+      allow read: if request.auth != null;
+      
+      // Permitir escrita apenas para admins
+      allow write: if request.auth != null 
+        && isAdmin(request.auth.uid);
+    }
+    
+    // ========================================
+    // FUNÇÕES AUXILIARES
+    // ========================================
+    
+    // Verificar se o usuário é admin
+    function isAdmin(uid) {
+      return exists(/databases/$(database)/documents/usuarios/$(uid)) 
+        && get(/databases/$(database)/documents/usuarios/$(uid)).data.perfil == 'admin'
+        && get(/databases/$(database)/documents/usuarios/$(uid)).data.ativo == true;
+    }
+    
+    // Verificar se o usuário tem uma permissão específica
+    function hasPermission(uid, permission) {
+      return exists(/databases/$(database)/documents/usuarios/$(uid)) 
+        && get(/databases/$(database)/documents/usuarios/$(uid)).data.ativo == true
+        && (get(/databases/$(database)/documents/usuarios/$(uid)).data.perfil == 'admin'
+            || permission in get(/databases/$(database)/documents/usuarios/$(uid)).data.permissions);
+    }
+    
+    // Verificar se é uma atualização básica do usuário (não altera permissões)
+    function isBasicUserUpdate() {
+      return !('permissions' in request.resource.data) 
+        && !('perfil' in request.resource.data)
+        && !('ativo' in request.resource.data)
+        && !('unidades' in request.resource.data);
+    }
+    
+    // Validar estrutura de mensagem
+    function isValidMessage() {
+      return request.resource.data.keys().hasAll(['destinatario', 'mensagem', 'criadoEm', 'criadoPor'])
+        && request.resource.data.criadoPor == request.auth.uid
+        && request.resource.data.criadoEm is timestamp;
+    }
+    
+    // Validar estrutura de conta BTG
+    function isValidBTGAccount() {
+      return request.resource.data.keys().hasAll(['nome', 'documento', 'unidade', 'criadoEm', 'criadoPor'])
+        && request.resource.data.criadoPor == request.auth.uid
+        && request.resource.data.criadoEm is timestamp;
+    }
+    
+    // Validar estrutura de cobrança
+    function isValidCharge() {
+      return request.resource.data.keys().hasAll(['cliente', 'valor', 'unidade', 'criadoEm', 'criadoPor'])
+        && request.resource.data.criadoPor == request.auth.uid
+        && request.resource.data.criadoEm is timestamp
+        && request.resource.data.valor is number
+        && request.resource.data.valor > 0;
+    }
+    
+    // ========================================
+    // REGRA PADRÃO - NEGAR TUDO QUE NÃO FOI ESPECIFICADO
+    // ========================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+} 

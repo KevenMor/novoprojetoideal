@@ -351,7 +351,7 @@ export default function HistoricoContasBTG() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Unidade</label>
             <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              {/* <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" /> */}
               {shouldShowUnitSelector ? (
                 <select
                   value={filtros.unidade}

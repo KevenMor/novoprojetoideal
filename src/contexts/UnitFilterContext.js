@@ -60,9 +60,9 @@ export function UnitFilterProvider({ children }) {
   // Função para obter o texto de exibição da seleção atual
   const getSelectedUnitDisplay = () => {
     if (selectedUnit === 'all') {
-      return `Visualizando todas as unidades (${availableUnits.length})`;
+      return 'Geral';
     } else {
-      return `🏢 ${selectedUnit}`;
+      return selectedUnit;
     }
   };
 
