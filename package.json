@@ -18,14 +18,15 @@
     "react-input-mask": "^2.0.4",
     "react-router-dom": "^6.20.1",
     "react-scripts": "5.0.1",
+    "serve": "^14.2.4",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "cross-env REACT_APP_API_URL=http://localhost:3001 craco start",
+    "start": "serve -s build",
     "start:windows": "set REACT_APP_API_URL=http://localhost:3001 && craco start",
     "start:prod": "cross-env REACT_APP_API_URL=https://seu-backend.herokuapp.com craco start",
-    "build": "cross-env REACT_APP_API_URL=https://seu-backend.herokuapp.com craco build",
+    "build": "craco build",
     "build:dev": "cross-env REACT_APP_API_URL=http://localhost:3001 craco build",
     "test": "craco test",
     "eject": "react-scripts eject",
