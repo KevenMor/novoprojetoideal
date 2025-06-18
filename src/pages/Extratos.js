@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 // import UnitSelector from '../components/UnitSelector'; // Não usado atualmente
 import ModalLancamento from '../components/ModalLancamento';
-import { Filter, Download, RefreshCw, Database, BarChart3, TrendingUp, TrendingDown, FileSpreadsheet, Building2, Target, CheckCircle, Trash2, Clock, X, Edit3, Calendar } from 'lucide-react';
+import { Filter, Download, RefreshCw, Database, BarChart3, TrendingUp, TrendingDown, FileSpreadsheet, Target, CheckCircle, Trash2, Clock, X, Edit3, Calendar } from 'lucide-react';
 import { extratosService } from '../services/extratosService';
 import { lancamentosService } from '../services/lancamentosService';
 import { formatCurrency, formatDate } from '../services/asaasService';

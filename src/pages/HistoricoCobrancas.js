@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { Calendar, CheckCircle, X, DollarSign, User, FileText, Eye, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import * as XLSX from 'xlsx';
 
@@ -22,7 +22,6 @@ function addDays(date, days) {
 export default function HistoricoCobrancas() {
   const { availableUnits } = useUnitFilter();
   const [cobrancas, setCobrancas] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filtros, setFiltros] = useState({
     unidade: '',
     dataCadastroIni: '',
@@ -35,22 +34,12 @@ export default function HistoricoCobrancas() {
 
   useEffect(() => {
     async function load() {
-      setLoading(true);
       const q = query(collection(db, 'cobrancas'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       setCobrancas(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
     }
     load();
   }, []);
-
-  // Agrupar por aluno (nome + cpf)
-  const agrupadas = cobrancas.reduce((acc, c) => {
-    const key = (c.nome || '-') + '|' + (c.cpf || '-');
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(c);
-    return acc;
-  }, {});
 
   // Estatísticas
   const total = cobrancas.length;
@@ -79,26 +68,6 @@ export default function HistoricoCobrancas() {
     }
     return true;
   });
-
-  // Exportar Excel (agrupado)
-  const exportarExcel = () => {
-    const dados = cobrancas.map(c => ({
-      Cliente: c.nome || '-',
-      CPF: c.cpf || '-',
-      Valor: `R$ ${Number(c.valor || c.valorTotal).toFixed(2)}`,
-      Parcelas: c.parcelas || 1,
-      Vencimento: c.dataVencimento || '-',
-      Status: c.status || 'Aguardando',
-      Unidade: c.unidade || '-',
-      'Criado em': formatDate(c.dataCriacao || c.createdAt),
-      Serviço: c.servico || '-',
-      Observações: c.observacoes || '-'
-    }));
-    const ws = XLSX.utils.json_to_sheet(dados);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Cobranças');
-    XLSX.writeFile(wb, 'historico_cobrancas.xlsx');
-  };
 
   // Gerar parcelas previstas para cada cobrança
   function gerarParcelas(c) {

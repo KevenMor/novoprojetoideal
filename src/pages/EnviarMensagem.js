@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUnitSelection } from '../hooks/useUnitSelection';
-import { MessageSquare, Phone, User, Send, Eye, Building2 } from 'lucide-react';
+import { MessageSquare, Phone, User, Send } from 'lucide-react';
 import InputMask from 'react-input-mask';
 import toast from 'react-hot-toast';
 import { messagesService } from '../services/messagesService';
@@ -10,12 +10,9 @@ import { getQuickMessages } from '../services/quickMessagesService';
 export default function EnviarMensagem() {
   const { 
     selectedUnit, 
-    availableUnits, 
-    handleUnitChange, 
-    getUnitDisplayName, 
-    shouldShowUnitSelector 
+    getUnitDisplayName 
   } = useUnitSelection();
-  const { isAdmin, unidades: unidadesUsuario, userProfile } = useAuth();
+  const { isAdmin, unidades: unidadesUsuario } = useAuth();
   
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -48,29 +45,6 @@ export default function EnviarMensagem() {
     if (!fullName) return '';
     const names = fullName.trim().split(' ');
     return names[0].charAt(0).toUpperCase() + names[0].slice(1).toLowerCase();
-  };
-
-  const getMessagePreview = (tipo, nome) => {
-    const firstName = getFirstName(nome);
-    
-    switch (tipo) {
-      case 'Boas-vindas':
-        return `Bem-vindo(a) à Autoescola Ideal! 
-É uma alegria ter você como nosso aluno! A partir de agora, você terá acesso a um ensino de qualidade e profissionais dedicados para te ajudar a conquistar sua habilitação.
-
-Seja bem-vindo(a) à família Autoescola Ideal! 🚗✨`;
-        
-      case 'Chamar Cliente':
-        return `Temos um recado importante pra você!
-Olá ${firstName}! Nossa equipe precisa falar com você sobre assuntos importantes relacionados ao seu processo de habilitação.
-
-Por favor, entre em contato conosco o mais breve possível.
-
-Clique para ativar a conversa! 📞`;
-        
-      default:
-        return '💬 Selecione um tipo de mensagem para ver o preview';
-    }
   };
 
   const handleSubmit = async (e) => {

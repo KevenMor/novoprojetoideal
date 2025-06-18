@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { ChevronDown, Building2, Eye } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 
 export default function UnitSelector() {
   const { 
     selectedUnit, 
     availableUnits, 
-    changeSelectedUnit, 
-    hasMultipleUnits
+    changeSelectedUnit
   } = useUnitFilter();
   
   const [isOpen, setIsOpen] = useState(false);
@@ -26,9 +25,6 @@ export default function UnitSelector() {
     changeSelectedUnit(unit);
     setIsOpen(false);
   };
-
-  // Troca 'all' por 'Geral' para exibição
-  const displayUnit = (unit) => unit === 'all' ? 'Geral' : unit;
 
   return (
     <div className="relative w-full">

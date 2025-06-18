@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { CheckCircle, X, Clock, MessageSquare, Filter, Trash2, Download, Smartphone } from 'lucide-react';
+import { CheckCircle, X, Clock, MessageSquare, Trash2, Download, Smartphone } from 'lucide-react';
 import { useUnitSelection } from '../hooks/useUnitSelection';
 
 function exportToCSV(data) {

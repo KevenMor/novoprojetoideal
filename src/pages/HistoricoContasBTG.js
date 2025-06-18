@@ -10,7 +10,6 @@ import {
   Trash2, 
   Filter,
   RefreshCw,
-  Building2,
   Target,
   Calendar
 } from 'lucide-react';
