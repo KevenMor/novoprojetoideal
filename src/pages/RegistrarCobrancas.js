@@ -4,8 +4,8 @@ import { Receipt, CreditCard, Plus } from 'lucide-react';
 import InputMask from 'react-input-mask';
 import toast from 'react-hot-toast';
 import axios from 'axios';
-import { db } from '../firebase/config';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+// import { db } from '../firebase/config';
+// import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import CurrencyInput from 'react-currency-input-field';
 
 export default function RegistrarCobrancas() {

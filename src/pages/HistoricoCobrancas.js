@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { X, ChevronDown, ChevronUp, Eye, CheckCircle, Edit, Trash2, Mail, Download, DollarSign, Filter, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Eye, CheckCircle, Trash2, Download, Filter, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
@@ -200,7 +200,6 @@ export default function HistoricoCobrancas() {
   // Definir status aguardando e pago de forma robusta
   const statusAguardando = ['AGUARDANDO', 'ENVIADO', 'PENDING', 'AWAITING_RISK_ANALYSIS', '', undefined, null];
   const statusPago = ['PAGO', 'RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'];
-  const statusCancelado = ['CANCELADO'];
 
   const hoje = new Date();
   hoje.setHours(0,0,0,0);
