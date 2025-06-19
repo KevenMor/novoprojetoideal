@@ -361,10 +361,16 @@ export default function Extratos() {
   };
 
   const handleFiltroChange = (campo, valor) => {
-    setFiltros(prev => ({
-      ...prev,
-      [campo]: valor
-    }));
+    setFiltros(prev => {
+      // Se o campo for dataInicial ou dataFinal e o outro estiver vazio, preenche ambos
+      if (campo === 'dataInicial' && (!prev.dataFinal || prev.dataFinal === '')) {
+        return { ...prev, dataInicial: valor, dataFinal: valor };
+      }
+      if (campo === 'dataFinal' && (!prev.dataInicial || prev.dataInicial === '')) {
+        return { ...prev, dataInicial: valor, dataFinal: valor };
+      }
+      return { ...prev, [campo]: valor };
+    });
   };
 
   // Atualizar filtros quando selectedUnit mudar
