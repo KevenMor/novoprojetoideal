@@ -510,22 +510,29 @@ export const googleSheetsService = {
         console.log(`📅 Período em timestamp: ${dataIni.getTime()} até ${dataFim.getTime()}`);
         
         extratosFiltrados = todosExtratos.filter(extrato => {
-          const dataExtrato = new Date(extrato.data);
-          // Zerar horário da data do extrato para comparar apenas ano, mês e dia
+          // Padronizar data do extrato para comparar só ano, mês e dia
+          let dataExtrato = extrato.data;
+          if (typeof dataExtrato === 'string') {
+            // Tenta converter formatos comuns
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataExtrato)) {
+              // dd/mm/yyyy
+              const [dia, mes, ano] = dataExtrato.split('/');
+              dataExtrato = new Date(`${ano}-${mes}-${dia}T00:00:00`);
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(dataExtrato)) {
+              // yyyy-mm-dd
+              dataExtrato = new Date(`${dataExtrato}T00:00:00`);
+            } else {
+              dataExtrato = new Date(dataExtrato);
+            }
+          }
+          if (!(dataExtrato instanceof Date) || isNaN(dataExtrato.getTime())) return false;
+          // Zerar horário para comparar só a data
           dataExtrato.setHours(0, 0, 0, 0);
           const timestampExtrato = dataExtrato.getTime();
           const timestampIni = dataIni.getTime();
           const timestampFim = dataFim.getTime();
-          
-          const dentroDoPeríodo = timestampExtrato >= timestampIni && timestampExtrato <= timestampFim;
-          
-          if (!dentroDoPeríodo) {
-            console.log(`❌ Extrato FORA do período: ${dataExtrato.toLocaleDateString()} (${extrato.cliente})`);
-          } else {
-            console.log(`✅ Extrato DENTRO do período: ${dataExtrato.toLocaleDateString()} (${extrato.cliente})`);
-          }
-          
-          return dentroDoPeríodo;
+          const dentroDoPeriodo = timestampExtrato >= timestampIni && timestampExtrato <= timestampFim;
+          return dentroDoPeriodo;
         });
       }
 
