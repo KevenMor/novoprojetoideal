@@ -68,7 +68,6 @@ export default function HistoricoCobrancas() {
     dataVencFim: ''
   });
   const [modal, setModal] = useState({ open: false, data: null });
-  const [expanded, setExpanded] = useState({});
   const [buscaAluno, setBuscaAluno] = useState("");
   const [pagina, setPagina] = useState(1);
   const porPagina = 10;
