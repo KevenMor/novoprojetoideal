@@ -1,8 +1,37 @@
 import { SHEETS_CONFIG } from '../config/sheetsConfig';
+import { db } from '../firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Mapeamento de unidades para IDs das planilhas
 const UNIDADES_PLANILHAS = SHEETS_CONFIG.UNIDADES_PLANILHAS;
 const RANGES = SHEETS_CONFIG.RANGES;
+
+// Função auxiliar para normalizar data (retorna string no formato YYYY-MM-DD)
+const normalizarData = (data) => {
+  if (!data) return null;
+  
+  let dataObj;
+  if (data instanceof Date) {
+    dataObj = data;
+  } else if (typeof data === 'string') {
+    if (data.includes('T')) {
+      // Formato ISO
+      dataObj = new Date(data);
+    } else if (data.includes('/')) {
+      // Formato dd/mm/yyyy
+      const [dia, mes, ano] = data.split('/');
+      dataObj = new Date(ano, mes - 1, dia);
+    } else {
+      // Formato yyyy-mm-dd
+      dataObj = new Date(data);
+    }
+  }
+  
+  if (!dataObj || isNaN(dataObj.getTime())) return null;
+  
+  // Retorna data no formato YYYY-MM-DD
+  return dataObj.toISOString().split('T')[0];
+};
 
 export const googleSheetsService = {
   // Buscar dados de uma planilha específica
@@ -99,8 +128,10 @@ export const googleSheetsService = {
   // Detectar automaticamente a estrutura da planilha
   detectarEstruturaPlanilha(dadosSheet, unidade) {
     console.log(`🔍 Detectando estrutura da planilha para ${unidade}`);
+    console.log(`📊 Total de linhas na planilha: ${dadosSheet.length}`);
     
     if (!dadosSheet || dadosSheet.length < 2) {
+      console.warn(`⚠️ Dados insuficientes para ${unidade}: ${dadosSheet?.length || 0} linhas`);
       return null;
     }
     
@@ -108,36 +139,52 @@ export const googleSheetsService = {
     let linhaCabecalho = -1;
     let estrutura = {};
     
-    for (let i = 0; i < Math.min(3, dadosSheet.length); i++) {
+    for (let i = 0; i < Math.min(5, dadosSheet.length); i++) {
       const linha = dadosSheet[i];
       const textoLinha = linha.join(' ').toLowerCase();
       
       console.log(`🔍 Analisando linha ${i + 1}:`, linha);
+      console.log(`🔍 Texto da linha: "${textoLinha}"`);
       
       if (textoLinha.includes('cliente') || textoLinha.includes('nome') || 
-          textoLinha.includes('valor') || textoLinha.includes('data')) {
+          textoLinha.includes('valor') || textoLinha.includes('data') ||
+          textoLinha.includes('pagamento') || textoLinha.includes('observ')) {
         linhaCabecalho = i;
+        
+        console.log(`✅ Cabeçalho encontrado na linha ${i + 1}`);
         
         // Mapear colunas baseado nos cabeçalhos
         linha.forEach((cabecalho, index) => {
           const cab = cabecalho.toString().toLowerCase();
+          console.log(`📋 Coluna ${index}: "${cabecalho}" (${cab})`);
           
           if (cab.includes('cliente') || cab.includes('nome')) {
             estrutura.cliente = index;
+            console.log(`✅ Cliente mapeado para coluna ${index}`);
           } else if (cab.includes('valor') && !cab.includes('data')) {
             estrutura.valor = index;
+            console.log(`✅ Valor mapeado para coluna ${index}`);
           } else if (cab.includes('data')) {
             estrutura.data = index;
+            console.log(`✅ Data mapeado para coluna ${index}`);
           } else if (cab.includes('pagamento') && !cab.includes('data')) {
             estrutura.formaPagamento = index;
-          } else if (cab.includes('observ')) {
+            console.log(`✅ Forma de pagamento mapeado para coluna ${index}`);
+          } else if (cab.includes('observ') || cab.includes('descri') || cab.includes('obs') || 
+                     cab.includes('coment') || cab.includes('nota') || cab.includes('info')) {
             estrutura.observacoes = index;
+            console.log(`✅ Observações mapeado para coluna ${index}`);
           }
         });
         
-        console.log(`✅ Estrutura detectada na linha ${i + 1}:`, estrutura);
+        console.log(`✅ Estrutura final detectada na linha ${i + 1}:`, estrutura);
         break;
       }
+    }
+    
+    if (linhaCabecalho === -1) {
+      console.warn(`⚠️ Nenhum cabeçalho válido encontrado para ${unidade}`);
+      console.log(`📋 Primeiras 3 linhas:`, dadosSheet.slice(0, 3));
     }
     
     return {
@@ -145,6 +192,22 @@ export const googleSheetsService = {
       estrutura,
       linhasDados: linhaCabecalho >= 0 ? dadosSheet.slice(linhaCabecalho + 1) : dadosSheet.slice(1)
     };
+  },
+
+  // Função para capitalizar a primeira letra de cada palavra
+  capitalizarPalavras(texto) {
+    if (!texto) return '';
+    
+    // Divide o texto em palavras e capitaliza cada uma
+    return texto
+      .toLowerCase() // Primeiro converte tudo para minúsculo
+      .split(' ') // Divide em palavras
+      .map(palavra => {
+        if (palavra.length === 0) return palavra;
+        // Capitaliza a primeira letra e mantém o resto minúsculo
+        return palavra.charAt(0).toUpperCase() + palavra.slice(1).toLowerCase();
+      })
+      .join(' '); // Junta as palavras novamente
   },
 
   // Formatar dados das planilhas para o formato esperado
@@ -181,18 +244,26 @@ export const googleSheetsService = {
         console.log(`🔍 Processando linha ${index + linhaCabecalho + 2}:`, linha);
         
         // Usar estrutura detectada ou fallback para posições padrão
-        const cliente = linha[estrutura.cliente ?? 0] || '';
-        const valor = linha[estrutura.valor ?? 1] || '0';
-        const dataString = linha[estrutura.data ?? 2] || '';
-        const formaPagamento = linha[estrutura.formaPagamento ?? 3] || '';
-        const observacoes = linha[estrutura.observacoes ?? 5] || '';
+        const cliente = this.capitalizarPalavras(linha[estrutura.cliente ?? 0]?.trim() || '');
+        const valor = linha[estrutura.valor ?? 1]?.trim() || '0';
+        const dataString = linha[estrutura.data ?? 2]?.trim() || '';
+        const formaPagamento = linha[estrutura.formaPagamento ?? 3]?.trim() || '';
+        const observacoes = this.capitalizarPalavras(linha[estrutura.observacoes ?? 5]?.trim() || '');
         
-        console.log(`📋 Dados extraídos:`, {
+        console.log(`📋 Dados extraídos da linha ${index + linhaCabecalho + 2}:`, {
           cliente: `"${cliente}" (coluna ${estrutura.cliente ?? 0})`,
           valor: `"${valor}" (coluna ${estrutura.valor ?? 1})`,
           data: `"${dataString}" (coluna ${estrutura.data ?? 2})`,
-          formaPagamento: `"${formaPagamento}" (coluna ${estrutura.formaPagamento ?? 3})`
+          formaPagamento: `"${formaPagamento}" (coluna ${estrutura.formaPagamento ?? 3})`,
+          observacoes: `"${observacoes}" (coluna ${estrutura.observacoes ?? 5})`
         });
+        
+        // Log específico para debug da descrição
+        if (observacoes) {
+          console.log(`📝 Observações encontradas: "${observacoes}"`);
+        } else {
+          console.log(`⚠️ Nenhuma observação encontrada na linha ${index + linhaCabecalho + 2}`);
+        }
         
         // Verificar se é linha de cabeçalho (contém palavras como "Cliente", "Valor", etc.)
         const textoLinha = linha.join(' ').toLowerCase();
@@ -227,6 +298,8 @@ export const googleSheetsService = {
           data: data.toISOString(), // Converter para ISO string para garantir consistência
           formaPagamento,
           observacoes,
+          descricao: observacoes, // Usar observações como descrição
+          description: observacoes, // Também mapear para description
           tipo,
           categoria,
           unidade
@@ -238,6 +311,20 @@ export const googleSheetsService = {
     }).filter(Boolean); // Remover linhas nulas (com erro ou cabeçalho)
     
     console.log(`✅ ${extratosFormatados.length} extratos formatados com sucesso para ${unidade}`);
+    
+    // Log detalhado dos primeiros 3 extratos para debug
+    if (extratosFormatados.length > 0) {
+      console.log(`🎯 Primeiros 3 extratos formatados para ${unidade}:`, 
+        extratosFormatados.slice(0, 3).map(e => ({
+          cliente: e.cliente,
+          valor: e.valor,
+          data: e.data,
+          descricao: e.descricao,
+          observacoes: e.observacoes
+        }))
+      );
+    }
+    
     return extratosFormatados;
   },
 
@@ -451,7 +538,8 @@ export const googleSheetsService = {
               primeiros3: extratosFormatados.slice(0, 3).map(e => ({
                 cliente: e.cliente,
                 valor: e.valor,
-                data: e.data
+                data: e.data,
+                descricao: e.descricao
               }))
             });
           }
@@ -469,117 +557,81 @@ export const googleSheetsService = {
   },
 
   // Buscar extratos filtrados por período
-  async buscarExtratosFiltrados(filtros = {}) {
+  async buscarExtratosFiltrados(filtros) {
     try {
-      const { dataInicial, dataFinal, unidade } = filtros;
-
-      console.log('🔍 Buscando extratos Google Sheets com filtros:', filtros);
-
-      // Determinar unidades para buscar
-      let unidadesParaBuscar;
+      console.log('🔄 Buscando extratos do Google Sheets com filtros:', filtros);
       
-      if (unidade && unidade !== '' && unidade !== 'all') {
-        // Unidade específica selecionada
-        unidadesParaBuscar = [unidade];
-        console.log('🏢 Buscando unidade específica:', unidade);
-      } else {
-        // Todas as unidades (quando "Todas as Unidades" está selecionado)
-        unidadesParaBuscar = Object.keys(UNIDADES_PLANILHAS);
-        console.log('🏢 Buscando todas as unidades disponíveis');
+      // Verificar se temos uma unidade válida
+      if (!filtros.unidade || !SHEETS_CONFIG.UNIDADES_PLANILHAS[filtros.unidade]) {
+        console.warn('⚠️ Unidade não encontrada ou inválida:', filtros.unidade);
+        return [];
+      }
+
+      // Configuração básica
+      const config = {
+        apiKey: SHEETS_CONFIG.API_KEY,
+        spreadsheetId: SHEETS_CONFIG.UNIDADES_PLANILHAS[filtros.unidade]
+      };
+      
+      // Verificar configuração
+      if (!config.spreadsheetId || !config.apiKey) {
+        console.warn('⚠️ Configuração do Google Sheets incompleta', {
+          temSpreadsheetId: !!config.spreadsheetId,
+          temApiKey: !!config.apiKey,
+          unidade: filtros.unidade
+        });
+        return [];
       }
       
-      console.log('📋 Unidades que serão consultadas:', unidadesParaBuscar);
+      // Construir a URL da API
+      const range = SHEETS_CONFIG.RANGES[filtros.unidade] || SHEETS_CONFIG.RANGE_PADRAO;
+      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${range}?key=${config.apiKey}`;
       
-      const resultadosUnidades = await this.buscarExtratosPorUnidade(unidadesParaBuscar);
-
-      // Combinar todos os extratos
-      const todosExtratos = Object.values(resultadosUnidades).flat();
-      console.log(`📊 Total de extratos antes dos filtros: ${todosExtratos.length}`);
-
-      // Aplicar filtros de data
-      let extratosFiltrados = todosExtratos;
-
-      if (dataInicial && dataFinal) {
-        const dataIni = new Date(dataInicial);
-        const dataFim = new Date(dataFinal);
-        // Zerar horário da data inicial e colocar fim do dia na data final
-        dataIni.setHours(0, 0, 0, 0);
-        dataFim.setHours(23, 59, 59, 999);
-        
-        console.log(`📅 Filtrando por período: ${dataIni.toLocaleDateString()} até ${dataFim.toLocaleDateString()}`);
-        console.log(`📅 Período em timestamp: ${dataIni.getTime()} até ${dataFim.getTime()}`);
-        
-        extratosFiltrados = todosExtratos.filter(extrato => {
-          // Padronizar data do extrato para comparar só ano, mês e dia
-          let dataExtrato = extrato.data;
-          if (typeof dataExtrato === 'string') {
-            // Tenta converter formatos comuns
-            if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataExtrato)) {
-              // dd/mm/yyyy
-              const [dia, mes, ano] = dataExtrato.split('/');
-              dataExtrato = new Date(`${ano}-${mes}-${dia}T00:00:00`);
-            } else if (/^\d{4}-\d{2}-\d{2}$/.test(dataExtrato)) {
-              // yyyy-mm-dd
-              dataExtrato = new Date(`${dataExtrato}T00:00:00`);
-            } else {
-              dataExtrato = new Date(dataExtrato);
-            }
+      console.log('📊 Buscando dados da planilha:', {
+        unidade: filtros.unidade,
+        range: range
+      });
+      
+      // Buscar dados da planilha
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar dados da planilha: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.values || data.values.length < 2) {
+        console.warn('⚠️ Nenhum dado encontrado na planilha', {
+          unidade: filtros.unidade,
+          totalLinhas: data.values?.length || 0
+        });
+        return [];
+      }
+      
+      // Processar dados da planilha usando a função formatarDadosSheets
+      const extratos = this.formatarDadosSheets(data.values, filtros.unidade);
+      
+      // Filtrar por data se necessário
+      let extratosFiltrados = extratos;
+      if (filtros.dataInicial && filtros.dataFinal) {
+        extratosFiltrados = extratos.filter(extrato => {
+          try {
+            const dataExtrato = new Date(extrato.data);
+            const dataInicial = new Date(filtros.dataInicial);
+            const dataFinal = new Date(filtros.dataFinal);
+            return dataExtrato >= dataInicial && dataExtrato <= dataFinal;
+          } catch (error) {
+            console.error('❌ Erro ao filtrar por data:', error);
+            return false;
           }
-          if (!(dataExtrato instanceof Date) || isNaN(dataExtrato.getTime())) return false;
-          // Zerar horário para comparar só a data
-          dataExtrato.setHours(0, 0, 0, 0);
-          const timestampExtrato = dataExtrato.getTime();
-          const timestampIni = dataIni.getTime();
-          const timestampFim = dataFim.getTime();
-          const dentroDoPeriodo = timestampExtrato >= timestampIni && timestampExtrato <= timestampFim;
-          return dentroDoPeriodo;
         });
       }
-
-      // FILTRO FINAL: Garantir que apenas extratos da unidade correta sejam retornados
-      if (unidade && unidade !== '' && unidade !== 'all') {
-        console.log(`🔍 FILTRO FINAL: Aplicando filtro rigoroso para unidade "${unidade}"`);
-        
-        const extratosFiltradosPorUnidade = extratosFiltrados.filter(extrato => {
-          const unidadeExtrato = extrato.unidade;
-          const pertenceAUnidade = unidadeExtrato === unidade;
-          
-          if (!pertenceAUnidade) {
-            console.log(`❌ FILTRO FINAL: Removendo extrato de "${unidadeExtrato}" (não é "${unidade}")`);
-          } else {
-            console.log(`✅ FILTRO FINAL: Mantendo extrato de "${unidadeExtrato}"`);
-          }
-          
-          return pertenceAUnidade;
-        });
-        
-        extratosFiltrados = extratosFiltradosPorUnidade;
-        console.log(`🔍 FILTRO FINAL: ${extratosFiltrados.length} extratos após filtro rigoroso por unidade`);
-      }
-
-      console.log(`✅ ${extratosFiltrados.length} extratos encontrados no Google Sheets após todos os filtros`);
-
-      // Log detalhado para debug
-      if (extratosFiltrados.length > 0) {
-        const unidadesEncontradas = [...new Set(extratosFiltrados.map(e => e.unidade))];
-        console.log('🏢 Unidades com dados encontrados após filtro final:', unidadesEncontradas);
-        
-        unidadesEncontradas.forEach(u => {
-          const qtd = extratosFiltrados.filter(e => e.unidade === u).length;
-          console.log(`   ${u}: ${qtd} extratos`);
-        });
-        
-        // Log dos primeiros extratos para verificação
-        console.log('📊 Primeiros 3 extratos finais:', extratosFiltrados.slice(0, 3).map(e => ({
-          cliente: e.cliente,
-          unidade: e.unidade,
-          valor: e.valor
-        })));
-      }
-
+      
+      console.log(`✅ ${extratosFiltrados.length} extratos encontrados no Google Sheets após filtros`);
+      
       return extratosFiltrados;
     } catch (error) {
-      console.error('❌ Erro ao buscar extratos filtrados do Sheets:', error);
+      console.error('❌ Erro ao buscar extratos do Google Sheets:', error);
       return [];
     }
   },
@@ -604,4 +656,4 @@ export const googleSheetsService = {
       return { sucesso: false, erro: error.message };
     }
   }
-}; 
+};

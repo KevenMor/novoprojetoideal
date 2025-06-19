@@ -20,8 +20,11 @@ export function UnitFilterProvider({ children }) {
       // Se o usuário tem apenas uma unidade, selecionar automaticamente
       if (userProfile.unidades.length === 1) {
         setSelectedUnit(userProfile.unidades[0]);
+      } else if (userProfile.perfil === 'admin') {
+        // Se é admin, começar com "all" (Geral)
+        setSelectedUnit('all');
       } else {
-        // Se tem múltiplas unidades, começar com "todas"
+        // Se tem múltiplas unidades, começar com "all"
         setSelectedUnit('all');
       }
     } else {
@@ -30,21 +33,26 @@ export function UnitFilterProvider({ children }) {
     }
   }, [userProfile]);
 
-  // Função para alterar a unidade selecionada
-  const changeSelectedUnit = (unit) => {
-    setSelectedUnit(unit);
-    console.log('🏢 Unidade selecionada alterada para:', unit);
+  // Função para verificar se deve mostrar dados da unidade
+  const shouldShowUnitData = (unidade) => {
+    // Se o usuário é admin e selecionou 'all', mostrar todas as unidades
+    if (userProfile?.perfil === 'admin' && selectedUnit === 'all') {
+      return true;
+    }
+    
+    // Se uma unidade específica está selecionada, mostrar apenas ela
+    if (selectedUnit && selectedUnit !== 'all') {
+      return unidade === selectedUnit;
+    }
+    
+    // Se o usuário tem acesso à unidade
+    return userProfile?.unidades?.includes(unidade);
   };
 
-  // Função para verificar se deve mostrar dados de uma unidade específica
-  const shouldShowUnitData = (dataUnit) => {
-    if (selectedUnit === 'all') {
-      // Se "todas" está selecionado, mostrar apenas se o usuário tem acesso à unidade
-      return availableUnits.includes(dataUnit);
-    } else {
-      // Se uma unidade específica está selecionada, mostrar apenas dados dessa unidade
-      return dataUnit === selectedUnit;
-    }
+  // Função para alterar a unidade selecionada
+  const changeSelectedUnit = (newUnit) => {
+    console.log('🔄 Alterando unidade selecionada para:', newUnit);
+    setSelectedUnit(newUnit);
   };
 
   // Função para filtrar dados baseado na unidade selecionada
@@ -57,18 +65,17 @@ export function UnitFilterProvider({ children }) {
     });
   };
 
-  // Função para obter o texto de exibição da seleção atual
+  // Função para obter o nome de exibição da unidade
   const getSelectedUnitDisplay = () => {
     if (selectedUnit === 'all') {
       return 'Geral';
-    } else {
-      return selectedUnit;
     }
+    return selectedUnit || 'Selecione uma unidade';
   };
 
-  // Função para verificar se o usuário tem acesso a múltiplas unidades
+  // Função para verificar se o usuário tem múltiplas unidades
   const hasMultipleUnits = () => {
-    return availableUnits.length > 1;
+    return userProfile?.unidades?.length > 1 || userProfile?.perfil === 'admin';
   };
 
   const value = {

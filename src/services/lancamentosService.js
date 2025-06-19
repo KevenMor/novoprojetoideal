@@ -6,7 +6,8 @@ import {
   where, 
   Timestamp,
   doc,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
@@ -134,25 +135,40 @@ export const lancamentosService = {
     try {
       console.log('📝 Atualizando lançamento:', id, dadosAtualizacao);
       
+      // Converter tipo RECEITA/DESPESA para CREDIT/DEBIT
+      const tipoConvertido = dadosAtualizacao.tipo === 'RECEITA' ? 'CREDIT' : 'DEBIT';
+      
+      // Se o lançamento não tem ID, significa que é um lançamento da planilha
+      if (!id) {
+        console.log('📊 Lançamento da planilha, criando novo registro no Firebase');
+        return await this.criarLancamento({
+          ...dadosAtualizacao,
+          tipo: tipoConvertido,
+          origem: 'SHEETS'
+        });
+      }
+
       const lancamentoRef = doc(db, 'lancamentos', id);
       const dadosParaAtualizar = {
         ...dadosAtualizacao,
+        tipo: tipoConvertido,
         dataAtualizacao: Timestamp.now()
       };
       
       // Se a data foi alterada, converter para Timestamp
       if (dadosAtualizacao.data) {
-        dadosParaAtualizar.dataLancamento = Timestamp.fromDate(new Date(dadosAtualizacao.data));
-        delete dadosParaAtualizar.data; // Remove a data em formato string
+        if (dadosAtualizacao.data instanceof Date) {
+          dadosParaAtualizar.dataLancamento = Timestamp.fromDate(dadosAtualizacao.data);
+        } else if (typeof dadosAtualizacao.data === 'string') {
+          dadosParaAtualizar.dataLancamento = Timestamp.fromDate(new Date(dadosAtualizacao.data));
+        }
       }
-      
+
       await updateDoc(lancamentoRef, dadosParaAtualizar);
-      console.log('✅ Lançamento atualizado com sucesso');
-      
       return true;
     } catch (error) {
       console.error('❌ Erro ao atualizar lançamento:', error);
-      throw new Error(`Erro ao atualizar lançamento: ${error.message}`);
+      throw new Error('Erro ao atualizar lançamento: ' + error.message);
     }
   },
 
@@ -161,17 +177,45 @@ export const lancamentosService = {
     try {
       console.log('🗑️ Excluindo lançamento:', id);
       
+      if (!id) {
+        throw new Error('ID do lançamento não fornecido');
+      }
+
       const lancamentoRef = doc(db, 'lancamentos', id);
+      
+      // Marcar como excluído em vez de deletar fisicamente
       await updateDoc(lancamentoRef, {
         status: 'EXCLUIDO',
         dataExclusao: Timestamp.now()
       });
       
-      console.log('✅ Lançamento excluído com sucesso');
       return true;
     } catch (error) {
       console.error('❌ Erro ao excluir lançamento:', error);
-      throw new Error(`Erro ao excluir lançamento: ${error.message}`);
+      throw new Error('Erro ao excluir lançamento: ' + error.message);
+    }
+  },
+
+  async restaurarLancamento(id) {
+    try {
+      console.log('🔄 Restaurando lançamento:', id);
+      
+      if (!id) {
+        throw new Error('ID do lançamento não fornecido');
+      }
+
+      const lancamentoRef = doc(db, 'lancamentos', id);
+      
+      // Restaurar para status CONFIRMED
+      await updateDoc(lancamentoRef, {
+        status: 'CONFIRMED',
+        dataRestauracao: Timestamp.now()
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Erro ao restaurar lançamento:', error);
+      throw new Error('Erro ao restaurar lançamento: ' + error.message);
     }
   },
 
@@ -262,74 +306,60 @@ export const lancamentosService = {
     }
   },
 
-  // Formatar lançamento para exibição (compatível com extratos)
-  formatarParaExtrato(lancamento) {
-    // Determinar status baseado no statusContaBTG ou status padrão
-    let statusFinal = 'CONFIRMADO';
-    if (lancamento.statusContaBTG) {
-      switch (lancamento.statusContaBTG) {
-        case 'AGUARDANDO':
-          statusFinal = 'AGUARDANDO';
-          break;
-        case 'PAGO':
-          statusFinal = 'CONFIRMADO';
-          break;
-        case 'CANCELADO':
-          statusFinal = 'CANCELADO';
-          break;
-        default:
-          statusFinal = 'CONFIRMADO';
-      }
-    } else if (lancamento.categoria === 'CONTA_BTG') {
-      // Se é conta BTG mas não tem statusContaBTG, assumir AGUARDANDO
-      statusFinal = 'AGUARDANDO';
-    }
+  // Função para capitalizar a primeira letra de cada palavra
+  capitalizarPalavras(texto) {
+    if (!texto) return '';
+    return texto
+      .toLowerCase()
+      .split(' ')
+      .map(palavra => {
+        if (palavra.length === 0) return palavra;
+        return palavra.charAt(0).toUpperCase() + palavra.slice(1).toLowerCase();
+      })
+      .join(' ');
+  },
 
+  // Formatar lançamento para o formato de extrato
+  formatarParaExtrato(lancamento) {
     return {
-      id: lancamento.id, // Usar ID original para permitir exclusão
-      data: lancamento.data,
-      date: lancamento.data,
-      descricao: lancamento.descricao,
-      description: lancamento.descricao,
-      tipo: lancamento.tipo,
-      type: lancamento.tipo === 'RECEITA' ? 'CREDIT' : 'DEBIT',
-      valor: parseFloat(lancamento.valor) || 0,
-      value: parseFloat(lancamento.valor) || 0,
-      status: statusFinal,
-      origem: 'LANCAMENTO_MANUAL',
-      categoria: lancamento.categoria || 'OUTROS',
-      unidade: lancamento.unidade,
-      cliente: 'Lançamento Manual',
-      formaPagamento: lancamento.formaPagamento || 'N/A',
-      observacoes: lancamento.observacoes || '',
-      fonte: 'firebase' // Marcar como lançamento manual do Firebase
+      id: lancamento.id,
+      descricao: this.capitalizarPalavras(lancamento.descricao || lancamento.description || ''),
+      valor: parseFloat(lancamento.valor || lancamento.value || 0),
+      data: lancamento.dataLancamento?.toDate() || new Date(lancamento.data || lancamento.date),
+      tipo: lancamento.tipo || lancamento.type || 'CREDIT',
+      cliente: this.capitalizarPalavras(lancamento.cliente || ''),
+      unidade: lancamento.unidade || '',
+      formaPagamento: lancamento.formaPagamento || '',
+      status: lancamento.status || 'CONFIRMED',
+      origem: lancamento.origem || 'MANUAL',
+      fonte: lancamento.fonte || 'firebase'
     };
   },
 
   // Validar dados do lançamento
   validarLancamento(dados) {
     const erros = [];
-    
-    if (!dados.descricao || dados.descricao.trim() === '') {
+
+    if (!dados.descricao?.trim()) {
       erros.push('Descrição é obrigatória');
     }
-    
-    if (!dados.valor || parseFloat(dados.valor) <= 0) {
+
+    if (!dados.valor || isNaN(dados.valor) || parseFloat(dados.valor) <= 0) {
       erros.push('Valor deve ser maior que zero');
     }
-    
+
     if (!dados.data) {
       erros.push('Data é obrigatória');
     }
-    
-    if (!dados.tipo || !['RECEITA', 'DESPESA'].includes(dados.tipo)) {
-      erros.push('Tipo deve ser RECEITA ou DESPESA');
-    }
-    
-    if (!dados.unidade || dados.unidade.trim() === '') {
+
+    if (!dados.unidade?.trim()) {
       erros.push('Unidade é obrigatória');
     }
-    
+
+    if (!dados.tipo || !['CREDIT', 'DEBIT', 'RECEITA', 'DESPESA'].includes(dados.tipo)) {
+      erros.push('Tipo de lançamento inválido');
+    }
+
     return erros;
   },
 

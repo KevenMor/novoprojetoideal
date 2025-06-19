@@ -7,7 +7,7 @@ import { lancamentosService } from '../services/lancamentosService';
 export default function ModalLancamento({ 
   isOpen, 
   onClose, 
-  tipo, // 'RECEITA' ou 'DESPESA'
+  tipo, // 'CREDIT' ou 'DEBIT'
   onSucesso,
   lancamentoParaEditar = null,
   modoEdicao = false
@@ -28,13 +28,14 @@ export default function ModalLancamento({
       }
 
       return {
-        descricao: lancamentoParaEditar.descricao || '',
-        valor: lancamentoParaEditar.valor?.toString() || '',
+        descricao: lancamentoParaEditar.descricao || lancamentoParaEditar.description || '',
+        valor: (lancamentoParaEditar.valor || lancamentoParaEditar.value || '').toString(),
         data: dataFormatada || new Date().toISOString().split('T')[0],
         unidade: lancamentoParaEditar.unidade || selectedUnit === 'all' ? (availableUnits[0] || '') : selectedUnit,
-        categoria: lancamentoParaEditar.categoria || '',
+        cliente: lancamentoParaEditar.cliente || '',
         formaPagamento: lancamentoParaEditar.formaPagamento || '',
-        observacoes: lancamentoParaEditar.observacoes || ''
+        status: lancamentoParaEditar.status || 'CONFIRMED',
+        origem: lancamentoParaEditar.origem || 'MANUAL'
       };
     }
     
@@ -43,9 +44,10 @@ export default function ModalLancamento({
       valor: '',
       data: new Date().toISOString().split('T')[0],
       unidade: selectedUnit === 'all' ? (availableUnits[0] || '') : selectedUnit,
-      categoria: '',
+      cliente: '',
       formaPagamento: '',
-      observacoes: ''
+      status: 'CONFIRMED',
+      origem: 'MANUAL'
     };
   });
 
@@ -78,6 +80,12 @@ export default function ModalLancamento({
     { value: 'OUTROS', label: 'Outros' }
   ];
 
+  const statusOptions = [
+    { value: 'CONFIRMED', label: 'Confirmado' },
+    { value: 'PENDING', label: 'Aguardando' },
+    { value: 'CANCELLED', label: 'Cancelado' }
+  ];
+
   // Atualizar formulário quando o lançamento para editar mudar
   useEffect(() => {
     if (modoEdicao && lancamentoParaEditar) {
@@ -92,13 +100,14 @@ export default function ModalLancamento({
       }
 
       setFormData({
-        descricao: lancamentoParaEditar.descricao || '',
-        valor: lancamentoParaEditar.valor?.toString() || '',
+        descricao: lancamentoParaEditar.descricao || lancamentoParaEditar.description || '',
+        valor: (lancamentoParaEditar.valor || lancamentoParaEditar.value || '').toString(),
         data: dataFormatada || new Date().toISOString().split('T')[0],
         unidade: lancamentoParaEditar.unidade || selectedUnit === 'all' ? (availableUnits[0] || '') : selectedUnit,
-        categoria: lancamentoParaEditar.categoria || '',
+        cliente: lancamentoParaEditar.cliente || '',
         formaPagamento: lancamentoParaEditar.formaPagamento || '',
-        observacoes: lancamentoParaEditar.observacoes || ''
+        status: lancamentoParaEditar.status || 'CONFIRMED',
+        origem: lancamentoParaEditar.origem || 'MANUAL'
       });
     } else if (!modoEdicao) {
       // Resetar para novo lançamento
@@ -107,9 +116,10 @@ export default function ModalLancamento({
         valor: '',
         data: new Date().toISOString().split('T')[0],
         unidade: selectedUnit === 'all' ? (availableUnits[0] || '') : selectedUnit,
-        categoria: '',
+        cliente: '',
         formaPagamento: '',
-        observacoes: ''
+        status: 'CONFIRMED',
+        origem: 'MANUAL'
       });
     }
   }, [modoEdicao, lancamentoParaEditar, selectedUnit, availableUnits]);
@@ -126,61 +136,29 @@ export default function ModalLancamento({
     setLoading(true);
 
     try {
-      // Validar dados
-      const erros = lancamentosService.validarLancamento({
+      // Formatar dados antes de salvar
+      const dadosFormatados = {
         ...formData,
-        tipo
-      });
+        valor: parseFloat(formData.valor.replace(/[^\d.,]/g, '').replace(',', '.')) || 0,
+        data: formData.data ? new Date(formData.data) : new Date(),
+        cliente: formData.cliente.trim(),
+        descricao: formData.descricao.trim(),
+        unidade: formData.unidade || selectedUnit
+      };
 
-      if (erros.length > 0) {
-        toast.error(erros[0]);
-        return;
-      }
-
-      if (modoEdicao && lancamentoParaEditar) {
-        // Atualizar lançamento existente
-        const dadosAtualizacao = {
-          ...formData,
-          tipo,
-          valor: parseFloat(formData.valor)
-        };
-
-        await lancamentosService.atualizarLancamento(lancamentoParaEditar.id, dadosAtualizacao);
-        toast.success(`${tipo === 'RECEITA' ? 'Receita' : 'Despesa'} atualizada com sucesso!`);
+      if (lancamentoParaEditar) {
+        await lancamentosService.atualizarLancamento(lancamentoParaEditar.id, dadosFormatados);
+        toast.success('Lançamento atualizado com sucesso!');
       } else {
-        // Criar novo lançamento
-        const dadosLancamento = {
-          ...formData,
-          tipo,
-          valor: parseFloat(formData.valor)
-        };
-
-        await lancamentosService.criarLancamento(dadosLancamento);
-        toast.success(`${tipo === 'RECEITA' ? 'Receita' : 'Despesa'} cadastrada com sucesso!`);
-      }
-      
-      // Resetar formulário
-      setFormData({
-        descricao: '',
-        valor: '',
-        data: new Date().toISOString().split('T')[0],
-        unidade: selectedUnit === 'all' ? (availableUnits[0] || '') : selectedUnit,
-        categoria: '',
-        formaPagamento: '',
-        observacoes: ''
-      });
-
-      // Chamar callback de sucesso
-      if (onSucesso) {
-        onSucesso();
+        await lancamentosService.criarLancamento(dadosFormatados);
+        toast.success('Lançamento criado com sucesso!');
       }
 
-      // Fechar modal
       onClose();
-
+      if (onSucesso) onSucesso();
     } catch (error) {
       console.error('Erro ao salvar lançamento:', error);
-      toast.error(error.message || 'Erro ao salvar lançamento');
+      toast.error('Erro ao salvar lançamento. Por favor, tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -202,10 +180,12 @@ export default function ModalLancamento({
               <DollarSign className={`w-6 h-6 ${tipo === 'RECEITA' ? 'text-green-600' : 'text-red-600'}`} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">{tituloModal}</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                {modoEdicao ? 'Editar Lançamento' : (tipo === 'RECEITA' ? 'Nova Receita' : 'Nova Despesa')}
+              </h2>
               <p className="text-sm text-gray-600">
                 {modoEdicao 
-                  ? `Edite ${tipo === 'RECEITA' ? 'esta entrada' : 'esta saída'} de dinheiro`
+                  ? `Edite os dados do lançamento`
                   : `Registre ${tipo === 'RECEITA' ? 'uma entrada' : 'uma saída'} de dinheiro`
                 }
               </p>
@@ -231,9 +211,24 @@ export default function ModalLancamento({
               type="text"
               value={formData.descricao}
               onChange={(e) => handleInputChange('descricao', e.target.value)}
-              placeholder={`Ex: ${tipo === 'RECEITA' ? 'Mensalidade João Silva' : 'Combustível veículo 001'}`}
+              placeholder="Ex: Mensalidade de Julho"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
+            />
+          </div>
+
+          {/* Cliente */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <FileText className="w-4 h-4 inline mr-1" />
+              Cliente
+            </label>
+            <input
+              type="text"
+              value={formData.cliente}
+              onChange={(e) => handleInputChange('cliente', e.target.value)}
+              placeholder="Nome do cliente"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -255,7 +250,6 @@ export default function ModalLancamento({
                 required
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Calendar className="w-4 h-4 inline mr-1" />
@@ -271,11 +265,11 @@ export default function ModalLancamento({
             </div>
           </div>
 
-          {/* Unidade e Categoria */}
+          {/* Unidade e Forma de Pagamento */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {/* <Building2 className="w-4 h-4 inline mr-1" /> */}
+                <Tag className="w-4 h-4 inline mr-1" />
                 Unidade *
               </label>
               <select
@@ -285,87 +279,65 @@ export default function ModalLancamento({
                 required
               >
                 <option value="">Selecione uma unidade</option>
-                {availableUnits.map(unit => (
+                {availableUnits.map((unit) => (
                   <option key={unit} value={unit}>{unit}</option>
                 ))}
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Tag className="w-4 h-4 inline mr-1" />
-                Categoria
+                <CreditCard className="w-4 h-4 inline mr-1" />
+                Forma de Pagamento
               </label>
               <select
-                value={formData.categoria}
-                onChange={(e) => handleInputChange('categoria', e.target.value)}
+                value={formData.formaPagamento}
+                onChange={(e) => handleInputChange('formaPagamento', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">Selecione uma categoria</option>
-                {categorias[tipo].map(cat => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                <option value="">Selecione a forma de pagamento</option>
+                {formasPagamento.map((forma) => (
+                  <option key={forma.value} value={forma.value}>{forma.label}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Forma de Pagamento */}
+          {/* Status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <CreditCard className="w-4 h-4 inline mr-1" />
-              Forma de Pagamento
+              <Tag className="w-4 h-4 inline mr-1" />
+              Status
             </label>
             <select
-              value={formData.formaPagamento}
-              onChange={(e) => handleInputChange('formaPagamento', e.target.value)}
+              value={formData.status}
+              onChange={(e) => handleInputChange('status', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">Selecione a forma de pagamento</option>
-              {formasPagamento.map(forma => (
-                <option key={forma.value} value={forma.value}>{forma.label}</option>
+              {statusOptions.map((status) => (
+                <option key={status.value} value={status.value}>{status.label}</option>
               ))}
             </select>
           </div>
 
-          {/* Observações */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Observações
-            </label>
-            <textarea
-              value={formData.observacoes}
-              onChange={(e) => handleInputChange('observacoes', e.target.value)}
-              placeholder="Informações adicionais (opcional)"
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            />
-          </div>
-
           {/* Botões */}
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              disabled={loading}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 transition-colors ${
-                tipo === 'RECEITA' 
-                  ? 'bg-green-600 hover:bg-green-700' 
-                  : 'bg-red-600 hover:bg-red-700'
-              }`}
+              className={`px-4 py-2 text-white rounded-lg ${
+                tipo === 'RECEITA'
+                  ? 'bg-green-500 hover:bg-green-600'
+                  : 'bg-red-500 hover:bg-red-600'
+              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {loading 
-                ? 'Salvando...' 
-                : modoEdicao 
-                  ? `Atualizar ${tipo === 'RECEITA' ? 'Receita' : 'Despesa'}`
-                  : `Cadastrar ${tipo === 'RECEITA' ? 'Receita' : 'Despesa'}`
-              }
+              {loading ? 'Salvando...' : (modoEdicao ? 'Salvar Alterações' : 'Salvar')}
             </button>
           </div>
         </form>
