@@ -13,7 +13,8 @@ export const useUnitSelection = () => {
     'Coop', 
     'Progresso', 
     'Vila Haro', 
-    'Vila Helena'
+    'Vila Helena',
+    'Comercial'
   ], []);
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export const useUnitSelection = () => {
       'Progresso': 'Progresso',
       'Vila Haro': 'Vila Haro',
       'Vila Helena': 'Vila Helena',
+      'Comercial': 'Comercial',
       // Adicione outros slugs/códigos se necessário
     };
     return nomes[unidade] || unidade;

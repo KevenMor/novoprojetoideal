@@ -122,7 +122,7 @@ export default function EnviarMensagem() {
                 required
               >
                 <option value="">Selecione a unidade</option>
-                {[...new Set(unidadesUsuario)].map((unidade) => (
+                {[...new Set([...(unidadesUsuario || []), 'Comercial'])].map((unidade) => (
                   <option key={unidade} value={unidade}>{getUnitDisplayName(unidade)}</option>
                 ))}
               </select>

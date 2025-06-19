@@ -37,7 +37,7 @@ export default function UnitSelector() {
       </button>
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
-          {availableUnits.map(unit => (
+          {['all', ...availableUnits.filter(u => u !== 'all')].map(unit => (
             <button
               key={unit}
               onClick={() => handleUnitChange(unit)}

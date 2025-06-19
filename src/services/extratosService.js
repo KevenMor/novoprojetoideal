@@ -98,20 +98,39 @@ async function buscarExtratosFirebase(filtros = {}) {
     );
     
     if (dataInicial && dataFinal) {
+      const dataIni = new Date(dataInicial);
+      const dataFim = new Date(dataFinal);
+      dataFim.setHours(23, 59, 59, 999); // Incluir todo o dia final
+      
+      console.log(`📅 Filtrando por período: ${dataIni.toLocaleDateString()} até ${dataFim.toLocaleDateString()}`);
+      console.log(`📅 Período em timestamp: ${dataIni.getTime()} até ${dataFim.getTime()}`);
+      
       extratosQuery = query(
         collection(db, 'extratos'),
-        where('data', '>=', new Date(dataInicial)),
-        where('data', '<=', new Date(dataFinal)),
+        where('data', '>=', dataIni),
+        where('data', '<=', dataFim),
         orderBy('data', 'desc')
       );
     }
     
     const extratosSnapshot = await getDocs(extratosQuery);
-    let extratos = extratosSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      origem: 'FIREBASE'
-    }));
+    let extratos = extratosSnapshot.docs.map(doc => {
+      const data = doc.data();
+      // Converter o campo 'data' para Date se for string
+      if (typeof data.data === 'string') {
+        try {
+          data.data = new Date(data.data);
+          if (isNaN(data.data.getTime())) {
+            console.error(`❌ Data inválida no documento ${doc.id}: "${data.data}"`);
+            return null;
+          }
+        } catch (error) {
+          console.error(`❌ Erro ao converter data no documento ${doc.id}: "${data.data}"`, error);
+          return null;
+        }
+      }
+      return { id: doc.id, ...data, origem: 'FIREBASE' };
+    }).filter(Boolean); // Remover documentos com data inválida
     
     // Filtrar por unidade se especificada
     if (unidade) {

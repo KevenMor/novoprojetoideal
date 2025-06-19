@@ -183,14 +183,14 @@ export const googleSheetsService = {
         // Usar estrutura detectada ou fallback para posições padrão
         const cliente = linha[estrutura.cliente ?? 0] || '';
         const valor = linha[estrutura.valor ?? 1] || '0';
-        const data = linha[estrutura.data ?? 2] || '';
+        const dataString = linha[estrutura.data ?? 2] || '';
         const formaPagamento = linha[estrutura.formaPagamento ?? 3] || '';
         const observacoes = linha[estrutura.observacoes ?? 5] || '';
         
         console.log(`📋 Dados extraídos:`, {
           cliente: `"${cliente}" (coluna ${estrutura.cliente ?? 0})`,
           valor: `"${valor}" (coluna ${estrutura.valor ?? 1})`,
-          data: `"${data}" (coluna ${estrutura.data ?? 2})`,
+          data: `"${dataString}" (coluna ${estrutura.data ?? 2})`,
           formaPagamento: `"${formaPagamento}" (coluna ${estrutura.formaPagamento ?? 3})`
         });
         
@@ -201,73 +201,43 @@ export const googleSheetsService = {
           return null;
         }
         
-        // Validar se a linha tem dados suficientes
-        if (!cliente && !valor && !data) {
-          console.warn(`⚠️ Linha ${index + 2} vazia ou incompleta, pulando...`);
+        // Converter data para Date (ou ISO string) e ignorar linhas com data inválida
+        let data;
+        try {
+          data = this.parseDate(dataString);
+          if (isNaN(data.getTime())) {
+            console.error(`❌ Data inválida na linha ${index + linhaCabecalho + 2}: "${dataString}"`);
+            return null;
+          }
+        } catch (error) {
+          console.error(`❌ Erro ao converter data na linha ${index + linhaCabecalho + 2}: "${dataString}"`, error);
           return null;
         }
         
-        // Validar se o valor é realmente um número (mais flexível)
-        const valorLimpo = valor.toString().replace(/[^\d.,]/g, '');
-        const valorNumerico = parseFloat(valorLimpo);
+        // Formatar valor (remover R$ e converter para número)
+        const valorNumerico = this.parseValor(valor);
         
-        if (isNaN(valorNumerico) || valorNumerico <= 0) {
-          console.warn(`⚠️ Linha ${index + linhaCabecalho + 2} com valor inválido ("${valor}" -> "${valorLimpo}" -> ${valorNumerico}), pulando...`);
-          return null;
-        }
+        // Determinar tipo e categoria
+        const tipo = this.normalizarTipo(formaPagamento);
+        const categoria = this.determinarCategoria(formaPagamento, observacoes);
         
-        console.log(`💰 Valor validado: "${valor}" -> ${valorNumerico}`);
-        
-        const dataFormatada = googleSheetsService.parseDate(data);
-        const valorFormatado = googleSheetsService.parseValor(valor);
-        
-        // Verificar se a linha tem uma coluna de unidade específica, senão usar a unidade da planilha
-        const unidadeDoExtrato = linha[estrutura.unidade] || unidade;
-        
-        const extrato = {
-            id: `sheets_${unidade}_${index}`,
-            data: dataFormatada,
-            date: dataFormatada,
-            descricao: `${cliente || 'Cliente'} - ${formaPagamento || 'Pagamento'}`,
-            description: `${cliente || 'Cliente'} - ${formaPagamento || 'Pagamento'}`,
-            tipo: 'RECEITA', // Assumindo que todos os registros são receitas
-            type: 'CREDIT',
-            valor: valorFormatado,
-            value: valorFormatado,
-            status: 'CONFIRMADO',
-            origem: 'GOOGLE_SHEETS',
-            categoria: googleSheetsService.determinarCategoria(formaPagamento, observacoes),
-            unidade: unidadeDoExtrato, // Usar a unidade correta
-            cliente: cliente,
-            formaPagamento: formaPagamento,
-            observacoes: observacoes
-          };
-          
-        console.log(`🏢 Extrato criado para unidade: ${unidadeDoExtrato} (planilha: ${unidade})`);
-          
-        // Log detalhado do extrato formatado
-        console.log(`🎯 ${unidade} - Extrato ${index + 1} detalhado:`, {
+        return {
           cliente,
-          valorOriginal: valor,
-          valorFormatado,
-          dataOriginal: data,
-          dataFormatada,
-          formaPagamento
-        });
-          
-        // Log específico para Vila Haro e Julio de Mesquita
-        if ((unidade === 'Vila Haro' || unidade === 'Julio de Mesquita') && index < 2) {
-          console.log(`🎯 ${unidade} - Extrato ${index + 1} formatado:`, extrato);
-        }
-        
-        return extrato;
+          valor: valorNumerico,
+          data: data.toISOString(), // Converter para ISO string para garantir consistência
+          formaPagamento,
+          observacoes,
+          tipo,
+          categoria,
+          unidade
+        };
       } catch (error) {
-        console.warn(`⚠️ Erro ao processar linha ${index}:`, linha);
+        console.error(`❌ Erro ao processar linha ${index + linhaCabecalho + 2}:`, error);
         return null;
       }
-    }).filter(item => item !== null);
+    }).filter(Boolean); // Remover linhas nulas (com erro ou cabeçalho)
     
-    console.log(`✅ ${extratosFormatados.length} extratos formatados para ${unidade}`);
+    console.log(`✅ ${extratosFormatados.length} extratos formatados com sucesso para ${unidade}`);
     return extratosFormatados;
   },
 
@@ -532,24 +502,22 @@ export const googleSheetsService = {
       if (dataInicial && dataFinal) {
         const dataIni = new Date(dataInicial);
         const dataFim = new Date(dataFinal);
-        dataFim.setHours(23, 59, 59, 999); // Incluir todo o dia final
+        // Zerar horário da data inicial e colocar fim do dia na data final
+        dataIni.setHours(0, 0, 0, 0);
+        dataFim.setHours(23, 59, 59, 999);
         
         console.log(`📅 Filtrando por período: ${dataIni.toLocaleDateString()} até ${dataFim.toLocaleDateString()}`);
         console.log(`📅 Período em timestamp: ${dataIni.getTime()} até ${dataFim.getTime()}`);
         
         extratosFiltrados = todosExtratos.filter(extrato => {
           const dataExtrato = new Date(extrato.data);
+          // Zerar horário da data do extrato para comparar apenas ano, mês e dia
+          dataExtrato.setHours(0, 0, 0, 0);
           const timestampExtrato = dataExtrato.getTime();
           const timestampIni = dataIni.getTime();
           const timestampFim = dataFim.getTime();
           
           const dentroDoPeríodo = timestampExtrato >= timestampIni && timestampExtrato <= timestampFim;
-          
-          console.log(`📅 Verificando extrato: ${extrato.cliente}`);
-          console.log(`   Data original: ${extrato.data}`);
-          console.log(`   Data parseada: ${dataExtrato.toLocaleDateString()}`);
-          console.log(`   Timestamp: ${timestampExtrato}`);
-          console.log(`   Dentro do período: ${dentroDoPeríodo}`);
           
           if (!dentroDoPeríodo) {
             console.log(`❌ Extrato FORA do período: ${dataExtrato.toLocaleDateString()} (${extrato.cliente})`);

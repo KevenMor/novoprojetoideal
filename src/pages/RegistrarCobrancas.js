@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { db } from '../firebase/config';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import CurrencyInput from 'react-currency-input-field';
 
 export default function RegistrarCobrancas() {
   const { selectedUnit, availableUnits } = useUnitSelection();
@@ -80,7 +81,7 @@ export default function RegistrarCobrancas() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const unidadeParaValidar = formData.unidade || '';
-    const valorTotalNumerico = Number(formData.valorTotal) / 100;
+    const valorTotalNumerico = Number(String(formData.valorTotal).replace('.', '').replace(',', '.'));
     const valorTotalInvalido = !valorTotalNumerico || valorTotalNumerico <= 0;
     if (!formData.nome || !formData.cpf || !formData.email || !formData.whatsapp || 
         !formData.servico || !formData.tipoPagamento || valorTotalInvalido || 
@@ -113,29 +114,26 @@ export default function RegistrarCobrancas() {
         whatsapp: formData.whatsapp,
         servico: formData.servico,
         tipoPagamento: formData.tipoPagamento,
-        valorTotal: formatValor(formData.valorTotal / 100),
+        valorTotal: valorTotalNumerico.toFixed(2),
         parcelas: formData.parcelas,
-        valorParcela: formatValor((formData.valorTotal / 100) / Number(formData.parcelas)),
+        valorParcela: (valorTotalNumerico / Number(formData.parcelas)).toFixed(2),
         dataVencimento: formatDateISO(formData.dataVencimento),
         unidade: unidadeParaValidar
       }, { headers: { 'Content-Type': 'application/json' }, timeout: 30000 });
-      // Salvar no Firestore
-      await addDoc(collection(db, 'cobrancas'), {
-        nome: capitalizeName(formData.nome),
-        cpf: formData.cpf,
-        email: formData.email,
-        whatsapp: formData.whatsapp,
-        servico: formData.servico,
-        tipoPagamento: formData.tipoPagamento,
-        valorTotal: formatValor(formData.valorTotal / 100),
-        parcelas: formData.parcelas,
-        valorParcela: formatValor((formData.valorTotal / 100) / Number(formData.parcelas)),
-        dataVencimento: formatDateISO(formData.dataVencimento),
-        unidade: unidadeParaValidar,
-        status: 'ENVIADO',
-        createdAt: Timestamp.now()
-      });
       toast.success('Cobrança enviada para o webhook com sucesso!');
+      // Resetar formulário após sucesso
+      setFormData(prev => ({
+        unidade: prev.unidade, // mantém unidade selecionada
+        nome: '',
+        cpf: '',
+        email: '',
+        whatsapp: '',
+        servico: '',
+        tipoPagamento: '',
+        valorTotal: '',
+        parcelas: 1,
+        dataVencimento: ''
+      }));
     } catch (error) {
       console.error('Erro ao criar cobrança:', error);
       toast.error('Erro ao criar cobrança. Tente novamente.');
@@ -250,12 +248,16 @@ export default function RegistrarCobrancas() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Valor Total *</label>
-                <input
-                  type="number"
+                <CurrencyInput
                   className="input-field"
+                  intlConfig={{ locale: 'pt-BR', currency: 'BRL' }}
+                  decimalSeparator="," groupSeparator="."
                   value={formData.valorTotal}
-                  onChange={e => setFormData({ ...formData, valorTotal: e.target.value })}
+                  onValueChange={(value) => setFormData({ ...formData, valorTotal: value })}
                   required
+                  allowDecimals
+                  decimalsLimit={2}
+                  placeholder="0,00"
                 />
               </div>
               <div>

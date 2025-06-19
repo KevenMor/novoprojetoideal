@@ -1,3 +1,44 @@
+# Projeto Baseado no Sistema Autoescola Ideal
+
+Este projeto foi criado utilizando como base o sistema desenvolvido para a **Autoescola Ideal**.
+
+## 📁 Projeto Base de Referência
+
+O projeto original está localizado em:
+```
+C:\Users\keven\Downloads\SISTEMA AUTOESCOLA IDEAL
+```
+
+## 🧩 Estrutura e Padrão
+- Layout moderno, responsivo e limpo
+- Sidebar fixa, header no topo, cards de resumo, tabelas com filtros, busca e paginação
+- Componentização e organização de pastas:
+  - `src/pages` — páginas principais
+  - `src/components` — componentes reutilizáveis
+  - `src/services` — integrações e lógica de negócio
+  - `src/contexts` — contexto global (ex: autenticação, filtros)
+  - `src/styles` — estilos globais e utilitários
+- Experiência do usuário fluida, com feedback visual
+- Integração com APIs externas (ex: Asaas, Google Sheets, WhatsApp)
+
+## 🚀 Como Usar para Novos Projetos
+1. **Clone ou copie o projeto base** para uma nova pasta.
+2. **Renomeie** o projeto e ajuste o README para o novo cliente/empresa.
+3. **Troque logo, cores e textos** para a identidade visual do novo cliente.
+4. **Adapte as funcionalidades** conforme a necessidade do novo segmento.
+5. **Configure variáveis de ambiente** e integrações específicas.
+6. **Documente customizações** e diferenças em relação ao projeto base.
+
+## 📝 Pontos de Atenção
+- Sempre salve IDs de integrações externas (ex: Asaas) junto aos dados de cobrança para automação.
+- Mantenha a estrutura de pastas e componentes para facilitar manutenção e evolução.
+- Utilize o padrão de UX e responsividade do projeto base.
+- Consulte o projeto original para exemplos de implementação e boas práticas.
+
+---
+
+> Este README serve como guia inicial para replicar e adaptar o sistema da Autoescola Ideal para novos clientes e segmentos, mantendo qualidade, organização e produtividade.
+
 # Sistema Autoescola Ideal
 
 Sistema interno completo para gestão da Autoescola Ideal, desenvolvido com React, Firebase e integração com APIs externas.
