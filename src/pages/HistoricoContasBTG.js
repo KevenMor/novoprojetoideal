@@ -146,6 +146,15 @@ export default function HistoricoContasBTG() {
   };
 
   const handleExportarBTG = () => {
+    // Verifica se há contas selecionadas
+    if (selecionadas.length === 0) {
+      toast.error('Selecione pelo menos uma conta para exportar');
+      return;
+    }
+
+    // Filtra apenas as contas selecionadas
+    const contasSelecionadas = contas.filter(conta => selecionadas.includes(conta.id));
+
     // Cabeçalhos conforme os prints do usuário
     const headersTED = [
       'Banco do Favorecido', 'Agência do Favorecido', 'Conta do Favorecido', 'Tipo de Conta do Favorecido',
@@ -185,9 +194,10 @@ export default function HistoricoContasBTG() {
     // TED (não implementado pois não há dados de TED, mas estrutura mantida)
     const tedRows = [headersTED];
 
-    // PIX
+    // PIX - apenas contas selecionadas
     const pixRows = [headersPIX];
-    contas.filter(c => c.tipo === 'pix').forEach(conta => {
+    const contasPixSelecionadas = contasSelecionadas.filter(c => c.tipo === 'pix');
+    contasPixSelecionadas.forEach(conta => {
       let chavePix = conta.chavePix || '';
       if (conta.tipoChave === 'CPF' || conta.tipoChave === 'CNPJ') {
         chavePix = chavePix.replace(/\D/g, '');
@@ -211,9 +221,10 @@ export default function HistoricoContasBTG() {
       ]);
     });
 
-    // BOLETO
+    // BOLETO - apenas contas selecionadas
     const boletoRows = [headersBOLETO];
-    contas.filter(c => c.tipo === 'boleto').forEach(conta => {
+    const contasBoletoSelecionadas = contasSelecionadas.filter(c => c.tipo === 'boleto');
+    contasBoletoSelecionadas.forEach(conta => {
       let codigoBarras = conta.linhaDigitavel ? conta.linhaDigitavel.replace(/\D/g, '') : '';
       boletoRows.push([
         codigoBarras,
@@ -236,8 +247,14 @@ export default function HistoricoContasBTG() {
     XLSX.utils.book_append_sheet(wb, wsPIX, 'PIX');
     XLSX.utils.book_append_sheet(wb, wsBOLETO, 'BOLETO');
 
+    // Nome do arquivo com informação de quantas contas foram exportadas
+    const nomeArquivo = `BTG_PAGAMENTOS_${contasSelecionadas.length}_CONTAS_${hoje.toLocaleDateString('pt-BR').replace(/\//g, '_')}.xlsx`;
+
     // Gera o arquivo e faz download
-    XLSX.writeFile(wb, 'BTG_PAGAMENTOS.xlsx');
+    XLSX.writeFile(wb, nomeArquivo);
+
+    // Mostra mensagem de sucesso
+    toast.success(`Arquivo exportado com sucesso! ${contasSelecionadas.length} contas exportadas (${contasPixSelecionadas.length} PIX, ${contasBoletoSelecionadas.length} Boletos)`);
   };
 
   const toggleSelecionada = (id) => {
@@ -270,7 +287,7 @@ export default function HistoricoContasBTG() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="container-mobile spacing-responsive">
       {/* Header */}
       <div className="flex items-center space-x-3 mb-6">
         <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -284,8 +301,8 @@ export default function HistoricoContasBTG() {
 
       {/* Estatísticas */}
       {estatisticas && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="card">
+        <div className="grid-mobile grid-mobile-1 grid-mobile-md-2 grid-mobile-lg-4">
+          <div className="card-mobile">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total de Contas</p>
@@ -297,7 +314,7 @@ export default function HistoricoContasBTG() {
             </div>
           </div>
 
-          <div className="card">
+          <div className="card-mobile">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Aguardando</p>
@@ -310,7 +327,7 @@ export default function HistoricoContasBTG() {
             </div>
           </div>
 
-          <div className="card">
+          <div className="card-mobile">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Pagas</p>
@@ -323,7 +340,7 @@ export default function HistoricoContasBTG() {
             </div>
           </div>
 
-          <div className="card">
+          <div className="card-mobile">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Canceladas</p>
@@ -339,7 +356,7 @@ export default function HistoricoContasBTG() {
       )}
 
       {/* Filtros */}
-      <div className="card">
+      <div className="card-mobile">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-5 h-5 text-gray-500" />
           <h3 className="font-medium text-gray-900">Filtros</h3>
@@ -451,29 +468,44 @@ export default function HistoricoContasBTG() {
       </div>
 
       {/* Lista de Contas */}
-      <div className="card">
+      <div className="card-mobile">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-medium text-gray-900">
             Contas Cadastradas ({contas.length})
           </h3>
           {isAdmin && (
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={handleExportarBTG}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                title="Exportar arquivo para BTG"
+                disabled={selecionadas.length === 0}
+                className={`btn-mobile flex items-center justify-center gap-2 touch-target ${
+                  selecionadas.length === 0 
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+                title={selecionadas.length === 0 ? 'Selecione contas para exportar' : `Exportar ${selecionadas.length} conta(s) selecionada(s)`}
               >
                 <CreditCard className="w-4 h-4" />
-                Exportar arquivo para BTG
+                <span className="text-mobile-sm">
+                  {selecionadas.length === 0 
+                    ? 'Exportar arquivo para BTG' 
+                    : `Exportar ${selecionadas.length} conta(s)`
+                  }
+                </span>
               </button>
               <button
                 onClick={darBaixaEmLote}
                 disabled={selecionadas.length === 0 || loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-                title="Dar baixa em lote"
+                className="btn-mobile bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 touch-target"
+                title={selecionadas.length === 0 ? 'Selecione contas para dar baixa' : `Dar baixa em ${selecionadas.length} conta(s)`}
               >
                 <CheckCircle className="w-4 h-4" />
-                Dar baixa em lote
+                <span className="text-mobile-sm">
+                  {selecionadas.length === 0 
+                    ? 'Dar baixa em lote' 
+                    : `Baixa em ${selecionadas.length} conta(s)`
+                  }
+                </span>
               </button>
             </div>
           )}
@@ -490,8 +522,8 @@ export default function HistoricoContasBTG() {
             <p className="text-gray-500">Nenhuma conta encontrada</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="table-mobile-container">
+            <table className="table-mobile">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-2 py-3">

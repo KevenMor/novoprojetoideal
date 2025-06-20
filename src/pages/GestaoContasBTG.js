@@ -220,11 +220,14 @@ export default function GestaoContasBTG() {
   };
 
   const handleExportarBTG = () => {
-    const contasParaExportar = contas.filter(c => c.status === 'AGUARDANDO');
-    if (contasParaExportar.length === 0) {
-      toast.error('Não há contas aguardando pagamento para exportar');
+    // Verifica se há contas selecionadas
+    if (selecionadas.length === 0) {
+      toast.error('Selecione pelo menos uma conta para exportar');
       return;
     }
+
+    // Filtra apenas as contas selecionadas
+    const contasParaExportar = contas.filter(conta => selecionadas.includes(conta.id));
 
     // Cabeçalhos conforme os prints do usuário
     const headersTED = [
@@ -332,9 +335,17 @@ export default function GestaoContasBTG() {
     XLSX.utils.book_append_sheet(wb, wsPIX, 'PIX');
     XLSX.utils.book_append_sheet(wb, wsBOLETO, 'BOLETO');
 
+    // Contabiliza por tipo
+    const pixCount = contasParaExportar.filter(c => c.tipo === 'pix').length;
+    const boletoCount = contasParaExportar.filter(c => c.tipo === 'boleto').length;
+
+    // Nome do arquivo com informação de quantas contas foram exportadas
+    const hoje = new Date();
+    const nomeArquivo = `BTG_PAGAMENTOS_${contasParaExportar.length}_CONTAS_${hoje.toLocaleDateString('pt-BR').replace(/\//g, '_')}.xlsx`;
+
     // Gera o arquivo e faz download
-    XLSX.writeFile(wb, 'BTG_PAGAMENTOS.xlsx');
-    toast.success('Arquivo BTG exportado com sucesso!');
+    XLSX.writeFile(wb, nomeArquivo);
+    toast.success(`Arquivo exportado com sucesso! ${contasParaExportar.length} contas exportadas (${pixCount} PIX, ${boletoCount} Boletos)`);
   };
 
   const darBaixaEmLote = async () => {
@@ -521,11 +532,19 @@ export default function GestaoContasBTG() {
           {/* Export BTG button */}
           <button
             onClick={handleExportarBTG}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 transition-colors"
-            title="Exportar arquivo para BTG"
+            disabled={selecionadas.length === 0}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+              selecionadas.length === 0 
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+            title={selecionadas.length === 0 ? 'Selecione contas para exportar' : `Exportar ${selecionadas.length} conta(s) selecionada(s)`}
           >
             <CreditCard size={16} />
-            Exportar BTG
+            {selecionadas.length === 0 
+              ? 'Exportar BTG' 
+              : `Exportar ${selecionadas.length} conta(s)`
+            }
           </button>
 
           {/* Refresh button */}
