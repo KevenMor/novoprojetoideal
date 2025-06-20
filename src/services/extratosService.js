@@ -48,6 +48,50 @@ async function buscarLancamentosFirebase(filtros) {
   }
 }
 
+async function buscarContasBTGPagas(filtros) {
+  try {
+    console.log('🔄 Buscando contas BTG pagas...');
+    
+    // Buscar contas BTG com status PAGO
+    let q = query(
+      collection(db, 'contas_btg'), 
+      where('status', '==', 'PAGO'),
+      orderBy('dataPagamento', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    let contasBTG = snapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log('📄 Conta BTG paga encontrada:', data);
+      
+      // Converter para formato de extrato
+      return {
+        id: `btg_${doc.id}`,
+        descricao: data.descricao || 'Pagamento BTG',
+        valor: Math.abs(data.valor || 0), // Garantir que seja positivo
+        data: data.dataPagamento || data.vencimento || data.dataCriacao,
+        tipo: 'DEBIT', // Contas BTG são sempre despesas
+        type: 'DEBIT',
+        status: 'PAGO',
+        unidade: data.unidade || '',
+        origem: 'CONTA_BTG',
+        tipoConta: data.tipo || '', // boleto ou pix
+        favorecido: data.favorecido || '',
+        chavePix: data.chavePix || '',
+        linhaDigitavel: data.linhaDigitavel || ''
+      };
+    });
+
+    console.log(`✅ ${contasBTG.length} contas BTG pagas encontradas`);
+    return contasBTG;
+  } catch (error) {
+    console.error('❌ Erro ao buscar contas BTG pagas:', error);
+    // Não falhar se não conseguir buscar contas BTG
+    return [];
+  }
+}
+
 async function buscarExtratos(filtros = {}) {
   try {
     console.log('🔄 Buscando extratos com filtros:', filtros);
@@ -55,6 +99,7 @@ async function buscarExtratos(filtros = {}) {
     
     let extratosSheets = [];
     let extratosFirebase = [];
+    let contasBTGPagas = [];
 
     // 1. Coletar dados brutos
     if (unidade === 'all') {
@@ -65,13 +110,15 @@ async function buscarExtratos(filtros = {}) {
       extratosSheets = sheetsResults.flat();
       
       extratosFirebase = await buscarLancamentosFirebase(filtros);
+      contasBTGPagas = await buscarContasBTGPagas(filtros);
     } else {
       extratosSheets = await googleSheetsService.buscarExtratosFiltrados({ ...filtros, dataInicial: null, dataFinal: null, tipo: null });
       extratosFirebase = await buscarLancamentosFirebase(filtros);
+      contasBTGPagas = await buscarContasBTGPagas(filtros);
     }
 
     // 2. Combinar e filtrar
-    let todosExtratos = [...extratosSheets, ...extratosFirebase];
+    let todosExtratos = [...extratosSheets, ...extratosFirebase, ...contasBTGPagas];
 
     // Aplicar filtro de unidade (se não for 'all')
     if (unidade && unidade !== 'all') {

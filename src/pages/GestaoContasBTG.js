@@ -97,9 +97,9 @@ export default function GestaoContasBTG() {
       setLoading(true);
       console.log('🔄 Carregando contas BTG com filtros:', filtros);
       
-      // Carregar todas as contas
-      const todasContas = await contasBTGService.buscarContas();
-      console.log('✅ Todas as contas carregadas:', todasContas);
+      // Carregar contas aplicando os filtros
+      const todasContas = await contasBTGService.listarContasBTG(filtros);
+      console.log('✅ Contas carregadas com filtros aplicados:', todasContas);
 
       // Garantir que todas as contas têm os campos necessários
       const contasNormalizadas = todasContas.map(conta => ({
@@ -124,27 +124,41 @@ export default function GestaoContasBTG() {
       console.log('✅ Contas normalizadas:', contasNormalizadas);
       setContas(contasNormalizadas);
 
-      // Calcular estatísticas
-      const estatisticasCalculadas = {
-        total: contasNormalizadas.length,
-        totalAguardando: contasNormalizadas.filter(c => c.status === 'AGUARDANDO').length,
-        totalPago: contasNormalizadas.filter(c => c.status === 'PAGO').length,
-        totalCancelado: contasNormalizadas.filter(c => c.status === 'CANCELADO').length,
-        valorAguardando: contasNormalizadas
-          .filter(c => c.status === 'AGUARDANDO')
-          .reduce((acc, curr) => acc + (curr.valor || 0), 0),
-        valorPago: contasNormalizadas
-          .filter(c => c.status === 'PAGO')
-          .reduce((acc, curr) => acc + (curr.valor || 0), 0)
-      };
-
-      console.log('📊 Estatísticas calculadas:', estatisticasCalculadas);
-      setEstatisticas(estatisticasCalculadas);
+      // Carregar estatísticas globais (sem filtros) para o dashboard
+      await carregarEstatisticasGlobais();
     } catch (error) {
       console.error('❌ Erro ao carregar contas:', error);
       toast.error('Erro ao carregar contas: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const carregarEstatisticasGlobais = async () => {
+    try {
+      console.log('📊 Carregando estatísticas globais...');
+      
+      // Buscar todas as contas para estatísticas (sem filtros)
+      const todasContasParaEstatisticas = await contasBTGService.buscarContas();
+      
+      const estatisticasCalculadas = {
+        total: todasContasParaEstatisticas.length,
+        totalAguardando: todasContasParaEstatisticas.filter(c => c.status === 'AGUARDANDO').length,
+        totalPago: todasContasParaEstatisticas.filter(c => c.status === 'PAGO').length,
+        totalCancelado: todasContasParaEstatisticas.filter(c => c.status === 'CANCELADO').length,
+        valorAguardando: todasContasParaEstatisticas
+          .filter(c => c.status === 'AGUARDANDO')
+          .reduce((acc, curr) => acc + (curr.valor || 0), 0),
+        valorPago: todasContasParaEstatisticas
+          .filter(c => c.status === 'PAGO')
+          .reduce((acc, curr) => acc + (curr.valor || 0), 0)
+      };
+
+      console.log('📊 Estatísticas globais calculadas:', estatisticasCalculadas);
+      setEstatisticas(estatisticasCalculadas);
+    } catch (error) {
+      console.error('❌ Erro ao carregar estatísticas:', error);
+      // Não bloquear a interface se as estatísticas falharem
     }
   };
 
