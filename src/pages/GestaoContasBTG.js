@@ -340,7 +340,6 @@ export default function GestaoContasBTG() {
     const boletoCount = contasParaExportar.filter(c => c.tipo === 'boleto').length;
 
     // Nome do arquivo com informação de quantas contas foram exportadas
-    const hoje = new Date();
     const nomeArquivo = `BTG_PAGAMENTOS_${contasParaExportar.length}_CONTAS_${hoje.toLocaleDateString('pt-BR').replace(/\//g, '_')}.xlsx`;
 
     // Gera o arquivo e faz download
