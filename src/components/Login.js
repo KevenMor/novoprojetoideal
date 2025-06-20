@@ -11,14 +11,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login, currentUser } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (currentUser) {
+    if (user) {
       navigate('/dashboard', { replace: true });
     }
-  }, [currentUser, navigate]);
+  }, [user, navigate]);
 
   async function handleSubmit(e) {
     e.preventDefault();

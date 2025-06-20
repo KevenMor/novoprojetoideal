@@ -149,21 +149,26 @@ export function AuthProvider({ children }) {
     return canAccessMenu(userProfile?.permissions, menuKey);
   };
 
+  const user = currentUser ? {
+    uid: currentUser.uid,
+    email: currentUser.email,
+    ...userProfile
+  } : null;
+
   const value = {
-    currentUser,
-    userProfile,
+    user,
     login,
     logout,
     isAdmin: userProfile?.perfil === 'admin',
     unidades: userProfile?.unidades || [],
     permissions: userProfile?.permissions || [],
     hasPermission: checkPermission,
-    canAccessMenu: checkMenuAccess
+    canAccessMenu: checkMenuAccess,
+    loading,
   };
 
   console.log('🔧 AuthContext value:', { 
-    hasCurrentUser: !!currentUser, 
-    hasUserProfile: !!userProfile, 
+    hasUser: !!user, 
     isAdmin: value.isAdmin,
     permissions: value.permissions?.length || 0,
     loading 
@@ -171,7 +176,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 } 

@@ -35,92 +35,25 @@ const normalizarData = (data) => {
 
 export const googleSheetsService = {
   // Buscar dados de uma planilha específica
-  async buscarDadosSpreadsheet(spreadsheetId, range = null, unidade = null) {
+  async buscarDadosSpreadsheet(spreadsheetId, range = null, unidade = '') {
     try {
-      const API_KEY = SHEETS_CONFIG.API_KEY;
+      // Se não foi fornecido um range, usar o padrão da unidade ou o geral
+      const rangeEfetivo = range || SHEETS_CONFIG.RANGES[unidade] || SHEETS_CONFIG.RANGE_PADRAO;
       
-      // Determinar o range a ser usado
-      let rangeParaUsar = range;
-      if (!rangeParaUsar && unidade && RANGES[unidade]) {
-        rangeParaUsar = RANGES[unidade];
-        console.log(`📋 Usando range específico para ${unidade}: ${rangeParaUsar}`);
-      } else if (!rangeParaUsar) {
-        rangeParaUsar = SHEETS_CONFIG.RANGE_PADRAO;
+      // Construir a URL da API
+      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${rangeEfetivo}?key=${SHEETS_CONFIG.API_KEY}`;
+      
+      // Fazer a requisição
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar dados: ${response.status} ${response.statusText}`);
       }
       
-      console.log(`📊 Buscando dados da planilha: ${spreadsheetId}`);
-      console.log(`📋 Range solicitado: ${rangeParaUsar}`);
-      
-      // Teste específico para Vila Haro e Julio de Mesquita
-      if (unidade === 'Vila Haro' || unidade === 'Julio de Mesquita') {
-        console.log(`🧪 TESTE ESPECÍFICO - ${unidade}:`);
-        console.log(`   Spreadsheet ID: ${spreadsheetId}`);
-        console.log(`   Range: ${rangeParaUsar}`);
-      }
-      
-      // Tentar diferentes formatos de range se o primeiro falhar
-      const rangesParaTestar = [
-        rangeParaUsar,                 // Range específico da unidade
-        'A:F',                         // Range simples sem aba
-        'A:Z',                         // Range mais amplo
-        'A1:F1000',                    // Range específico grande
-        'A1:Z1000',                    // Range específico muito amplo
-        'A2:F1000',                    // Range sem cabeçalho
-        'Sheet1!A:F',                  // Com nome de aba padrão
-        'Sheet1!A:Z',                  // Aba padrão mais ampla
-        'Planilha1!A:F',               // Com nome de aba em português
-        'Planilha1!A:Z',               // Aba em português mais ampla
-        'Página1!A:F',                 // Variação de nome
-        'Dados!A:F',                   // Nome comum para dados
-        'Extratos!A:F'                 // Nome específico para extratos
-      ];
-      
-      let dadosEncontrados = null;
-      let rangeUsado = null;
-      
-      for (const rangeAtual of rangesParaTestar) {
-        try {
-          const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${rangeAtual}?key=${API_KEY}`;
-          
-          console.log(`🔗 Tentando URL: ${url}`);
-          
-          const response = await fetch(url);
-          const data = await response.json();
-          
-          if (response.ok && data.values && data.values.length > 0) {
-            console.log(`✅ Sucesso com range: ${rangeAtual}`);
-            console.log(`📊 ${data.values.length} linhas encontradas`);
-            
-            // Log específico para Vila Haro e Julio de Mesquita
-            if (unidade === 'Vila Haro' || unidade === 'Julio de Mesquita') {
-              console.log(`🎯 ${unidade} - Dados encontrados:`, data.values.slice(0, 3));
-            }
-            
-            dadosEncontrados = data.values;
-            rangeUsado = rangeAtual;
-            break;
-          } else if (response.status === 400) {
-            console.warn(`⚠️ Range inválido: ${rangeAtual} - ${data.error?.message || 'Erro 400'}`);
-            continue;
-          } else {
-            console.warn(`⚠️ Erro ${response.status} com range: ${rangeAtual}`);
-          }
-          
-        } catch (error) {
-          console.warn(`⚠️ Erro de conexão com range ${rangeAtual}:`, error.message);
-          continue;
-        }
-      }
-      
-      if (!dadosEncontrados) {
-        throw new Error(`Nenhum range funcionou para a planilha ${spreadsheetId}. Verifique se a planilha existe e tem dados.`);
-      }
-      
-      console.log(`🎯 Range funcional encontrado: ${rangeUsado}`);
-      return dadosEncontrados;
+      const data = await response.json();
+      return data.values || [];
       
     } catch (error) {
-      console.error(`❌ Erro ao buscar dados da planilha ${spreadsheetId}:`, error);
+      console.error('❌ Erro ao buscar dados da planilha:', error);
       throw error;
     }
   },

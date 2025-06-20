@@ -8,21 +8,32 @@ export function useUnitFilter() {
 }
 
 export function UnitFilterProvider({ children }) {
-  const { userProfile } = useAuth();
+  const { user } = useAuth();
   const [selectedUnit, setSelectedUnit] = useState('all'); // 'all' ou nome da unidade específica
   const [availableUnits, setAvailableUnits] = useState([]);
 
+  // Lista de todas as unidades disponíveis no sistema
+  const allSystemUnits = [
+    'Julio de Mesquita',
+    'Aparecidinha',
+    'Vila Helena',
+    'Vila Haro',
+    'Progresso',
+    'Coop'
+  ];
+
   // Atualizar unidades disponíveis quando o perfil do usuário mudar
   useEffect(() => {
-    if (userProfile?.unidades && Array.isArray(userProfile.unidades)) {
-      setAvailableUnits(userProfile.unidades);
+    if (user?.perfil === 'admin') {
+      // Admin vê todas as unidades do sistema
+      setAvailableUnits(allSystemUnits);
+      setSelectedUnit('all');
+    } else if (user?.unidades && Array.isArray(user.unidades)) {
+      setAvailableUnits(user.unidades);
       
       // Se o usuário tem apenas uma unidade, selecionar automaticamente
-      if (userProfile.unidades.length === 1) {
-        setSelectedUnit(userProfile.unidades[0]);
-      } else if (userProfile.perfil === 'admin') {
-        // Se é admin, começar com "all" (Geral)
-        setSelectedUnit('all');
+      if (user.unidades.length === 1) {
+        setSelectedUnit(user.unidades[0]);
       } else {
         // Se tem múltiplas unidades, começar com "all"
         setSelectedUnit('all');
@@ -31,12 +42,12 @@ export function UnitFilterProvider({ children }) {
       setAvailableUnits([]);
       setSelectedUnit('all');
     }
-  }, [userProfile]);
+  }, [user]);
 
   // Função para verificar se deve mostrar dados da unidade
   const shouldShowUnitData = (unidade) => {
     // Se o usuário é admin e selecionou 'all', mostrar todas as unidades
-    if (userProfile?.perfil === 'admin' && selectedUnit === 'all') {
+    if (user?.perfil === 'admin' && selectedUnit === 'all') {
       return true;
     }
     
@@ -46,7 +57,7 @@ export function UnitFilterProvider({ children }) {
     }
     
     // Se o usuário tem acesso à unidade
-    return userProfile?.unidades?.includes(unidade);
+    return user?.unidades?.includes(unidade);
   };
 
   // Função para alterar a unidade selecionada
@@ -75,7 +86,7 @@ export function UnitFilterProvider({ children }) {
 
   // Função para verificar se o usuário tem múltiplas unidades
   const hasMultipleUnits = () => {
-    return userProfile?.unidades?.length > 1 || userProfile?.perfil === 'admin';
+    return user?.unidades?.length > 1 || user?.perfil === 'admin';
   };
 
   const value = {

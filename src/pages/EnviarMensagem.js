@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useUnitSelection } from '../hooks/useUnitSelection';
+import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { MessageSquare, Phone, User, Send } from 'lucide-react';
 import InputMask from 'react-input-mask';
 import toast from 'react-hot-toast';
@@ -10,28 +10,29 @@ import { getQuickMessages } from '../services/quickMessagesService';
 export default function EnviarMensagem() {
   const { 
     selectedUnit, 
-    getUnitDisplayName 
-  } = useUnitSelection();
-  const { isAdmin, unidades: unidadesUsuario } = useAuth();
+    availableUnits,
+    getSelectedUnitDisplay,
+    hasMultipleUnits
+  } = useUnitFilter();
+  const { user } = useAuth();
   
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nomeCompleto: '',
     whatsapp: '',
     tipoMensagem: '',
-    unidade: isAdmin ? '' : (selectedUnit || '')
+    unidade: selectedUnit === 'all' ? 'Geral' : (selectedUnit || '')
   });
   const [modelos, setModelos] = useState([]);
 
-  // Atualizar unidade no form quando selectedUnit mudar (apenas para não-admin)
+  // Atualizar unidade no form quando selectedUnit mudar
   React.useEffect(() => {
-    if (!isAdmin) {
-      setFormData(prev => ({
-        ...prev,
-        unidade: selectedUnit || ''
-      }));
-    }
-  }, [selectedUnit, isAdmin]);
+    const unitValue = selectedUnit === 'all' ? 'Geral' : selectedUnit;
+    setFormData(prev => ({
+      ...prev,
+      unidade: unitValue || ''
+    }));
+  }, [selectedUnit]);
 
   React.useEffect(() => {
     async function loadModelos() {
@@ -79,7 +80,8 @@ export default function EnviarMensagem() {
       }
       if (result.success) {
         toast.success('Mensagem enviada com sucesso!');
-        setFormData({ nomeCompleto: '', whatsapp: '', tipoMensagem: '', unidade: selectedUnit || '' });
+        const unitValue = selectedUnit === 'all' ? 'Geral' : selectedUnit;
+        setFormData({ nomeCompleto: '', whatsapp: '', tipoMensagem: '', unidade: unitValue || '' });
       } else {
         toast.error(result.error || 'Erro ao enviar mensagem');
       }
@@ -108,8 +110,8 @@ export default function EnviarMensagem() {
 
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Se admin, campo de seleção de unidade antes dos dados do destinatário */}
-          {isAdmin && (
+          {/* Campo de seleção de unidade para usuários com múltiplas unidades */}
+          {hasMultipleUnits() && (
             <div className="bg-gray-50 rounded-lg p-6 mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 {/* <Building2 className="w-5 h-5 mr-2 text-blue-600" /> */}
@@ -122,9 +124,11 @@ export default function EnviarMensagem() {
                 required
               >
                 <option value="">Selecione a unidade</option>
-                {[...new Set([...(unidadesUsuario || []), 'Comercial'])].map((unidade) => (
-                  <option key={unidade} value={unidade}>{getUnitDisplayName(unidade)}</option>
+                <option value="Geral">Geral</option>
+                {availableUnits.filter(unit => unit !== 'all').map((unidade) => (
+                  <option key={unidade} value={unidade}>{unidade}</option>
                 ))}
+                <option value="Comercial">Comercial</option>
               </select>
             </div>
           )}

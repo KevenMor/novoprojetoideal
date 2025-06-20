@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 
 export default function GerenciarUsuarios() {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -45,84 +45,38 @@ export default function GerenciarUsuarios() {
     { value: 'custom', label: 'Personalizado' }
   ];
 
-  const carregarUsuarios = useCallback(async () => {
-    setLoading(true);
+  const fetchUsuarios = useCallback(async () => {
     try {
-      console.log('🔄 Iniciando carregamento de usuários...');
+      setLoading(true);
       
-      // Verificar se o usuário atual tem permissões de admin
-      if (!currentUser) {
-        console.error('❌ Usuário não autenticado');
+      if (!user) {
         toast.error('Usuário não autenticado');
         return;
       }
 
-      // Tentar usar a API primeiro, se falhar usar Firebase diretamente
-      try {
-        console.log('🌐 Tentando usar API...');
-        const token = await currentUser.getIdToken();
-        const response = await axios.get('/api/users', {
-          baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.data.success) {
-          console.log('✅ Usuários carregados via API:', response.data.data.length);
-          setUsuarios(response.data.data);
-          return;
-        }
-      } catch (apiError) {
-        console.warn('⚠️ API não disponível, tentando Firebase diretamente:', apiError.message);
-      }
-
-      // Fallback para Firebase direto - USANDO A COLEÇÃO CORRETA 'usuarios'
-      console.log('🔥 Tentando carregar via Firebase direto...');
+      console.log('🔄 Buscando usuários...');
       
-      try {
-        // Verificar se o usuário tem token válido
-        const token = await currentUser.getIdToken(true); // Force refresh
-        console.log('✅ Token obtido, comprimento:', token.length);
-        
-        const usuariosSnapshot = await getDocs(collection(db, 'usuarios'));
-        const usuariosList = usuariosSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        console.log('✅ Usuários carregados via Firebase:', usuariosList.length);
-        setUsuarios(usuariosList);
-        
-      } catch (firestoreError) {
-        console.error('❌ Erro específico do Firestore:', firestoreError);
-        
-        if (firestoreError.code === 'permission-denied') {
-          toast.error('Sem permissão para acessar usuários. Verifique as regras do Firestore.');
-          console.error('🔒 Erro de permissão - Regras do Firestore muito restritivas');
-          console.log('💡 Solução: Configure as regras do Firestore para permitir leitura da coleção "usuarios" para usuários autenticados');
-        } else if (firestoreError.code === 'unavailable') {
-          toast.error('Firestore temporariamente indisponível. Tente novamente.');
-        } else {
-          toast.error(`Erro do Firestore: ${firestoreError.message}`);
-        }
-        
-        // Definir lista vazia para não quebrar a interface
-        setUsuarios([]);
-      }
+      // Buscar usuários diretamente do Firestore
+      const usuariosSnapshot = await getDocs(collection(db, 'usuarios'));
+      const usuariosList = usuariosSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      console.log('✅ Usuários encontrados:', usuariosList.length);
+      setUsuarios(usuariosList);
       
     } catch (error) {
-      console.error('❌ Erro geral ao carregar usuários:', error);
-      toast.error('Erro ao carregar usuários');
-      setUsuarios([]);
+      console.error('❌ Erro ao buscar usuários:', error);
+      toast.error(`Erro ao carregar usuários: ${error.message}`);
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [user]);
 
   useEffect(() => {
-    carregarUsuarios();
-  }, [carregarUsuarios]);
+    fetchUsuarios();
+  }, [fetchUsuarios]);
 
   // Função para enviar email de redefinição de senha
   const enviarEmailRedefinicaoSenha = async (email) => {
@@ -236,14 +190,14 @@ export default function GerenciarUsuarios() {
         });
         
         // Validar se o usuário atual é admin
-        if (!currentUser) {
+        if (!user) {
           toast.error('❌ Apenas administradores podem criar usuários');
           return;
         }
         
         // Salvar dados do admin atual
-        const adminEmail = currentUser.email;
-        const adminUid = currentUser.uid;
+        const adminEmail = user.email;
+        const adminUid = user.uid;
         console.log('💾 Admin atual:', adminEmail, '(UID:', adminUid, ')');
         
         let newUserCredential = null;
@@ -321,7 +275,7 @@ export default function GerenciarUsuarios() {
           console.log('✅ Processo de criação concluído com sucesso!');
           
           // Recarregar lista de usuários
-          await carregarUsuarios();
+          await fetchUsuarios();
           
           // Limpar formulário
           setFormData({
@@ -429,6 +383,15 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
   };
 
   const handleDelete = async (usuarioId) => {
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
+    // Não permitir que o usuário delete a si mesmo
+    const adminEmail = user.email;
+    const adminUid = user.uid;
+
     if (!window.confirm('Tem certeza que deseja excluir este usuário?')) {
       return;
     }
@@ -438,7 +401,7 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
       // USANDO A COLEÇÃO CORRETA 'usuarios'
       await deleteDoc(doc(db, 'usuarios', usuarioId));
       toast.success('Usuário excluído com sucesso!');
-      await carregarUsuarios();
+      await fetchUsuarios();
     } catch (error) {
       toast.error('Erro ao excluir usuário');
       console.error('Erro:', error);
@@ -448,6 +411,11 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
   };
 
   const toggleUserStatus = async (usuario) => {
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
     setLoading(true);
     try {
       // USANDO A COLEÇÃO CORRETA 'usuarios'
@@ -458,7 +426,7 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
       });
       
       toast.success(`Usuário ${!usuario.ativo ? 'ativado' : 'desativado'} com sucesso!`);
-      await carregarUsuarios();
+      await fetchUsuarios();
     } catch (error) {
       toast.error('Erro ao alterar status do usuário');
       console.error('Erro:', error);

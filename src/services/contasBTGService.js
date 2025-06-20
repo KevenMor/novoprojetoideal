@@ -7,8 +7,14 @@ import {
   Timestamp,
   doc,
   updateDoc,
+  getDoc,
+  orderBy,
+  deleteDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+
+const COLECAO_CONTAS_BTG = 'contas_btg';
 
 export const contasBTGService = {
   // Criar uma nova conta BTG
@@ -25,17 +31,22 @@ export const contasBTGService = {
       // Converter data do formato DD/MM/YYYY para Date
       let dataVencimento;
       if (dadosConta.vencimento) {
-        if (dadosConta.vencimento.includes('/')) {
-          // Formato DD/MM/YYYY
-          const [dia, mes, ano] = dadosConta.vencimento.split('/');
-          dataVencimento = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-        } else {
-          // Formato YYYY-MM-DD ou outro formato válido
-          dataVencimento = new Date(dadosConta.vencimento);
+        if (typeof dadosConta.vencimento === 'string') {
+          if (dadosConta.vencimento.includes('/')) {
+            // Formato DD/MM/YYYY
+            const [dia, mes, ano] = dadosConta.vencimento.split('/');
+            dataVencimento = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+          } else {
+            // Formato YYYY-MM-DD ou outro formato válido
+            dataVencimento = new Date(dadosConta.vencimento);
+          }
+        } else if (dadosConta.vencimento instanceof Date) {
+          dataVencimento = dadosConta.vencimento;
         }
         
         // Verificar se a data é válida
-        if (isNaN(dataVencimento.getTime())) {
+        if (isNaN(dataVencimento?.getTime())) {
+          console.error('Data inválida:', dadosConta.vencimento);
           throw new Error(`Data de vencimento inválida: ${dadosConta.vencimento}`);
         }
       } else {
@@ -43,16 +54,28 @@ export const contasBTGService = {
       }
 
       const conta = {
-        ...dadosConta,
-        status: 'AGUARDANDO', // Status inicial sempre AGUARDANDO
-        dataCriacao: Timestamp.now(),
-        dataVencimento: Timestamp.fromDate(dataVencimento),
+        descricao: dadosConta.descricao,
+        valor: typeof dadosConta.valor === 'string' ? parseFloat(dadosConta.valor.replace(',', '.')) : dadosConta.valor,
+        vencimento: Timestamp.fromDate(dataVencimento),
+        status: 'AGUARDANDO',
+        tipo: dadosConta.tipo,
+        unidade: dadosConta.unidade,
         criadoPor: auth.currentUser.uid,
         emailCriador: auth.currentUser.email,
-        ativo: true
+        dataCriacao: Timestamp.now(),
+        ativo: true,
+        ...(dadosConta.tipo === 'boleto' && { linhaDigitavel: dadosConta.linhaDigitavel }),
+        ...(dadosConta.tipo === 'pix' && { 
+            chavePix: dadosConta.chavePix, 
+            tipoChave: dadosConta.tipoChave,
+            favorecido: dadosConta.favorecido,
+            cpfCnpjFavorecido: dadosConta.cpfCnpjFavorecido
+        }),
       };
       
-      const docRef = await addDoc(collection(db, 'contas_btg'), conta);
+      console.log('Dados formatados para salvar:', conta);
+      
+      const docRef = await addDoc(collection(db, COLECAO_CONTAS_BTG), conta);
       console.log('✅ Conta BTG criada com ID:', docRef.id);
       
       return {
@@ -73,212 +96,146 @@ export const contasBTGService = {
   // Buscar contas BTG por filtros
   async buscarContas(filtros = {}) {
     try {
-      console.log('🔍 Buscando contas BTG com filtros:', filtros);
+      console.log('🔍 Buscando todas as contas BTG...');
       
-      // Verificar se o usuário está autenticado
-      const { auth } = await import('../firebase/config');
-      if (!auth.currentUser) {
-        console.warn('⚠️ Usuário não autenticado, retornando lista vazia de contas');
-        return [];
-      }
-      
-      // BUSCA SIMPLES: Buscar TODAS as contas ativas e filtrar no cliente
-      console.log('🔍 Fazendo busca simples de todas as contas ativas...');
-      let q = query(collection(db, 'contas_btg'), where('ativo', '==', true));
-      
-      const querySnapshot = await getDocs(q);
-      const contas = [];
-      
-      querySnapshot.forEach((doc) => {
+      // Buscar todos os documentos
+      const querySnapshot = await getDocs(collection(db, COLECAO_CONTAS_BTG));
+      console.log('📊 Total de documentos encontrados:', querySnapshot.size);
+
+      // Mapear documentos para o formato esperado
+      const contas = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        contas.push({
+        console.log('📄 Documento original:', data);
+
+        // Extrair os campos do documento
+        const {
+          descricao = '',
+          valor = 0,
+          status = 'AGUARDANDO',
+          tipo = 'boleto',
+          unidade = '',
+          vencimento,
+          dataCriacao,
+          dataPagamento,
+          linhaDigitavel = '',
+          chavePix = '',
+          tipoChave = '',
+          emailCriador = '',
+          favorecido = '',
+          cpfCnpjFavorecido = '',
+          ...resto
+        } = data;
+
+        // Converter timestamps para datas
+        const converterTimestamp = (campo) => {
+          if (!campo) return null;
+          if (campo instanceof Timestamp) {
+            return new Date(campo.seconds * 1000);
+          }
+          if (typeof campo === 'object' && campo.seconds) {
+            return new Date(campo.seconds * 1000);
+          }
+          if (typeof campo === 'string') {
+            return new Date(campo);
+          }
+          return null;
+        };
+
+        const contaConvertida = {
           id: doc.id,
-          ...data,
-          // Converter Timestamps para Date
-          vencimento: data.dataVencimento?.toDate?.() || new Date(data.vencimento),
-          dataCriacao: data.dataCriacao?.toDate?.() || new Date()
-        });
+          descricao,
+          valor: Number(valor),
+          status,
+          tipo,
+          unidade,
+          vencimento: converterTimestamp(vencimento),
+          dataCriacao: converterTimestamp(dataCriacao),
+          dataPagamento: converterTimestamp(dataPagamento),
+          linhaDigitavel,
+          chavePix,
+          tipoChave,
+          emailCriador,
+          favorecido,
+          cpfCnpjFavorecido
+        };
+
+        console.log('✅ Conta convertida:', contaConvertida);
+        return contaConvertida;
       });
-      
-      console.log(`✅ ${contas.length} contas encontradas no total`);
-      
-      // Aplicar filtros no cliente
-      let contasFiltradas = contas;
-      
-      // Filtro por unidade
-      if (filtros.unidade && filtros.unidade !== 'all') {
-        contasFiltradas = contasFiltradas.filter(conta => 
-          conta.unidade === filtros.unidade
-        );
-        console.log(`🏢 ${contasFiltradas.length} contas após filtro de unidade (${filtros.unidade})`);
-      }
-      
-      // Filtro por status
-      if (filtros.status) {
-        contasFiltradas = contasFiltradas.filter(conta => 
-          conta.status === filtros.status
-        );
-        console.log(`📊 ${contasFiltradas.length} contas após filtro de status (${filtros.status})`);
-      }
-      
-      // Filtro por tipo
-      if (filtros.tipo) {
-        contasFiltradas = contasFiltradas.filter(conta => 
-          conta.tipo === filtros.tipo
-        );
-        console.log(`💳 ${contasFiltradas.length} contas após filtro de tipo (${filtros.tipo})`);
-      }
-      
-      // Filtro por data
-      if (filtros.dataInicial && filtros.dataFinal) {
-        const dataIni = new Date(filtros.dataInicial);
-        const dataFim = new Date(filtros.dataFinal);
-        dataFim.setHours(23, 59, 59, 999);
-        
-        contasFiltradas = contasFiltradas.filter(conta => {
-          const dataVencimento = new Date(conta.vencimento);
-          return dataVencimento >= dataIni && dataVencimento <= dataFim;
-        });
-        
-        console.log(`📅 ${contasFiltradas.length} contas após filtro de data`);
-      }
-      
-      // Ordenar por data de criação (mais recente primeiro)
-      contasFiltradas.sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
-      
-      return contasFiltradas;
+
+      console.log('✅ Total de contas convertidas:', contas.length);
+      return contas;
     } catch (error) {
-      console.error('❌ Erro ao buscar contas BTG:', error);
-      
-      // Se for erro de permissão, retornar array vazio em vez de falhar
-      if (error.code === 'permission-denied' || error.message.includes('Missing or insufficient permissions')) {
-        console.warn('⚠️ Sem permissão para acessar contas BTG, retornando lista vazia');
-        return [];
-      }
-      
-      // Para outros erros, retornar array vazio também para não quebrar a aplicação
-      console.warn('⚠️ Erro ao buscar contas BTG, retornando lista vazia');
-      return [];
+      console.error('❌ Erro ao buscar contas:', error);
+      throw error;
     }
   },
 
   // Alterar status de uma conta
-  async alterarStatus(contaId, novoStatus) {
+  async alterarStatus(id, novoStatus, dadosAdicionais = {}) {
     try {
-      console.log('📝 Alterando status da conta:', contaId, 'para:', novoStatus);
+      console.log('Atualizando status da conta:', { id, novoStatus, dadosAdicionais });
       
-      // Verificar se o usuário está autenticado
-      const { auth } = await import('../firebase/config');
-      if (!auth.currentUser) {
-        throw new Error('Usuário não autenticado.');
+      const docRef = doc(db, COLECAO_CONTAS_BTG, id);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        throw new Error('Conta não encontrada');
       }
       
-      const contaRef = doc(db, 'contas_btg', contaId);
       const dadosParaAtualizar = {
         status: novoStatus,
-        dataUltimaAlteracao: Timestamp.now(),
-        alteradoPor: auth.currentUser.uid,
-        emailAlterador: auth.currentUser.email
+        dataAtualizacao: new Date(),
+        ...dadosAdicionais
       };
       
-      // Adicionar timestamp específico baseado no status
       if (novoStatus === 'PAGO') {
-        dadosParaAtualizar.dataPagamento = Timestamp.now();
-      } else if (novoStatus === 'CANCELADO') {
-        dadosParaAtualizar.dataCancelamento = Timestamp.now();
+        dadosParaAtualizar.dataPagamento = new Date();
       }
       
-      await updateDoc(contaRef, dadosParaAtualizar);
-      console.log('✅ Status da conta alterado com sucesso');
-      
-      // Sincronizar com os lançamentos nos extratos
-      try {
-        const { lancamentosService } = await import('./lancamentosService');
-        const lancamentosAtualizados = await lancamentosService.atualizarStatusContaBTG(contaId, novoStatus);
-        console.log(`✅ ${lancamentosAtualizados} lançamentos sincronizados`);
-      } catch (syncError) {
-        console.error('⚠️ Erro ao sincronizar lançamentos:', syncError);
-        // Não falhar a operação principal por causa da sincronização
-      }
-      
-      return true;
+      await updateDoc(docRef, dadosParaAtualizar);
+      console.log('✅ Status atualizado com sucesso');
     } catch (error) {
-      console.error('❌ Erro ao alterar status da conta:', error);
-      throw new Error(`Erro ao alterar status: ${error.message}`);
+      console.error('❌ Erro ao atualizar status:', error);
+      throw error;
     }
   },
 
   // Excluir uma conta (soft delete)
   async excluirConta(contaId) {
     try {
-      console.log('🗑️ Excluindo conta BTG:', contaId);
-      
-      // Verificar se o usuário está autenticado
-      const { auth } = await import('../firebase/config');
-      if (!auth.currentUser) {
-        throw new Error('Usuário não autenticado.');
-      }
-      
-      // 1. Primeiro, excluir os lançamentos relacionados no extrato
-      try {
-        const { lancamentosService } = await import('./lancamentosService');
-        const lancamentosExcluidos = await lancamentosService.excluirLancamentosPorContaBTG(contaId);
-        console.log(`✅ ${lancamentosExcluidos} lançamentos relacionados excluídos do extrato`);
-      } catch (lancamentoError) {
-        console.error('⚠️ Erro ao excluir lançamentos relacionados:', lancamentoError);
-        // Continuar com a exclusão da conta mesmo se houver erro nos lançamentos
-      }
-      
-      // 2. Depois, excluir a conta BTG (soft delete)
-      const contaRef = doc(db, 'contas_btg', contaId);
-      await updateDoc(contaRef, {
-        ativo: false,
-        dataExclusao: Timestamp.now(),
-        excluidoPor: auth.currentUser.uid,
-        emailExclusor: auth.currentUser.email
-      });
-      
-      console.log('✅ Conta BTG excluída com sucesso');
-      return true;
+      console.log('🗑️ Excluindo conta:', contaId);
+      await deleteDoc(doc(db, COLECAO_CONTAS_BTG, contaId));
+      console.log('✅ Conta excluída com sucesso');
     } catch (error) {
-      console.error('❌ Erro ao excluir conta BTG:', error);
-      throw new Error(`Erro ao excluir conta: ${error.message}`);
+      console.error('❌ Erro ao excluir conta:', error);
+      throw error;
     }
   },
 
   // Buscar estatísticas das contas BTG
   async buscarEstatisticas(filtros = {}) {
     try {
-      console.log('📊 Calculando estatísticas das contas BTG');
-      
       const contas = await this.buscarContas(filtros);
       
       const estatisticas = {
-        totalContas: contas.length,
-        aguardando: contas.filter(c => c.status === 'AGUARDANDO').length,
-        pagas: contas.filter(c => c.status === 'PAGO').length,
-        canceladas: contas.filter(c => c.status === 'CANCELADO').length,
-        valorTotal: 0,
-        valorAguardando: 0,
-        valorPago: 0
+        total: contas.length,
+        totalAguardando: contas.filter(c => c.status === 'AGUARDANDO').length,
+        totalPago: contas.filter(c => c.status === 'PAGO').length,
+        totalCancelado: contas.filter(c => c.status === 'CANCELADO').length,
+        valorAguardando: contas
+          .filter(c => c.status === 'AGUARDANDO')
+          .reduce((acc, curr) => acc + (curr.valor || 0), 0),
+        valorPago: contas
+          .filter(c => c.status === 'PAGO')
+          .reduce((acc, curr) => acc + (curr.valor || 0), 0)
       };
-      
-      contas.forEach(conta => {
-        const valor = parseFloat(conta.valor) || 0;
-        estatisticas.valorTotal += valor;
-        
-        if (conta.status === 'AGUARDANDO') {
-          estatisticas.valorAguardando += valor;
-        } else if (conta.status === 'PAGO') {
-          estatisticas.valorPago += valor;
-        }
-      });
-      
+
       console.log('📊 Estatísticas calculadas:', estatisticas);
       return estatisticas;
     } catch (error) {
-      console.error('❌ Erro ao calcular estatísticas:', error);
-      throw new Error(`Erro ao calcular estatísticas: ${error.message}`);
+      console.error('❌ Erro ao buscar estatísticas:', error);
+      throw error;
     }
   },
 
@@ -325,35 +282,241 @@ export const contasBTGService = {
     return erros;
   },
 
-  // Baixa em lote (marcar várias contas como pagas) - Firestore direto
-  async baixaEmLote(ids) {
+  // Função interna para atualizar o lançamento correspondente
+  async _atualizarLancamentoAssociado(contaBtgId) {
     try {
-      const { auth } = await import('../firebase/config');
-      if (!auth.currentUser) {
-        throw new Error('Usuário não autenticado.');
+      console.log(`Buscando lançamento associado à conta BTG ID: ${contaBtgId}`);
+      const lancamentosRef = collection(db, 'lancamentos');
+      const q = query(lancamentosRef, where('contaBTGId', '==', contaBtgId));
+      
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        console.warn(`Nenhum lançamento encontrado para a conta BTG ID: ${contaBtgId}`);
+        return;
       }
-      const results = [];
-      for (const contaId of ids) {
-        try {
-          const contaRef = doc(db, 'contas_btg', contaId);
-          await updateDoc(contaRef, {
-            status: 'PAGO',
-            dataPagamento: Timestamp.now(),
-            dataUltimaAlteracao: Timestamp.now(),
-            alteradoPor: auth.currentUser.uid,
-            emailAlterador: auth.currentUser.email
-          });
-          results.push({ contaId, success: true });
-        } catch (err) {
-          results.push({ contaId, success: false, error: err.message });
+      
+      querySnapshot.forEach(async (docSnapshot) => {
+        console.log(`Lançamento encontrado: ${docSnapshot.id}. Atualizando para 'Confirmado'.`);
+        const lancamentoRef = doc(db, 'lancamentos', docSnapshot.id);
+        const lancamentoData = docSnapshot.data();
+        
+        // Remover o prefixo [AGUARDANDO] da descrição
+        let novaDescricao = lancamentoData.descricao || '';
+        if (novaDescricao.startsWith('[AGUARDANDO] ')) {
+          novaDescricao = novaDescricao.replace('[AGUARDANDO] ', '');
         }
-      }
-      return results;
+        
+        await updateDoc(lancamentoRef, {
+          status: 'Confirmado',
+          descricao: novaDescricao,
+          data: Timestamp.now() // Atualiza a data do lançamento para a data do pagamento
+        });
+        console.log(`Lançamento ${docSnapshot.id} atualizado com sucesso. Descrição: "${novaDescricao}"`);
+      });
+
     } catch (error) {
-      console.error('❌ Erro ao dar baixa em lote:', error);
-      throw new Error('Erro ao dar baixa em lote: ' + error.message);
+      console.error(`Erro ao atualizar lançamento associado para a conta ${contaBtgId}:`, error);
+      // Não joga o erro para não impedir a operação principal de baixa
     }
   },
+
+  // Baixa em lote (marcar várias contas como pagas) - Firestore direto
+  async darBaixaEmLote(contaIds) {
+    try {
+      console.log('💰 Dando baixa nas contas:', contaIds);
+      
+      const promises = contaIds.map(async (contaId) => {
+        const contaRef = doc(db, COLECAO_CONTAS_BTG, contaId);
+        await updateDoc(contaRef, {
+          status: 'PAGO',
+          dataPagamento: serverTimestamp(),
+          dataAtualizacao: serverTimestamp()
+        });
+        // Atualiza o lançamento correspondente
+        await this._atualizarLancamentoAssociado(contaId);
+      });
+
+      await Promise.all(promises);
+      console.log('✅ Baixa em lote realizada com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao dar baixa em lote:', error);
+      throw error;
+    }
+  },
+
+  async darBaixaIndividual(contaId) {
+    try {
+      console.log('💰 Dando baixa na conta:', contaId);
+      
+      const contaRef = doc(db, COLECAO_CONTAS_BTG, contaId);
+      await updateDoc(contaRef, {
+        status: 'PAGO',
+        dataPagamento: serverTimestamp(),
+        dataAtualizacao: serverTimestamp()
+      });
+
+      // Atualiza o lançamento correspondente
+      await this._atualizarLancamentoAssociado(contaId);
+
+      console.log('✅ Baixa realizada com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao dar baixa:', error);
+      throw error;
+    }
+  },
+
+  async cadastrarConta(dados) {
+    try {
+      console.log('Cadastrando conta BTG:', dados);
+
+      const contasRef = collection(db, COLECAO_CONTAS_BTG);
+      const novaConta = {
+        ...dados,
+        dataCriacao: new Date(),
+        dataAtualizacao: new Date(),
+        status: 'AGUARDANDO',
+        ativo: true
+      };
+
+      const docRef = await addDoc(contasRef, novaConta);
+      console.log('✅ Conta BTG criada com ID:', docRef.id);
+      return docRef.id;
+    } catch (error) {
+      console.error('❌ Erro ao cadastrar conta BTG:', error);
+      throw error;
+    }
+  },
+
+  async listarContasBTG(filtros = {}) {
+    try {
+      console.log('Listando contas BTG com filtros:', filtros);
+      
+      // Iniciar com uma query básica
+      let q = collection(db, COLECAO_CONTAS_BTG);
+      
+      // Construir a query com os filtros disponíveis
+      if (filtros.unidade && filtros.unidade !== 'Geral') {
+        if (filtros.status) {
+          // Usar o índice composto com status
+          q = query(q, 
+            where('unidade', '==', filtros.unidade),
+            where('status', '==', filtros.status),
+            orderBy('vencimento', 'desc')
+          );
+        } else {
+          // Usar o índice básico
+          q = query(q, 
+            where('unidade', '==', filtros.unidade),
+            orderBy('vencimento', 'desc')
+          );
+        }
+      } else {
+        // Caso contrário, apenas ordenar por data
+        q = query(q, orderBy('vencimento', 'desc'));
+      }
+      
+      // Executar a query
+      const snapshot = await getDocs(q);
+      
+      // Mapear os resultados
+      let contas = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        vencimento: doc.data().vencimento?.toDate(),
+        dataCriacao: doc.data().dataCriacao?.toDate(),
+        dataAtualizacao: doc.data().dataAtualizacao?.toDate(),
+        dataPagamento: doc.data().dataPagamento?.toDate()
+      }));
+
+      // Aplicar filtros adicionais em memória
+      if (filtros.dataInicial) {
+        const dataInicial = new Date(filtros.dataInicial);
+        contas = contas.filter(c => c.vencimento >= dataInicial);
+      }
+      
+      if (filtros.dataFinal) {
+        const dataFinal = new Date(filtros.dataFinal);
+        contas = contas.filter(c => c.vencimento <= dataFinal);
+      }
+
+      console.log('Contas BTG encontradas:', contas.length);
+      return contas;
+    } catch (error) {
+      console.error('Erro ao listar contas BTG:', error);
+      throw error;
+    }
+  },
+
+  async atualizarStatusConta(id, novoStatus, dadosAdicionais = {}) {
+    try {
+      console.log('Atualizando status da conta:', { id, novoStatus, dadosAdicionais });
+      
+      const docRef = doc(db, COLECAO_CONTAS_BTG, id);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        throw new Error('Conta não encontrada');
+      }
+      
+      const atualizacao = {
+        status: novoStatus,
+        dataAtualizacao: new Date(),
+        ...dadosAdicionais
+      };
+      
+      if (novoStatus === 'PAGO') {
+        atualizacao.dataPagamento = new Date();
+      }
+      
+      await updateDoc(docRef, atualizacao);
+      
+      console.log('Status atualizado com sucesso');
+      return true;
+    } catch (error) {
+      console.error('Erro ao atualizar status da conta:', error);
+      throw error;
+    }
+  },
+
+  async excluirEmLote(contaIds) {
+    try {
+      console.log('🗑️ Excluindo contas em lote:', contaIds);
+      
+      const promises = contaIds.map(contaId => {
+        const contaRef = doc(db, COLECAO_CONTAS_BTG, contaId);
+        return deleteDoc(contaRef);
+      });
+
+      await Promise.all(promises);
+      console.log('✅ Contas excluídas com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao excluir contas:', error);
+      throw error;
+    }
+  },
+
+  // Atualizar uma conta existente
+  async atualizarConta(id, dadosParaAtualizar) {
+    try {
+      console.log('🔄 Atualizando conta:', { id, dadosParaAtualizar });
+      const docRef = doc(db, COLECAO_CONTAS_BTG, id);
+
+      // Prepara os dados, convertendo a data de vencimento de volta para Timestamp
+      const dados = { ...dadosParaAtualizar };
+      if (dados.vencimento && typeof dados.vencimento === 'string') {
+        dados.vencimento = Timestamp.fromDate(new Date(dados.vencimento));
+      }
+
+      delete dados.id; // Não salvar o ID dentro do documento
+
+      await updateDoc(docRef, dados);
+      console.log('✅ Conta atualizada com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao atualizar conta:', error);
+      throw error;
+    }
+  }
 };
 
 export default contasBTGService; 

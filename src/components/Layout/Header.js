@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Menu, LogOut, User, Settings, X, ChevronDown, Bell } from 'lucide-react';
@@ -6,10 +6,13 @@ import toast from 'react-hot-toast';
 import { fetchNotifications, markNotificationAsRead } from '../../services/notificationsService';
 
 export default function Header({ sidebarOpen, setSidebarOpen }) {
-  const { userProfile, logout } = useAuth();
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const dropdownRef = useRef(null);
+  const userMenuRef = useRef(null);
+  const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.lida).length;
 
@@ -22,23 +25,25 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
     }
   };
 
-  const toggleUserMenu = () => {
-    setUserMenuOpen(!userMenuOpen);
-  };
-
   const handleNavigate = (path) => {
     navigate(path);
-    setUserMenuOpen(false);
+    setShowUserMenu(false);
   };
 
-  // Buscar notificações ao carregar
-  React.useEffect(() => {
-    async function load() {
-      const notifs = await fetchNotifications(userProfile?.uid);
-      setNotifications(notifs);
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        // Mock notifications for now
+        setNotifications([]);
+      } catch (error) {
+        console.error('Erro ao buscar notificações:', error);
+      }
+    };
+
+    if (user?.uid) {
+      fetchNotifications();
     }
-    load();
-  }, [userProfile]);
+  }, [user]);
 
   const handleMarkAsRead = async (id) => {
     await markNotificationAsRead(id);
@@ -109,45 +114,64 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
               {/* User Profile Dropdown */}
               <div className="relative">
                 {/* Backdrop para user menu - AGORA ANTES DO DROPDOWN */}
-                {userMenuOpen && (
+                {showUserMenu && (
                   <div
                     className="fixed inset-0 z-40 bg-black/20"
-                    onClick={() => setUserMenuOpen(false)}
+                    onClick={() => setShowUserMenu(false)}
                   />
                 )}
                 <button
-                  onClick={toggleUserMenu}
+                  onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-all duration-200"
                 >
                   <div className="hidden md:flex flex-col items-end text-right">
                     <p className="text-sm font-medium text-gray-900">
-                      {userProfile?.nome || 'Usuário'}
+                      {user?.nome || 'Usuário'}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {userProfile?.perfil === 'admin' ? 'Administrador' : 
-                       userProfile?.perfil === 'manager' ? 'Gerente' :
-                       userProfile?.perfil === 'operator' ? 'Operador' :
-                       userProfile?.perfil === 'viewer' ? 'Visualizador' : 'Personalizado'}
+                      {user?.perfil === 'admin' ? 'Administrador' : 
+                       user?.perfil === 'manager' ? 'Gerente' :
+                       user?.perfil === 'operator' ? 'Operador' :
+                       user?.perfil === 'viewer' ? 'Visualizador' : 'Personalizado'}
                     </p>
                   </div>
                   <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-medium text-sm">
-                      {userProfile?.nome?.charAt(0)?.toUpperCase() || 'U'}
+                      {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
                     </span>
                   </div>
-                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown Menu */}
-                {userMenuOpen && (
+                {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-900">
-                        {userProfile?.nome || 'Usuário'}
+                        {user?.nome || 'Usuário'}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        {userProfile?.email || 'email@exemplo.com'}
+                      <p className="text-xs text-gray-500 mt-1">
+                        {user?.perfil === 'admin' ? 'Administrador' :
+                         user?.perfil === 'manager' ? 'Gerente' :
+                         user?.perfil === 'operator' ? 'Operador' :
+                         user?.perfil === 'viewer' ? 'Visualizador' : 'Personalizado'}
                       </p>
+                    </div>
+                    
+                    <div className="p-2">
+                      <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                          {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium">
+                            {user?.nome || 'Usuário'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {user?.email || 'email@exemplo.com'}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     
                     <div className="py-1">

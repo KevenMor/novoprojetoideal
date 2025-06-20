@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -11,14 +11,17 @@ import {
   X,
   ChevronRight,
   Settings,
-  ChevronLeft
+  ChevronLeft,
+  FileText,
+  Building2
 } from 'lucide-react';
 import { PERMISSIONS } from '../../utils/permissions';
 import UnitSelector from '../UnitSelector';
 import { useUnitFilter } from '../../contexts/UnitFilterContext';
+import logo from '../../assets/logo.png';
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setIsCollapsed }) {
-  const { userProfile, hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const location = useLocation();
   const [expandedMenus, setExpandedMenus] = useState({});
   const [isMobile, setIsMobile] = useState(false);
@@ -55,7 +58,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
       submenu: [
         {
           name: 'Enviar Mensagem',
-          href: '/mensagem',
+          href: '/enviar-mensagem',
           description: 'WhatsApp automático'
         },
         {
@@ -64,7 +67,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
           description: 'Mensagens enviadas'
         },
         // Adicionar submenu de gerenciamento de modelos para admin
-        ...(userProfile?.perfil === 'admin' ? [{
+        ...(user?.perfil === 'admin' ? [{
           name: 'Gerenciar Modelos',
           href: '/gerenciar-modelos-mensagem',
           description: 'Modelos de mensagem rápidas'
@@ -73,32 +76,36 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
     },
     {
       name: 'Contas BTG',
-      icon: CreditCard,
+      icon: Building2,
       permission: PERMISSIONS.BTG_ACCOUNTS_VIEW,
       description: 'Gestão de contas BTG',
       submenu: [
         {
           name: 'Cadastrar Conta',
-          href: '/contas-btg',
+          href: '/cadastrar-contas-btg',
           description: 'Boleto e PIX'
         },
         {
-          name: 'Histórico',
-          href: '/historico-contas-btg',
-          description: 'Gerenciar contas'
+          name: 'Gestão de Contas',
+          href: '/gestao-contas-btg',
+          description: 'Gerenciar todas as contas'
+        },
+        {
+          name: 'Folha de Pagamento',
+          href: '/folha-pagamento',
+          description: 'Gestão de funcionários'
         }
       ]
     },
     {
       name: 'Cobranças',
-      href: '/cobrancas',
       icon: Receipt,
       permission: PERMISSIONS.CHARGES_VIEW,
       description: 'Gestão de cobranças',
       submenu: [
         {
           name: 'Registrar',
-          href: '/cobrancas',
+          href: '/registrar-cobrancas',
           description: 'Nova cobrança'
         },
         {
@@ -124,34 +131,25 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
     },
     {
       name: 'Gerenciar Usuários',
-      href: '/usuarios',
+      href: '/gerenciar-usuarios',
       icon: Users,
       permission: PERMISSIONS.USERS_VIEW,
-      description: 'Controle de acesso'
+      description: 'Gerenciar usuários do sistema'
     }
   ];
 
   // Filtrar menus por permissão
-  let filteredMenuItems = [];
-  
-  try {
-    if (!userProfile || typeof hasPermission !== 'function') {
-      filteredMenuItems = menuItems;
-    } else {
-      filteredMenuItems = menuItems.filter(item => {
-        if (!item.permission) {
-          return true;
-        }
-        return hasPermission(item.permission);
-      });
+  const filteredMenuItems = useMemo(() => {
+    if (!user || typeof hasPermission !== 'function') {
+      return [];
     }
-
-    // Remover menu de configuração de conteúdo para admin
-    filteredMenuItems = filteredMenuItems.filter(item => item.href !== '/config-conteudo');
-  } catch (error) {
-    console.error('Erro na filtragem de menus:', error);
-    filteredMenuItems = menuItems;
-  }
+    return menuItems.filter(item => {
+      if (!item.permission) {
+        return true;
+      }
+      return hasPermission(item.permission);
+    });
+  }, [user, hasPermission]);
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
@@ -207,7 +205,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
             <div className="flex items-center space-x-2 w-full justify-center">
               <div className="rounded-full bg-white shadow-md p-2 flex items-center justify-center">
                 <img
-                  src="https://static.wixstatic.com/media/030da1_fec378b6fe8d4ee2b9a5a51b96f6febb~mv2.png"
+                  src={logo}
                   alt="Logo Autoescola Ideal"
                   className={`h-24 w-24 object-contain transition-all duration-300 ${isCollapsed ? 'mx-auto' : ''}`}
                 />
@@ -342,18 +340,16 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
           {/* Footer - User info */}
           {!isCollapsed && (
             <div className="border-t border-gray-200 p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600 font-medium text-sm">
-                    {userProfile?.nome?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
+              <div className="flex items-center">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                  {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="ml-3 min-w-0 flex-1">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {userProfile?.nome || 'Usuário'}
+                    {user?.nome || 'Usuário'}
                   </p>
                   <p className="text-xs text-gray-500 truncate">
-                    {userProfile?.email || 'email@exemplo.com'}
+                    {user?.email || 'email@exemplo.com'}
                   </p>
                 </div>
               </div>

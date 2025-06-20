@@ -71,7 +71,7 @@ export default function HistoricoCobrancas() {
   const [buscaAluno, setBuscaAluno] = useState("");
   const [pagina, setPagina] = useState(1);
   const porPagina = 10;
-  const { isAdmin, userProfile } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [modalCliente, setModalCliente] = useState({ open: false, nome: '', cobrancas: [] });
   const [expandedCliente, setExpandedCliente] = useState(null);
   const [showFiltros, setShowFiltros] = useState(false);
@@ -426,7 +426,7 @@ export default function HistoricoCobrancas() {
                                       if (!parcelasPagas.includes(p.numero)) parcelasPagas.push(p.numero);
                                       historicoAlteracoes.push({
                                         data: getDataHoraBrasil(),
-                                        usuario: userProfile?.nome || 'Desconhecido',
+                                        usuario: user?.nome || 'Desconhecido',
                                         acao: `Parcela ${p.numero} marcada como paga`
                                       });
                                       // Se todas as parcelas estiverem pagas, status global = 'PAGO'
@@ -456,7 +456,7 @@ export default function HistoricoCobrancas() {
                                         if (idx !== -1) parcelasPagas.splice(idx, 1);
                                         historicoAlteracoes.push({
                                           data: getDataHoraBrasil(),
-                                          usuario: userProfile?.nome || 'Desconhecido',
+                                          usuario: user?.nome || 'Desconhecido',
                                           acao: `Pagamento da parcela ${p.numero} desfeito`
                                         });
                                         await updateDoc(cobrancaRef, { parcelasPagas, historicoAlteracoes });
@@ -484,7 +484,7 @@ export default function HistoricoCobrancas() {
                                             const historicoAlteracoes = Array.isArray(data.historicoAlteracoes) ? [...data.historicoAlteracoes] : [];
                                             historicoAlteracoes.push({
                                               data: getDataHoraBrasil(),
-                                              usuario: userProfile?.nome || 'Desconhecido',
+                                              usuario: user?.nome || 'Desconhecido',
                                               acao: `Exclusão da parcela ${p.numero} desfeita`
                                             });
                                             await updateDoc(cobrancaRef, { parcelasCanceladas: canceladas, dataCancelamentoPorParcela, historicoAlteracoes });
@@ -507,7 +507,7 @@ export default function HistoricoCobrancas() {
                                               const now = new Date();
                                               historicoAlteracoes.push({
                                                 data: getDataHoraBrasil(),
-                                                usuario: userProfile?.nome || 'Desconhecido',
+                                                usuario: user?.nome || 'Desconhecido',
                                                 acao: `Parcela ${p.numero} excluída`
                                               });
                                               await updateDoc(cobrancaRef, {

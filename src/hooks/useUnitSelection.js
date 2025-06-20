@@ -1,121 +1,106 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const useUnitSelection = () => {
-  const { userProfile, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [selectedUnit, setSelectedUnit] = useState('');
   const [availableUnits, setAvailableUnits] = useState([]);
-
-  // Lista completa de unidades do sistema usando useMemo
-  const allUnits = useMemo(() => [
-    'Julio de Mesquita', 
-    'Aparecidinha', 
-    'Coop', 
-    'Progresso', 
-    'Vila Haro', 
+  const [allUnits] = useState([
+    'Julio de Mesquita',
+    'Aparecidinha',
     'Vila Helena',
-    'Comercial'
-  ], []);
+    'Vila Haro',
+    'Vila Progresso',
+    'Coop'
+  ]);
 
   useEffect(() => {
-    if (!userProfile) return;
+    console.log('🔄 useUnitSelection - Efeito executado');
+    
+    if (!user) return;
 
-    console.log('🔍 useUnitSelection - userProfile:', userProfile);
+    console.log('🔍 useUnitSelection - user:', user);
     console.log('🔍 useUnitSelection - isAdmin:', isAdmin);
-    console.log('🔍 useUnitSelection - userProfile.unidades:', userProfile.unidades);
+    console.log('🔍 useUnitSelection - user.unidades:', user.unidades);
 
+    // Se é admin, pode ver todas as unidades
     if (isAdmin) {
-      // Admin tem acesso a todas as unidades
-      setAvailableUnits(allUnits);
-      console.log('👑 Admin - Todas as unidades disponíveis:', allUnits);
+      console.log('👑 Usuário é admin - disponibilizando todas as unidades');
+      setAvailableUnits(['Geral', ...allUnits]);
+      if (!selectedUnit) {
+        setSelectedUnit('Geral');
+      }
     } else {
-      // Usuário comum: apenas suas unidades
-      const userUnits = userProfile.unidades || [];
-      console.log('👤 Usuário comum - Unidades do usuário:', userUnits);
+      // Usuário comum - apenas suas unidades
+      const userUnits = user.unidades || [];
+      console.log('👤 Usuário comum - unidades:', userUnits);
       
       setAvailableUnits(userUnits);
       
+      // Se o usuário tem apenas uma unidade, selecionar automaticamente
       if (userUnits.length === 1) {
-        // Se tem apenas uma unidade, seleciona automaticamente
         setSelectedUnit(userUnits[0]);
         console.log('🎯 Selecionando automaticamente unidade única:', userUnits[0]);
-      } else if (userUnits.length > 1) {
-        // Se tem múltiplas unidades, deixa o usuário escolher
-        // Só reseta se a unidade atual não está nas unidades permitidas
-        setSelectedUnit(prev => {
-          if (!prev || !userUnits.includes(prev)) {
-            console.log('🔄 Múltiplas unidades - aguardando seleção do usuário');
-            return '';
-          }
-          return prev;
-        });
-      } else {
-        // Sem unidades atribuídas
+      } else if (userUnits.length > 1 && !selectedUnit) {
+        // Se tem múltiplas, deixar para o usuário escolher
         setSelectedUnit('');
-        setAvailableUnits([]);
-        console.log('❌ Usuário sem unidades atribuídas');
+        console.log('🤔 Múltiplas unidades - aguardando seleção do usuário');
       }
     }
-  }, [userProfile, isAdmin, allUnits]);
+  }, [user, isAdmin, allUnits]);
 
-  const handleUnitChange = (unit) => {
-    console.log('🔄 Mudando unidade para:', unit);
-    setSelectedUnit(unit);
-  };
-
-  const getUnitDisplayName = (unidade) => {
-    if (!unidade) return '';
-    const nomes = {
-      'Julio de Mesquita': 'Julio de Mesquita',
-      'Aparecidinha': 'Aparecidinha',
-      'Coop': 'Coop',
-      'Progresso': 'Progresso',
-      'Vila Haro': 'Vila Haro',
-      'Vila Helena': 'Vila Helena',
-      'Comercial': 'Comercial',
-      // Adicione outros slugs/códigos se necessário
-    };
-    return nomes[unidade] || unidade;
-  };
-
-  const shouldShowUnitSelector = () => {
-    if (!userProfile) return false;
+  // Função para verificar se o usuário pode ver dados de uma unidade específica
+  const canViewUnit = (unidade) => {
+    if (!user) return false;
     
+    console.log('🔍 Verificando acesso à unidade:', unidade);
+    
+    // Admin pode ver tudo
     if (isAdmin) {
-      return true; // Admin sempre pode escolher
-    } else {
-      const userUnits = userProfile.unidades || [];
-      return userUnits.length > 1; // Só mostra se tem mais de uma unidade
+      console.log('👑 Admin pode ver todas as unidades');
+      return true;
     }
+    
+    // Usuário comum só pode ver suas unidades
+    const userUnits = user.unidades || [];
+    const canView = userUnits.includes(unidade);
+    console.log('👤 Usuário pode ver unidade?', canView);
+    return canView;
   };
 
-  const getFilteredUnits = () => {
-    if (isAdmin) {
-      return selectedUnit ? [selectedUnit] : availableUnits;
-    } else {
-      return selectedUnit ? [selectedUnit] : availableUnits;
+  // Função para filtrar dados baseado na unidade selecionada
+  const filterDataByUnit = (data, unitField = 'unidade') => {
+    if (!data || !Array.isArray(data)) return [];
+    
+    console.log('🔍 Filtrando dados por unidade:', selectedUnit);
+    console.log('📊 Total de itens antes do filtro:', data.length);
+    
+    if (selectedUnit === 'Geral') {
+      console.log('📊 Seleção "Geral" - retornando todos os dados');
+      return data;
     }
+    
+    const filtered = data.filter(item => {
+      const itemUnit = item[unitField];
+      return itemUnit === selectedUnit;
+    });
+    
+    console.log('📊 Itens após filtro:', filtered.length);
+    return filtered;
   };
 
-  const hasMultipleUnits = () => {
-    return availableUnits.length > 1;
-  };
-
-  const canAccessUnit = (unit) => {
-    if (isAdmin) return true;
-    return availableUnits.includes(unit);
+  const changeSelectedUnit = (newUnit) => {
+    console.log('🔄 Alterando unidade selecionada para:', newUnit);
+    setSelectedUnit(newUnit);
   };
 
   return {
     selectedUnit,
     availableUnits,
-    handleUnitChange,
-    getUnitDisplayName,
-    shouldShowUnitSelector,
-    getFilteredUnits,
-    hasMultipleUnits,
-    canAccessUnit,
-    isAdmin,
-    userProfile
+    canViewUnit,
+    filterDataByUnit,
+    changeSelectedUnit,
+    allUnits,
+    user
   };
 }; 

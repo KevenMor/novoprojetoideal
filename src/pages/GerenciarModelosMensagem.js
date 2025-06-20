@@ -27,29 +27,30 @@ const DEFAULT_MESSAGES = [
 ];
 
 export default function GerenciarModelosMensagem() {
-  const { userProfile } = useAuth();
-  const [messages, setMessages] = useState([]);
+  const { user } = useAuth();
+  const [modelos, setModelos] = useState([]);
   const [msgModal, setMsgModal] = useState({ open: false, mode: 'new', data: { titulo: '', texto: '', categoria: '', ativa: true } });
   const [msgLoading, setMsgLoading] = useState(false);
   const [expanded, setExpanded] = useState({});
   const toggleExpand = (id) => setExpanded(e => ({ ...e, [id]: !e[id] }));
 
   useEffect(() => {
-    async function loadMessages() {
-      setMsgLoading(true);
-      let msgs = await getQuickMessages();
-      // Se não houver mensagens, popular com os padrões
-      if (msgs.length === 0) {
-        for (const m of DEFAULT_MESSAGES) {
-          await addQuickMessage(m);
-        }
-        msgs = await getQuickMessages();
+    if (user?.perfil === 'admin') loadMessages();
+  }, [user]);
+
+  const loadMessages = async () => {
+    setMsgLoading(true);
+    let msgs = await getQuickMessages();
+    // Se não houver mensagens, popular com os padrões
+    if (msgs.length === 0) {
+      for (const m of DEFAULT_MESSAGES) {
+        await addQuickMessage(m);
       }
-      setMessages(msgs);
-      setMsgLoading(false);
+      msgs = await getQuickMessages();
     }
-    if (userProfile?.perfil === 'admin') loadMessages();
-  }, [userProfile]);
+    setModelos(msgs);
+    setMsgLoading(false);
+  };
 
   const openMsgModal = (mode, data = null) => {
     setMsgModal({ open: true, mode, data: data || { titulo: '', texto: '', categoria: '', ativa: true } });
@@ -67,7 +68,7 @@ export default function GerenciarModelosMensagem() {
         await updateQuickMessage(msgModal.data.id, msgModal.data);
         toast.success('Mensagem atualizada!');
       }
-      setMessages(await getQuickMessages());
+      setModelos(await getQuickMessages());
       closeMsgModal();
     } catch (err) {
       toast.error('Erro ao salvar mensagem: ' + err.message);
@@ -80,7 +81,7 @@ export default function GerenciarModelosMensagem() {
     setMsgLoading(true);
     try {
       await deleteQuickMessage(id);
-      setMessages(await getQuickMessages());
+      setModelos(await getQuickMessages());
       toast.success('Mensagem excluída!');
     } catch (err) {
       toast.error('Erro ao excluir: ' + err.message);
@@ -89,14 +90,21 @@ export default function GerenciarModelosMensagem() {
     }
   };
 
-  if (userProfile?.perfil !== 'admin') {
-    return <Navigate to="/" replace />;
+  if (user?.perfil !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Acesso Restrito</h2>
+          <p className="text-gray-600">Apenas administradores podem gerenciar modelos de mensagem.</p>
+        </div>
+      </div>
+    );
   }
 
   // Contagem para cards
-  const total = messages.length;
-  const ativos = messages.filter(m => m.ativa).length;
-  const inativos = messages.filter(m => !m.ativa).length;
+  const total = modelos.length;
+  const ativos = modelos.filter(m => m.ativa).length;
+  const inativos = modelos.filter(m => !m.ativa).length;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] bg-gray-50 py-8">
@@ -127,9 +135,9 @@ export default function GerenciarModelosMensagem() {
         <div className="space-y-4">
           {msgLoading ? (
             <div className="text-center py-12 text-gray-400">Carregando...</div>
-          ) : messages.length === 0 ? (
+          ) : modelos.length === 0 ? (
             <div className="text-center py-12 text-gray-400">Nenhuma mensagem cadastrada</div>
-          ) : messages.map(msg => (
+          ) : modelos.map(msg => (
             <div key={msg.id} className="flex flex-col md:flex-row md:items-center justify-between bg-gray-50 border border-gray-100 rounded-xl shadow-sm px-6 py-5 gap-4 hover:shadow-md transition">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-3 mb-2">

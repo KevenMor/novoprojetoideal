@@ -3,22 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function PrivateRoute({ children, adminOnly = false }) {
-  const { currentUser, userProfile } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!currentUser) {
+    if (!loading && !user) {
       navigate('/login', { replace: true });
       return;
     }
-    if (adminOnly && userProfile && userProfile.perfil !== 'admin') {
+    if (adminOnly && user && user.perfil !== 'admin') {
       navigate('/dashboard', { replace: true });
       return;
     }
-  }, [currentUser, userProfile, adminOnly, navigate]);
+  }, [user, loading, adminOnly, navigate]);
 
-  // Se não está autenticado, mostra loading
-  if (!currentUser) {
+  // Se ainda está carregando, mostra loading
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -26,22 +26,22 @@ export default function PrivateRoute({ children, adminOnly = false }) {
     );
   }
 
-  // Se está autenticado mas não tem perfil, mostra mensagem (NÃO loading infinito)
-  if (currentUser && !userProfile) {
+  // Se não está autenticado, mostra loading (vai redirecionar)
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-gray-600">Perfil de usuário não encontrado.<br />Entre em contato com o administrador.</p>
-        </div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   // Admin check
-  if (adminOnly && userProfile && userProfile.perfil !== 'admin') {
+  if (adminOnly && user.perfil !== 'admin') {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <p className="text-gray-600">Acesso restrito a administradores.</p>
+        </div>
       </div>
     );
   }

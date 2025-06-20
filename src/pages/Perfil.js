@@ -1,22 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { User, Shield, Calendar, Save, Eye, EyeOff, Key } from 'lucide-react';
+import { User, Shield, Calendar, Save, Eye, EyeOff, Key, Edit2, X } from 'lucide-react';
 import { updateDoc, doc } from 'firebase/firestore';
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { db } from '../firebase/config';
+import { db, auth } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
-import { PERMISSION_DESCRIPTIONS } from '../utils/permissions';
+import { PERMISSION_DESCRIPTIONS, PERMISSIONS } from '../utils/permissions';
 import toast from 'react-hot-toast';
 
 export default function Perfil() {
-  const { userProfile, currentUser } = useAuth();
+  const { user } = useAuth();
+
+  // Mapeamento de números para chaves de permissões
+  const getPermissionKeyByNumber = (num) => {
+    const permissionKeys = Object.values(PERMISSIONS);
+    return permissionKeys[parseInt(num)] || `permission_${num}`;
+  };
+
+  // Função para obter nome da permissão por número ou chave
+  const getPermissionName = (key) => {
+    // Se for um número, converter para a chave correspondente
+    if (!isNaN(key)) {
+      const permissionKey = getPermissionKeyByNumber(key);
+      return PERMISSION_DESCRIPTIONS[permissionKey] || `Permissão ${key}`;
+    }
+    // Se for uma chave, buscar diretamente
+    return PERMISSION_DESCRIPTIONS[key] || key;
+  };
+  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [formData, setFormData] = useState({
     nome: '',
-    email: '',
     telefone: '',
     cargo: ''
   });
@@ -28,15 +46,14 @@ export default function Perfil() {
   });
 
   useEffect(() => {
-    if (userProfile) {
+    if (user) {
       setFormData({
-        nome: userProfile.nome || '',
-        email: userProfile.email || '',
-        telefone: userProfile.telefone || '',
-        cargo: userProfile.cargo || ''
+        nome: user.nome || '',
+        telefone: user.telefone || '',
+        cargo: user.cargo || ''
       });
     }
-  }, [userProfile]);
+  }, [user]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -48,7 +65,7 @@ export default function Perfil() {
         return;
       }
 
-      const userRef = doc(db, 'usuarios', currentUser.uid);
+      const userRef = doc(db, 'usuarios', user.uid);
       await updateDoc(userRef, {
         nome: formData.nome.trim(),
         telefone: formData.telefone.trim(),
@@ -56,6 +73,7 @@ export default function Perfil() {
         updatedAt: new Date()
       });
 
+      setIsEditing(false);
       toast.success('Perfil atualizado com sucesso!');
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
@@ -92,14 +110,14 @@ export default function Perfil() {
 
       // Reautenticar usuário
       const credential = EmailAuthProvider.credential(
-        currentUser.email,
+        user.email,
         passwordData.currentPassword
       );
       
-      await reauthenticateWithCredential(currentUser, credential);
+      await reauthenticateWithCredential(auth.currentUser, credential);
       
       // Atualizar senha
-      await updatePassword(currentUser, passwordData.newPassword);
+      await updatePassword(auth.currentUser, passwordData.newPassword);
 
       // Limpar formulário
       setPasswordData({
@@ -117,6 +135,8 @@ export default function Perfil() {
         toast.error('Senha atual incorreta');
       } else if (error.code === 'auth/weak-password') {
         toast.error('Nova senha muito fraca');
+      } else if (error.code === 'auth/requires-recent-login') {
+        toast.error('Por segurança, faça login novamente antes de alterar a senha');
       } else {
         toast.error('Erro ao alterar senha');
       }
@@ -125,7 +145,25 @@ export default function Perfil() {
     }
   };
 
-  if (!userProfile) {
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setFormData({
+      nome: user.nome || '',
+      telefone: user.telefone || '',
+      cargo: user.cargo || ''
+    });
+  };
+
+  const cancelPasswordChange = () => {
+    setShowPasswordSection(false);
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+  };
+
+  if (!user) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="text-center py-8">
@@ -140,11 +178,9 @@ export default function Perfil() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="card">
-        <div className="flex items-center space-x-4 mb-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-xl">
-              {userProfile.nome?.charAt(0)?.toUpperCase()}
-            </span>
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            <User className="w-6 h-6 text-blue-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Meu Perfil</h1>
@@ -152,171 +188,169 @@ export default function Perfil() {
           </div>
         </div>
 
-        {/* Informações do Usuário */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Shield className="h-5 w-5 text-blue-600" />
-              <span className="font-medium text-gray-900">Perfil de Acesso</span>
+        {/* Avatar e informações básicas */}
+        <div className="flex items-center space-x-6 mb-8">
+          <div className="h-24 w-24 bg-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-3xl font-bold">
+              {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
+            </span>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">{user?.nome}</h2>
+            <p className="text-gray-600">{user?.email}</p>
+            <div className="flex items-center space-x-2 mt-2">
+              <Shield className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-green-600">
+                {user?.perfil === 'admin' ? 'Administrador' : 
+                 user?.perfil === 'manager' ? 'Gerente' :
+                 user?.perfil === 'operator' ? 'Operador' :
+                 user?.perfil === 'viewer' ? 'Visualizador' : 'Personalizado'}
+              </span>
             </div>
-            <p className="text-sm text-gray-600">
-              {userProfile.perfil === 'admin' ? 'Administrador' :
-               userProfile.perfil === 'manager' ? 'Gerente' :
-               userProfile.perfil === 'operator' ? 'Operador' :
-               userProfile.perfil === 'viewer' ? 'Visualizador' : 'Personalizado'}
-            </p>
+          </div>
+        </div>
+
+        {/* Informações editáveis */}
+        <div className="border-t border-gray-200 pt-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">Informações Pessoais</h3>
+            {!isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="btn-secondary flex items-center space-x-2"
+              >
+                <Edit2 className="w-4 h-4" />
+                <span>Editar</span>
+              </button>
+            )}
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <span className="font-medium text-gray-900">Unidades</span>
+          {isEditing ? (
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome Completo *
+                  </label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Telefone
+                  </label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={formData.telefone}
+                    onChange={(e) => setFormData({...formData, telefone: e.target.value})}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cargo/Função
+                  </label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={formData.cargo}
+                    onChange={(e) => setFormData({...formData, cargo: e.target.value})}
+                    placeholder="Ex: Instrutor, Secretária, etc."
+                  />
+                </div>
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary flex items-center space-x-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="loading-spinner w-4 h-4"></div>
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Salvar Alterações</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="btn-secondary flex items-center space-x-2"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Cancelar</span>
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Nome Completo</label>
+                <p className="text-gray-900 font-medium">{user?.nome || '-'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
+                <p className="text-gray-900">{user?.email || '-'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Telefone</label>
+                <p className="text-gray-900">{user?.telefone || 'Não informado'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Cargo/Função</label>
+                <p className="text-gray-900">{user?.cargo || 'Não informado'}</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600">
-              {userProfile.perfil === 'admin' 
-                ? '🏢 Todas as unidades' 
-                : userProfile.unidades?.length > 0 
-                  ? userProfile.unidades.join(', ')
-                  : '⚠️ Nenhuma unidade atribuída'}
-            </p>
-          </div>
-
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Calendar className="h-5 w-5 text-purple-600" />
-              <span className="font-medium text-gray-900">Membro desde</span>
-            </div>
-            <p className="text-sm text-gray-600">
-              {userProfile.criadoEm ? 
-                new Date(userProfile.criadoEm.seconds * 1000).toLocaleDateString('pt-BR') :
-                'Data não disponível'}
-            </p>
-          </div>
-
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Shield className="h-5 w-5 text-orange-600" />
-              <span className="font-medium text-gray-900">Permissões</span>
-            </div>
-            <p className="text-sm text-gray-600">
-              {userProfile.permissions?.length || 0} permissões ativas
-            </p>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Formulário de Dados Pessoais */}
+      {/* Seção de Segurança */}
       <div className="card">
-        <div className="flex items-center space-x-2 mb-6">
-          <User className="h-6 w-6 text-blue-600" />
-          <h2 className="text-xl font-semibold text-gray-900">Informações Pessoais</h2>
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+            <Key className="w-6 h-6 text-red-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Segurança</h3>
+            <p className="text-gray-600">Altere sua senha para manter sua conta segura</p>
+          </div>
         </div>
 
-        <form onSubmit={handleUpdateProfile} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nome Completo *
-              </label>
-              <input
-                type="text"
-                required
-                className="input-field"
-                value={formData.nome}
-                onChange={(e) => setFormData({...formData, nome: e.target.value})}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                disabled
-                className="input-field bg-gray-100 cursor-not-allowed"
-                value={formData.email}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                O email não pode ser alterado
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Telefone
-              </label>
-              <input
-                type="tel"
-                className="input-field"
-                value={formData.telefone}
-                onChange={(e) => setFormData({...formData, telefone: e.target.value})}
-                placeholder="(11) 99999-9999"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cargo/Função
-              </label>
-              <input
-                type="text"
-                className="input-field"
-                value={formData.cargo}
-                onChange={(e) => setFormData({...formData, cargo: e.target.value})}
-                placeholder="Ex: Instrutor, Secretária, etc."
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary flex items-center space-x-2"
-            >
-              <Save className="h-4 w-4" />
-              <span>{loading ? 'Salvando...' : 'Salvar Alterações'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Seção de Alteração de Senha */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2">
-            <Shield className="h-6 w-6 text-red-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Segurança</h2>
-          </div>
+        {!showPasswordSection ? (
           <button
-            type="button"
-            onClick={() => setShowPasswordSection(!showPasswordSection)}
-            className="btn-secondary"
+            onClick={() => setShowPasswordSection(true)}
+            className="btn-secondary flex items-center space-x-2"
           >
-            {showPasswordSection ? 'Cancelar' : 'Alterar Senha'}
+            <Key className="w-4 h-4" />
+            <span>Alterar Senha</span>
           </button>
-        </div>
-
-        {showPasswordSection && (
-          <form onSubmit={handleChangePassword} className="space-y-6">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <p className="text-sm text-yellow-800">
-                <strong>Atenção:</strong> Após alterar a senha, você precisará fazer login novamente.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        ) : (
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Senha Atual *
                 </label>
                 <div className="relative">
                   <input
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    required
+                    type={showCurrentPassword ? "text" : "password"}
                     className="input-field pr-10"
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                    required
                   />
                   <button
                     type="button"
@@ -324,9 +358,9 @@ export default function Perfil() {
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                   >
                     {showCurrentPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-gray-400" />
                     ) : (
-                      <Eye className="h-5 w-5 text-gray-400" />
+                      <Eye className="h-4 w-4 text-gray-400" />
                     )}
                   </button>
                 </div>
@@ -338,11 +372,11 @@ export default function Perfil() {
                 </label>
                 <div className="relative">
                   <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    required
+                    type={showNewPassword ? "text" : "password"}
                     className="input-field pr-10"
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                    required
                     minLength={6}
                   />
                   <button
@@ -351,86 +385,122 @@ export default function Perfil() {
                     onClick={() => setShowNewPassword(!showNewPassword)}
                   >
                     {showNewPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-gray-400" />
                     ) : (
-                      <Eye className="h-5 w-5 text-gray-400" />
+                      <Eye className="h-4 w-4 text-gray-400" />
                     )}
                   </button>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">Mínimo de 6 caracteres</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Confirmar Nova Senha *
                 </label>
-                <input
-                  type="password"
-                  required
-                  className="input-field"
-                  value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    className="input-field pr-10"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPasswordSection(false);
-                  setPasswordData({
-                    currentPassword: '',
-                    newPassword: '',
-                    confirmPassword: ''
-                  });
-                }}
-                className="btn-secondary"
-              >
-                Cancelar
-              </button>
+            <div className="flex space-x-3 pt-4">
               <button
                 type="submit"
                 disabled={loading}
                 className="btn-primary flex items-center space-x-2"
               >
-                <Key className="h-4 w-4" />
-                <span>{loading ? 'Alterando...' : 'Alterar Senha'}</span>
+                {loading ? (
+                  <>
+                    <div className="loading-spinner w-4 h-4"></div>
+                    <span>Alterando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Key className="w-4 h-4" />
+                    <span>Alterar Senha</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={cancelPasswordChange}
+                className="btn-secondary flex items-center space-x-2"
+              >
+                <X className="w-4 h-4" />
+                <span>Cancelar</span>
               </button>
             </div>
           </form>
         )}
       </div>
 
-      {/* Minhas Permissões */}
-      <div className="card">
-        <div className="flex items-center space-x-2 mb-6">
-          <Shield className="h-6 w-6 text-green-600" />
-          <h2 className="text-xl font-semibold text-gray-900">Minhas Permissões</h2>
-        </div>
+      {/* Permissões */}
+      {(user?.permissoes || user?.permissions) && (
+        <div className="card">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <Shield className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Permissões</h3>
+              <p className="text-gray-600">Suas permissões no sistema</p>
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {userProfile.permissions?.map((permission) => (
-            <div
-              key={permission}
-              className="flex items-center space-x-3 p-3 bg-green-50 border border-green-200 rounded-lg"
-            >
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">
-                  {PERMISSION_DESCRIPTIONS[permission] || permission}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Verificar se permissões é um objeto (permissoes) ou array (permissions) */}
+            {user?.permissoes && typeof user.permissoes === 'object' && !Array.isArray(user.permissoes) ? (
+              // Formato objeto: { "0": true, "1": false, ... }
+              Object.entries(user.permissoes).map(([key, value]) => (
+                <div key={key} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                  <div className={`w-3 h-3 rounded-full ${value ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span className="text-sm font-medium text-gray-700">
+                    {getPermissionName(key)}
+                  </span>
+                </div>
+              ))
+            ) : user?.permissions && Array.isArray(user.permissions) ? (
+              // Formato array: ["visualizar_dashboard", "enviar_mensagens", ...]
+              user.permissions.map((permission) => (
+                <div key={permission} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-sm font-medium text-gray-700">
+                    {PERMISSION_DESCRIPTIONS[permission] || permission}
+                  </span>
+                </div>
+              ))
+            ) : (
+              // Fallback para debug
+              <div className="col-span-full p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-sm text-yellow-800">
+                  <strong>Debug:</strong> Estrutura de permissões não reconhecida
                 </p>
-                <p className="text-xs text-gray-500">
-                  {permission}
-                </p>
+                <pre className="text-xs text-yellow-700 mt-2">
+                  {JSON.stringify({ permissoes: user?.permissoes, permissions: user?.permissions }, null, 2)}
+                </pre>
               </div>
-            </div>
-          )) || (
-            <div className="col-span-full text-center py-8 text-gray-500">
-              Nenhuma permissão encontrada
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 } 

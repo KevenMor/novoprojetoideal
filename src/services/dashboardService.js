@@ -143,9 +143,9 @@ export const dashboardService = {
     }
   },
 
-  async getExtratosStats(unidades) {
+  async getExtratosStats(unidades, mesAno = null) {
     try {
-      console.log('Buscando estatísticas de extratos para:', unidades);
+      console.log('🔄 [DASHBOARD] Buscando estatísticas de extratos para:', unidades, mesAno ? `(${mesAno})` : '(todos os meses)');
       
       if (!unidades || unidades.length === 0) {
         return { saldo: 0, receitas: 0, despesas: 0, registros: 0 };
@@ -160,8 +160,26 @@ export const dashboardService = {
       for (const unidade of unidades) {
         try {
           const extratos = await extratosService.buscarExtratos({ unidade });
+          
+          // Filtrar extratos por mês/ano se especificado
+          let extratosFiltered = extratos;
+          if (mesAno) {
+            const [ano, mes] = mesAno.split('-');
+            extratosFiltered = extratos.filter(extrato => {
+              const dataExtrato = extrato.data?.toDate ? extrato.data.toDate() : new Date(extrato.data);
+              return dataExtrato.getFullYear() === parseInt(ano) && 
+                     (dataExtrato.getMonth() + 1) === parseInt(mes);
+            });
+          }
+
+          // Filtrar extratos excluídos (mesma lógica da página Extratos)
+          extratosFiltered = extratosFiltered.filter(extrato => {
+            const status = (extrato.status || '').toLowerCase();
+            return status !== 'excluido' && status !== 'deleted';
+          });
+          
           // Refatoração: calcular estatísticas da unidade sem depender de variáveis externas
-          const statsUnidade = extratos.reduce((acc, extrato) => {
+          const statsUnidade = extratosFiltered.reduce((acc, extrato) => {
             const valor = extrato.valor || extrato.value || 0;
             const tipo = extrato.tipo || extrato.type;
             if (tipo === 'RECEITA' || tipo === 'CREDIT') {
@@ -177,19 +195,24 @@ export const dashboardService = {
           saldoTotal += statsUnidade.saldo;
           totalReceitas += statsUnidade.receitas;
           totalDespesas += statsUnidade.despesas;
-          totalRegistros += extratos.length;
-          console.log(`${unidade}: R$ ${statsUnidade.saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${extratos.length} registros)`);
+          totalRegistros += extratosFiltered.length;
+          
+          console.log(`💰 [DASHBOARD] ${unidade}: R$ ${statsUnidade.saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${extratosFiltered.length} registros)`);
         } catch (error) {
           console.error(`Erro ao buscar extratos da unidade ${unidade}:`, error);
         }
       }
 
-      return {
+      const resultado = {
         saldo: saldoTotal,
         receitas: totalReceitas,
         despesas: totalDespesas,
         registros: totalRegistros
       };
+
+      console.log('🎯 [DASHBOARD] RESULTADO FINAL:', resultado);
+
+      return resultado;
     } catch (error) {
       console.error('Erro ao obter estatísticas de extratos:', error);
       return { saldo: 0, receitas: 0, despesas: 0, registros: 0 };

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { CheckCircle, X, Clock, MessageSquare, Trash2, Download, Smartphone } from 'lucide-react';
-import { useUnitSelection } from '../hooks/useUnitSelection';
+import { useUnitFilter } from '../contexts/UnitFilterContext';
 
 function exportToCSV(data) {
   const headers = ['Nome', 'Tipo', 'WhatsApp', 'Unidade', 'Data/Hora', 'Status', 'Retorno'];
@@ -35,8 +35,14 @@ export default function HistoricoMensagens() {
     dataInicial: '',
     dataFinal: ''
   });
-  const { availableUnits, getUnitDisplayName } = useUnitSelection();
+  const { availableUnits } = useUnitFilter();
   const [showTooltip, setShowTooltip] = useState(null);
+
+  // Função para exibir nome da unidade
+  const getUnitDisplayName = (unit) => {
+    if (unit === 'all') return 'Geral';
+    return unit || 'Sem unidade';
+  };
 
   useEffect(() => {
     const fetchMensagens = async () => {
@@ -111,9 +117,11 @@ export default function HistoricoMensagens() {
           <label className="block text-xs font-medium text-gray-700 mb-1">Unidade</label>
           <select className="w-48 h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-200" value={filtros.unidade} onChange={e => setFiltros({ ...filtros, unidade: e.target.value })}>
             <option value="">Todas</option>
-            {availableUnits.map(unit => (
+            <option value="Geral">Geral</option>
+            {availableUnits.filter(unit => unit !== 'all').map(unit => (
               <option key={unit} value={unit}>{getUnitDisplayName(unit)}</option>
             ))}
+            <option value="Comercial">Comercial</option>
           </select>
         </div>
         <div>

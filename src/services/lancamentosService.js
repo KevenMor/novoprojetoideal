@@ -7,9 +7,13 @@ import {
   Timestamp,
   doc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  getDoc,
+  orderBy
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+
+const COLECAO_LANCAMENTOS = 'lancamentos';
 
 export const lancamentosService = {
   // Criar um novo lançamento (receita ou despesa)
@@ -32,7 +36,7 @@ export const lancamentosService = {
         emailCriador: auth.currentUser.email // Adicionar email do criador
       };
       
-      const docRef = await addDoc(collection(db, 'lancamentos'), lancamento);
+      const docRef = await addDoc(collection(db, COLECAO_LANCAMENTOS), lancamento);
       console.log('✅ Lançamento criado com ID:', docRef.id);
       
       return {
@@ -64,7 +68,7 @@ export const lancamentosService = {
       
       // BUSCA SIMPLES: Buscar TODOS os lançamentos ativos e filtrar no cliente
       console.log('🔍 Fazendo busca simples de todos os lançamentos ativos...');
-      let q = query(collection(db, 'lancamentos'), where('status', '==', 'ATIVO'));
+      let q = query(collection(db, COLECAO_LANCAMENTOS), where('status', '==', 'ATIVO'));
       
       const querySnapshot = await getDocs(q);
       const lancamentos = [];
@@ -148,7 +152,7 @@ export const lancamentosService = {
         });
       }
 
-      const lancamentoRef = doc(db, 'lancamentos', id);
+      const lancamentoRef = doc(db, COLECAO_LANCAMENTOS, id);
       const dadosParaAtualizar = {
         ...dadosAtualizacao,
         tipo: tipoConvertido,
@@ -181,7 +185,7 @@ export const lancamentosService = {
         throw new Error('ID do lançamento não fornecido');
       }
 
-      const lancamentoRef = doc(db, 'lancamentos', id);
+      const lancamentoRef = doc(db, COLECAO_LANCAMENTOS, id);
       
       // Marcar como excluído em vez de deletar fisicamente
       await updateDoc(lancamentoRef, {
@@ -204,7 +208,7 @@ export const lancamentosService = {
         throw new Error('ID do lançamento não fornecido');
       }
 
-      const lancamentoRef = doc(db, 'lancamentos', id);
+      const lancamentoRef = doc(db, COLECAO_LANCAMENTOS, id);
       
       // Restaurar para status CONFIRMED
       await updateDoc(lancamentoRef, {
@@ -226,7 +230,7 @@ export const lancamentosService = {
       
       // Buscar lançamentos relacionados à conta BTG
       const q = query(
-        collection(db, 'lancamentos'), 
+        collection(db, COLECAO_LANCAMENTOS), 
         where('contaBTGId', '==', contaBTGId),
         where('status', '==', 'ATIVO')
       );
@@ -376,7 +380,7 @@ export const lancamentosService = {
       
       // Buscar lançamentos relacionados à conta BTG
       const q = query(
-        collection(db, 'lancamentos'), 
+        collection(db, COLECAO_LANCAMENTOS), 
         where('contaBTGId', '==', contaBTGId),
         where('status', '==', 'ATIVO')
       );
@@ -404,6 +408,176 @@ export const lancamentosService = {
     } catch (error) {
       console.error('❌ Erro ao excluir lançamentos relacionados:', error);
       throw new Error(`Erro ao excluir lançamentos relacionados: ${error.message}`);
+    }
+  },
+
+  async deleteDoc(id) {
+    try {
+      const docRef = doc(db, COLECAO_LANCAMENTOS, id);
+      await deleteDoc(docRef);
+      return true;
+    } catch (error) {
+      console.error('❌ Erro ao excluir documento:', error);
+      throw error;
+    }
+  },
+
+  async programarPagamentos(funcionario, dados) {
+    try {
+      console.log('Programando pagamentos para funcionário:', {
+        funcionario,
+        dados
+      });
+
+      const lancamentosRef = collection(db, COLECAO_LANCAMENTOS);
+      const lancamentos = [];
+
+      // Criar lançamento para adiantamento
+      if (dados.adiantamento && dados.dataAdiantamento) {
+        const adiantamento = {
+          tipo: 'DESPESA',
+          categoria: 'ADIANTAMENTO',
+          funcionarioId: funcionario.id,
+          funcionarioNome: funcionario.nome,
+          funcionarioCPF: funcionario.cpf,
+          unidade: funcionario.unidade,
+          valor: parseFloat(dados.adiantamento),
+          vencimento: new Date(dados.dataAdiantamento),
+          tipoPix: funcionario.tipoPix || 'CPF',
+          chavePix: funcionario.chavePix,
+          status: 'AGUARDANDO',
+          dataCriacao: new Date(),
+          dataAtualizacao: new Date(),
+          ativo: true
+        };
+
+        const adiantamentoRef = await addDoc(lancamentosRef, adiantamento);
+        lancamentos.push({ id: adiantamentoRef.id, ...adiantamento });
+      }
+
+      // Criar lançamento para salário
+      if (dados.salario && dados.dataSalario) {
+        const salario = {
+          tipo: 'DESPESA',
+          categoria: 'SALARIO',
+          funcionarioId: funcionario.id,
+          funcionarioNome: funcionario.nome,
+          funcionarioCPF: funcionario.cpf,
+          unidade: funcionario.unidade,
+          valor: parseFloat(dados.salario),
+          vencimento: new Date(dados.dataSalario),
+          tipoPix: funcionario.tipoPix || 'CPF',
+          chavePix: funcionario.chavePix,
+          status: 'AGUARDANDO',
+          dataCriacao: new Date(),
+          dataAtualizacao: new Date(),
+          ativo: true
+        };
+
+        const salarioRef = await addDoc(lancamentosRef, salario);
+        lancamentos.push({ id: salarioRef.id, ...salario });
+      }
+
+      console.log('Lançamentos criados:', lancamentos);
+      return lancamentos;
+    } catch (error) {
+      console.error('Erro ao programar pagamentos:', error);
+      throw error;
+    }
+  },
+
+  async listarLancamentos(filtros = {}) {
+    try {
+      console.log('Listando lançamentos com filtros:', filtros);
+      
+      // Iniciar com uma query básica
+      let q = collection(db, COLECAO_LANCAMENTOS);
+      
+      // Construir a query com os filtros disponíveis
+      if (filtros.unidade && filtros.unidade !== 'Geral') {
+        if (filtros.status) {
+          // Usar o índice composto com status
+          q = query(q, 
+            where('funcionarioUnidade', '==', filtros.unidade),
+            where('status', '==', filtros.status),
+            orderBy('dataAgendada', 'desc')
+          );
+        } else {
+          // Usar o índice básico
+          q = query(q, 
+            where('funcionarioUnidade', '==', filtros.unidade),
+            orderBy('dataAgendada', 'desc')
+          );
+        }
+      } else {
+        // Caso contrário, apenas ordenar por data
+        q = query(q, orderBy('dataAgendada', 'desc'));
+      }
+      
+      // Executar a query
+      const snapshot = await getDocs(q);
+      
+      // Mapear os resultados
+      let lancamentos = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        dataAgendada: doc.data().dataAgendada?.toDate(),
+        dataCriacao: doc.data().dataCriacao?.toDate(),
+        dataAtualizacao: doc.data().dataAtualizacao?.toDate(),
+        dataPagamento: doc.data().dataPagamento?.toDate()
+      }));
+
+      // Aplicar filtros adicionais em memória
+      if (filtros.tipo) {
+        lancamentos = lancamentos.filter(l => l.tipo === filtros.tipo);
+      }
+      
+      if (filtros.dataInicial) {
+        const dataInicial = new Date(filtros.dataInicial);
+        lancamentos = lancamentos.filter(l => l.dataAgendada >= dataInicial);
+      }
+      
+      if (filtros.dataFinal) {
+        const dataFinal = new Date(filtros.dataFinal);
+        lancamentos = lancamentos.filter(l => l.dataAgendada <= dataFinal);
+      }
+
+      console.log('Lançamentos encontrados:', lancamentos.length);
+      return lancamentos;
+    } catch (error) {
+      console.error('Erro ao listar lançamentos:', error);
+      throw error;
+    }
+  },
+
+  async atualizarStatusLancamento(id, novoStatus, dadosAdicionais = {}) {
+    try {
+      console.log('Atualizando status do lançamento:', { id, novoStatus, dadosAdicionais });
+      
+      const docRef = doc(db, COLECAO_LANCAMENTOS, id);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        throw new Error('Lançamento não encontrado');
+      }
+      
+      const atualizacao = {
+        status: novoStatus,
+        dataAtualizacao: new Date(),
+        ...dadosAdicionais
+      };
+      
+      if (novoStatus === 'PAGO') {
+        atualizacao.dataPagamento = new Date();
+      }
+      
+      await updateDoc(docRef, atualizacao);
+      
+      console.log('Status atualizado com sucesso');
+      return true;
+    } catch (error) {
+      console.error('Erro ao atualizar status do lançamento:', error);
+      throw error;
     }
   }
 };

@@ -7,7 +7,7 @@ import { db } from '../firebase/config';
 import toast from 'react-hot-toast';
 
 export default function Configuracoes() {
-  const { userProfile, currentUser } = useAuth();
+  const { user } = useAuth();
   const { theme, setThemeMode, isLoading: themeLoading, currentMode } = useTheme();
   const [loading, setLoading] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
@@ -76,8 +76,8 @@ export default function Configuracoes() {
         }
 
         // Depois, carregar do Firestore se o usuário estiver logado
-        if (currentUser) {
-          const userDoc = await getDoc(doc(db, 'usuarios', currentUser.uid));
+        if (user) {
+          const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
           if (userDoc.exists() && userDoc.data().configuracoes) {
             const firestoreConfig = userDoc.data().configuracoes;
             setConfiguracoes(prev => ({ ...prev, ...firestoreConfig }));
@@ -92,7 +92,7 @@ export default function Configuracoes() {
     };
 
     loadConfigurations();
-  }, [currentUser]);
+  }, [user]);
 
   // Sincronizar tema com o contexto
   useEffect(() => {
@@ -145,8 +145,8 @@ export default function Configuracoes() {
       localStorage.setItem('autoescola_config', JSON.stringify(configuracoes));
       
       // Salvar no Firestore se o usuário estiver logado
-      if (currentUser) {
-        await updateDoc(doc(db, 'usuarios', currentUser.uid), {
+      if (user) {
+        await updateDoc(doc(db, 'usuarios', user.uid), {
           configuracoes: configuracoes,
           ultimaAtualizacaoConfig: new Date()
         });
@@ -229,7 +229,7 @@ export default function Configuracoes() {
         configuracoes,
         timestamp: new Date().toISOString(),
         version: '1.0.0',
-        usuario: userProfile?.email || 'unknown'
+        usuario: user?.email || 'unknown'
       };
       
       const dataStr = JSON.stringify(backup, null, 2);
@@ -311,7 +311,7 @@ export default function Configuracoes() {
     setThemeMode(newTheme);
   };
 
-  if (!userProfile || themeLoading) {
+  if (!user || themeLoading) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="text-center py-8">

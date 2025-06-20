@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useUnitSelection } from '../hooks/useUnitSelection';
+import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { Receipt, CreditCard, Plus } from 'lucide-react';
 import InputMask from 'react-input-mask';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import UnitSelector from '../components/UnitSelector';
 // import { db } from '../firebase/config';
 // import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import CurrencyInput from 'react-currency-input-field';
 
 export default function RegistrarCobrancas() {
-  const { selectedUnit, availableUnits } = useUnitSelection();
+  const { selectedUnit, availableUnits, getSelectedUnitDisplay, hasMultipleUnits } = useUnitFilter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     unidade: '',
@@ -24,14 +24,7 @@ export default function RegistrarCobrancas() {
     dataVencimento: ''
   });
 
-  useEffect(() => {
-    if (selectedUnit && formData.unidade !== selectedUnit) {
-      setFormData(prev => ({
-        ...prev,
-        unidade: selectedUnit
-      }));
-    }
-  }, [selectedUnit, formData.unidade]);
+
 
   const servicos = [
     '1º CNH A',
@@ -66,6 +59,38 @@ export default function RegistrarCobrancas() {
     return num.toFixed(2).replace(',', '.');
   }
 
+  // Função para formatação automática do valor em tempo real
+  const formatCurrency = (value) => {
+    // Remove tudo que não é dígito
+    const numericValue = value.replace(/\D/g, '');
+    
+    // Se não há valor, retorna string vazia
+    if (!numericValue) return '';
+    
+    // Converte para número dividindo por 100 para ter as casas decimais
+    const number = parseFloat(numericValue) / 100;
+    
+    // Formata como moeda brasileira
+    return number.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  // Função para converter valor formatado de volta para número
+  const parseCurrencyToNumber = (value) => {
+    if (!value) return 0;
+    // Remove pontos e substitui vírgula por ponto, depois converte para número
+    return parseFloat(value.replace(/\./g, '').replace(',', '.'));
+  };
+
+  // Handler para mudança no campo valor
+  const handleValorChange = (e) => {
+    const rawValue = e.target.value;
+    const formattedValue = formatCurrency(rawValue);
+    setFormData({ ...formData, valorTotal: formattedValue });
+  };
+
   function formatDateISO(date) {
     if (!date) return '';
     if (/^\d{4}-\d{2}-\d{2}/.test(date)) return date;
@@ -80,12 +105,12 @@ export default function RegistrarCobrancas() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const unidadeParaValidar = formData.unidade || '';
-    const valorTotalNumerico = Number(String(formData.valorTotal).replace('.', '').replace(',', '.'));
+    const unidadeParaEnvio = selectedUnit === 'all' ? 'Geral' : selectedUnit;
+    const valorTotalNumerico = parseCurrencyToNumber(formData.valorTotal);
     const valorTotalInvalido = !valorTotalNumerico || valorTotalNumerico <= 0;
     if (!formData.nome || !formData.cpf || !formData.email || !formData.whatsapp || 
         !formData.servico || !formData.tipoPagamento || valorTotalInvalido || 
-        !formData.dataVencimento || !unidadeParaValidar || unidadeParaValidar.trim().length === 0) {
+        !formData.dataVencimento || !unidadeParaEnvio) {
       toast.error('Por favor, preencha todos os campos obrigatórios e selecione uma unidade válida.');
       return;
     }
@@ -118,12 +143,12 @@ export default function RegistrarCobrancas() {
         parcelas: formData.parcelas,
         valorParcela: (valorTotalNumerico / Number(formData.parcelas)).toFixed(2),
         dataVencimento: formatDateISO(formData.dataVencimento),
-        unidade: unidadeParaValidar
+        unidade: unidadeParaEnvio
       }, { headers: { 'Content-Type': 'application/json' }, timeout: 30000 });
       toast.success('Cobrança enviada para o webhook com sucesso!');
       // Resetar formulário após sucesso
-      setFormData(prev => ({
-        unidade: prev.unidade, // mantém unidade selecionada
+      setFormData({
+        unidade: '',
         nome: '',
         cpf: '',
         email: '',
@@ -133,7 +158,7 @@ export default function RegistrarCobrancas() {
         valorTotal: '',
         parcelas: 1,
         dataVencimento: ''
-      }));
+      });
     } catch (error) {
       console.error('Erro ao criar cobrança:', error);
       toast.error('Erro ao criar cobrança. Tente novamente.');
@@ -155,21 +180,13 @@ export default function RegistrarCobrancas() {
           </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Unidade */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Unidade *</label>
-            <select
-              className="input-field"
-              value={formData.unidade}
-              onChange={e => setFormData({ ...formData, unidade: e.target.value })}
-              required
-            >
-              <option value="">Selecione a unidade</option>
-              {availableUnits.map(unit => (
-                <option key={unit} value={unit}>{unit}</option>
-              ))}
-            </select>
-          </div>
+          {/* Seletor de Unidade */}
+          {hasMultipleUnits() && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Unidade *</label>
+              <UnitSelector />
+            </div>
+          )}
           {/* Dados do Aluno */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Nome *</label>
@@ -248,17 +265,19 @@ export default function RegistrarCobrancas() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Valor Total *</label>
-                <CurrencyInput
-                  className="input-field"
-                  intlConfig={{ locale: 'pt-BR', currency: 'BRL' }}
-                  decimalSeparator="," groupSeparator="."
-                  value={formData.valorTotal}
-                  onValueChange={(value) => setFormData({ ...formData, valorTotal: value })}
-                  required
-                  allowDecimals
-                  decimalsLimit={2}
-                  placeholder="0,00"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
+                    R$
+                  </span>
+                  <input
+                    type="text"
+                    className="input-field pl-10"
+                    value={formData.valorTotal}
+                    onChange={handleValorChange}
+                    placeholder="0,00"
+                    required
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Nº de Parcelas *</label>
@@ -274,7 +293,7 @@ export default function RegistrarCobrancas() {
                 </select>
                 {formData.valorTotal && formData.parcelas > 1 && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {formData.parcelas}x de R$ {formatValor((Number(formData.valorTotal) / 100) / Number(formData.parcelas))}
+                    {formData.parcelas}x de R$ {formatValor(parseCurrencyToNumber(formData.valorTotal) / Number(formData.parcelas))}
                   </p>
                 )}
               </div>

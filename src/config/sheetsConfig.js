@@ -20,7 +20,8 @@ export const SHEETS_CONFIG = {
     'Coop': '1wdIYUoI_hdzuey4p51EFnQgRG2r0QlhhmnmZbpKtqoE',
     'Progresso': '1iysHQKpov_ZTDGtd7p4Qv2cYotnmUZ6fA5tnuHu0RG0',
     'Vila Haro': '1o4TQg7jgpbUP6yUBEDN8cL6yXqGm3zawgjqNFQlr0qU', // ✅ FUNCIONANDO - 21 registros
-    'Vila Helena': '1rJAA5f_svrD_j_NAFDFisFsA1CeRGakH-c4yHYm6OFM'
+    'Vila Helena': '1rJAA5f_svrD_j_NAFDFisFsA1CeRGakH-c4yHYm6OFM',
+    'Geral': '' // Placeholder para busca geral (todas as unidades)
   },
   
   // Ranges específicos por unidade - ATUALIZADO BASEADO NO TESTE
@@ -30,7 +31,8 @@ export const SHEETS_CONFIG = {
     'Aparecidinha': 'A:F',        // Range padrão
     'Coop': 'A:F',                // Range padrão
     'Progresso': 'A:F',           // Range padrão
-    'Vila Helena': 'A:F'          // Range padrão
+    'Vila Helena': 'A:F',         // Range padrão
+    'Geral': 'A:F'                // Range padrão
   },
   
   // Configuração de colunas das planilhas - ESTRUTURA REAL DAS SUAS PLANILHAS

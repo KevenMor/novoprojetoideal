@@ -1,22 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 // import UnitSelector from '../components/UnitSelector'; // Não usado atualmente
 import ModalLancamento from '../components/ModalLancamento';
-import { Filter, Download, RefreshCw, Database, BarChart3, TrendingUp, TrendingDown, FileSpreadsheet, Target, CheckCircle, Trash2, Clock, X, Edit3, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, Download, RefreshCw, Database, BarChart3, TrendingUp, TrendingDown, FileSpreadsheet, Target, CheckCircle, Trash2, Clock, X, Edit3, Calendar, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { extratosService } from '../services/extratosService';
 import { lancamentosService } from '../services/lancamentosService';
 import { formatCurrency, formatDate } from '../services/asaasService';
 import toast from 'react-hot-toast';
 
+// Helpers para padronizar a identificação de transações
+const isReceita = (extrato) => {
+  if (!extrato) return false;
+  const tipo = extrato.tipo || extrato.type;
+  // Compara em minúsculas para robustez
+  return String(tipo).toLowerCase() === 'credit' || String(tipo).toLowerCase() === 'receita';
+};
+
+const isDespesa = (extrato) => {
+  if (!extrato) return false;
+  const tipo = extrato.tipo || extrato.type;
+  // Compara em minúsculas para robustez
+  return String(tipo).toLowerCase() === 'debit' || String(tipo).toLowerCase() === 'despesa';
+};
+
 export default function Extratos() {
-  const { userProfile, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { 
     selectedUnit, 
     availableUnits, 
     changeSelectedUnit, 
     // getSelectedUnitDisplay, // Não usado atualmente
-    hasMultipleUnits 
+    hasMultipleUnits,
+    shouldShowUnitData
   } = useUnitFilter();
   
   const shouldShowUnitSelector = hasMultipleUnits();
@@ -49,6 +65,14 @@ export default function Extratos() {
   const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
   const [lancamentoParaEditar, setLancamentoParaEditar] = useState(null);
   const [mostrarExcluidos, setMostrarExcluidos] = useState(false);
+
+  // Estados para ações em lote
+  const [selecionados, setSelecionados] = useState([]);
+  const [showBatchActions, setShowBatchActions] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showUnitModal, setShowUnitModal] = useState(false);
+  const [novoStatus, setNovoStatus] = useState('');
+  const [novaUnidade, setNovaUnidade] = useState('');
 
   const tiposTransacao = [
     { value: '', label: 'Todos os tipos' },
@@ -88,6 +112,16 @@ export default function Extratos() {
       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
     ];
     return `${meses[mes - 1]} de ${ano}`;
+  };
+
+  const formatarDataCompleta = (dataString) => {
+    const data = new Date(dataString);
+    data.setDate(data.getDate() + 1); // Corrige fuso horário
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    }).format(data);
   };
 
   useEffect(() => {
@@ -145,13 +179,13 @@ export default function Extratos() {
     setLoading(true);
     try {
       console.log('🔄 Carregando extratos...');
-      console.log('👤 Perfil do usuário:', userProfile);
+      console.log('👤 Perfil do usuário:', user);
       console.log('🏢 Unidade selecionada:', selectedUnit);
       console.log('📋 Filtros atuais:', filtros);
       
       const filtrosCompletos = {
         ...filtros,
-        unidade: selectedUnit === 'all' ? 'all' : (filtros.unidade || selectedUnit || userProfile?.unidades?.[0])
+        unidade: selectedUnit === 'all' ? 'all' : (filtros.unidade || selectedUnit || user?.unidades?.[0])
       };
       
       console.log('📋 Filtros completos aplicados:', filtrosCompletos);
@@ -178,13 +212,19 @@ export default function Extratos() {
       
       console.log('🚀 Iniciando busca com filtros:', filtrosCompletos);
       
-      const extratosCarregados = await extratosService.buscarExtratos(filtrosCompletos);
+      let extratosCarregados = await extratosService.buscarExtratos(filtrosCompletos);
       
-      console.log(`✅ ${extratosCarregados.length} extratos carregados`);
+      console.log(`📊 [EXTRATOS] ${extratosCarregados.length} extratos carregados para ${filtrosCompletos.unidade || 'todas as unidades'}`);
+
+      // Filtra os excluídos, a menos que "mostrarExcluidos" seja verdadeiro
+      const extratosFiltrados = extratosCarregados.filter(extrato => {
+        const status = String(extrato.status || '').toLowerCase();
+        return mostrarExcluidos ? true : (status !== 'excluido' && status !== 'deleted');
+      });
       
       // Atualizar estado
-      setExtratos(extratosCarregados);
-      setEstatisticas(calcularEstatisticas(extratosCarregados));
+      setExtratos(extratosFiltrados);
+      setEstatisticas(calcularEstatisticas(extratosFiltrados));
       
     } catch (error) {
       console.error('❌ Erro ao carregar extratos:', error);
@@ -233,10 +273,9 @@ export default function Extratos() {
   };
 
   const getTipoTransacaoText = (extrato) => {
-    const tipo = extrato.tipo || extrato.type;
-    if (tipo === 'CREDIT' || tipo === 'RECEITA') return 'Receita';
-    if (tipo === 'DEBIT' || tipo === 'DESPESA') return 'Despesa';
-    return tipo;
+    if (isReceita(extrato)) return 'Receita';
+    if (isDespesa(extrato)) return 'Despesa';
+    return 'N/A';
   };
 
   const getTipoTransacaoColor = (extrato) => {
@@ -247,82 +286,96 @@ export default function Extratos() {
   };
 
   const getStatusColor = (extrato) => {
-    // Se o extrato vier da planilha (tem observacoes), sempre será confirmado
-    if (extrato.observacoes) {
-      return 'bg-green-100 text-green-800';
+    if (!extrato) return 'bg-gray-100 text-gray-800';
+    
+    let status = extrato.status ? String(extrato.status).toLowerCase() : '';
+    
+    if (!status && isReceita(extrato)) {
+      status = 'confirmado';
     }
 
-    const status = extrato.status;
     switch (status) {
-      case 'CONFIRMED':
+      case 'pago':
+      case 'recebido':
+      case 'concluido':
+      case 'confirmado':
         return 'bg-green-100 text-green-800';
-      case 'PENDING':
+      case 'pendente':
+      case 'aguardando':
         return 'bg-yellow-100 text-yellow-800';
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
-      case 'EXCLUIDO':
-        return 'bg-gray-100 text-gray-800';
+      case 'vencido':
+        return 'bg-orange-100 text-orange-800';
+      case 'cancelado':
+        return 'bg-gray-400 text-white';
+      case 'excluido':
+      case 'deleted':
+        return 'bg-red-200 text-red-800 font-bold';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (extrato) => {
-    // Se o extrato vier da planilha (tem observacoes), sempre será confirmado
-    if (extrato.observacoes) {
+    if (!extrato) return 'N/A';
+    
+    if (!extrato.status && isReceita(extrato)) {
       return 'Confirmado';
     }
 
-    const status = extrato.status;
+    const status = extrato.status ? String(extrato.status).toLowerCase() : '';
+
     switch (status) {
-      case 'CONFIRMED':
+      case 'pago':
+      case 'recebido':
+      case 'concluido':
+      case 'confirmado':
         return 'Confirmado';
-      case 'PENDING':
+      case 'pendente':
+      case 'aguardando':
         return 'Aguardando';
-      case 'CANCELLED':
+      case 'vencido':
+        return 'Vencido';
+      case 'cancelado':
         return 'Cancelado';
-      case 'EXCLUIDO':
-        return 'Excluído';
+      case 'excluido':
+      case 'deleted':
+        return 'Deletado';
       default:
-        return 'Desconhecido';
+        // Retorna o status original se não for reconhecido, ou N/A
+        return extrato.status ? extrato.status.charAt(0).toUpperCase() + extrato.status.slice(1) : 'N/A';
     }
   };
 
   const calcularEstatisticas = (extratosList) => {
-    // Filtrar lançamentos baseado no estado mostrarExcluidos
-    const extratosFiltrados = extratosList.filter(extrato => {
-      if (mostrarExcluidos) {
-        // Se mostrarExcluidos está ativo, mostrar apenas os excluídos
-        return extrato.status === 'EXCLUIDO';
-      } else {
-        // Se não, mostrar apenas os ativos (não excluídos)
-        return extrato.status !== 'EXCLUIDO' && extrato.status !== 'CANCELLED';
-      }
+    // Filtra transações que não estão excluídas para o cálculo dos cards
+    const transacoesAtivas = extratosList.filter(e => {
+        const status = String(e.status || '').toLowerCase();
+        return status !== 'excluido' && status !== 'deleted';
     });
 
-    const stats = extratosFiltrados.reduce((acc, extrato) => {
-      const valor = parseFloat(extrato.valor || extrato.value || 0);
-      const tipo = extrato.tipo || extrato.type;
+    const receitas = transacoesAtivas
+      .filter(e => isReceita(e))
+      .reduce((acc, curr) => acc + (curr.valor || curr.value || 0), 0);
+  
+    const despesas = transacoesAtivas
+      .filter(e => isDespesa(e))
+      .reduce((acc, curr) => acc + (curr.valor || curr.value || 0), 0);
+  
+    const saldo = receitas - despesas;
+    const transacoes = transacoesAtivas.length;
 
-      if (tipo === 'CREDIT' || tipo === 'RECEITA') {
-        acc.receitas += valor;
-      } else if (tipo === 'DEBIT' || tipo === 'DESPESA') {
-        acc.despesas += valor;
-      }
-
-      acc.transacoes++;
-      return acc;
-    }, {
-      receitas: 0,
-      despesas: 0,
-      transacoes: 0
+    console.log('🎯 [EXTRATOS] Saldo calculado:', {
+      receitas: `R$ ${receitas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      despesas: `R$ ${despesas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      saldo: `R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      transacoes
     });
-
-    stats.saldo = stats.receitas - stats.despesas;
-    return stats;
+  
+    return { receitas, despesas, saldo, transacoes };
   };
 
   const handleFiltroChange = (campo, valor) => {
+    console.log(`[Filtro] Campo '${campo}' alterado para:`, valor);
     setFiltros(prev => {
       // Se o campo for dataInicial ou dataFinal e o outro estiver vazio, preenche ambos
       if (campo === 'dataInicial' && (!prev.dataFinal || prev.dataFinal === '')) {
@@ -371,42 +424,34 @@ export default function Extratos() {
   };
 
   const restaurarLancamento = async (lancamentoId) => {
-    if (!lancamentoId) {
-      toast.error('ID do lançamento não encontrado');
-      return;
-    }
-
-    if (!window.confirm('Tem certeza que deseja restaurar este lançamento?')) {
-      return;
-    }
-
-    try {
-      console.log('🔄 Restaurando lançamento:', lancamentoId);
-      await lancamentosService.restaurarLancamento(lancamentoId);
-      toast.success('Lançamento restaurado com sucesso!');
-      carregarExtratos(); // Recarregar lista
-    } catch (error) {
-      console.error('❌ Erro ao restaurar lançamento:', error);
-      toast.error(`Erro ao restaurar lançamento: ${error.message}`);
-    }
+    toast.promise(
+      lancamentosService.restaurarLancamento(lancamentoId),
+      {
+        loading: 'Restaurando lançamento...',
+        success: () => {
+          carregarExtratos();
+          return 'Lançamento restaurado com sucesso!';
+        },
+        error: (err) => {
+          console.error("Erro ao restaurar lançamento:", err);
+          return err.message || 'Falha ao restaurar lançamento.';
+        }
+      }
+    );
   };
 
+  // Função para alternar a exibição de excluídos
+  const toggleMostrarExcluidos = () => {
+    setMostrarExcluidos(prev => !prev);
+  };
+
+  // Recarregar extratos quando 'mostrarExcluidos' mudar
+  useEffect(() => {
+    carregarExtratos();
+  }, [mostrarExcluidos]);
+
   const isLancamentoManual = (extrato) => {
-    // Verificar se é um lançamento manual (tem ID do Firebase)
-    // Lançamentos da planilha não têm ID do Firebase
-    const isManual = extrato.id && extrato.id.length > 0;
-    
-    // Log para debug
-    if (isAdmin) {
-      console.log('🔍 Verificando lançamento manual:', {
-        id: extrato.id,
-        descricao: extrato.descricao,
-        isManual: isManual,
-        status: extrato.status
-      });
-    }
-    
-    return isManual;
+    return extrato && extrato.origem === 'manual';
   };
 
   const editarLancamento = (extrato) => {
@@ -444,54 +489,104 @@ export default function Extratos() {
   };
 
   const agruparExtratosPorDia = (extratos) => {
-    // Filtrar lançamentos baseado no estado mostrarExcluidos
-    const extratosFiltrados = extratos.filter(extrato => {
-      if (mostrarExcluidos) {
-        // Se mostrarExcluidos está ativo, mostrar apenas os excluídos
-        return extrato.status === 'EXCLUIDO';
-      } else {
-        // Se não, mostrar apenas os ativos (não excluídos)
-        return extrato.status !== 'EXCLUIDO' && extrato.status !== 'CANCELLED';
-      }
-    });
-
     const grupos = {};
     
-    extratosFiltrados.forEach(extrato => {
-      const data = new Date(extrato.data || extrato.date);
+    extratos.forEach(extrato => {
+      // Normalização segura da data
+      let data;
+      if (extrato.data?.toDate) { // Se for um Timestamp do Firebase
+        data = extrato.data.toDate();
+      } else if (extrato.data || extrato.date) { // Se for string ou Date
+        data = new Date(extrato.data || extrato.date);
+      }
+
+      // Pular este extrato se a data for inválida
+      if (!data || isNaN(data.getTime())) {
+        console.warn('Extrato com data inválida pulado:', extrato);
+        return;
+      }
+
       const dataKey = data.toISOString().split('T')[0];
       
       if (!grupos[dataKey]) {
         grupos[dataKey] = {
           data: data,
           extratos: [],
-          totais: {
-            receitas: 0,
-            despesas: 0,
-            saldo: 0
-          }
+          saldoDia: 0
         };
       }
       
       grupos[dataKey].extratos.push(extrato);
       
-      // Atualizar totais do dia
+      // Atualizar saldo do dia
       const valor = parseFloat(extrato.valor || extrato.value || 0);
       const tipo = extrato.tipo || extrato.type;
       if (tipo === 'CREDIT' || tipo === 'RECEITA') {
-        grupos[dataKey].totais.receitas += valor;
+        grupos[dataKey].saldoDia += valor;
       } else {
-        grupos[dataKey].totais.despesas += valor;
+        grupos[dataKey].saldoDia -= valor;
       }
-      grupos[dataKey].totais.saldo = grupos[dataKey].totais.receitas - grupos[dataKey].totais.despesas;
     });
     
-    // Converter para array e ordenar por data
-    return Object.values(grupos).sort((a, b) => b.data - a.data);
+    return grupos;
+  };
+
+  const handleBatchDelete = async () => {
+    if (window.confirm(`Tem certeza de que deseja excluir ${selecionados.length} lançamentos?`)) {
+      try {
+        setLoading(true);
+        await extratosService.excluirEmLote(selecionados);
+        toast.success('Lançamentos excluídos com sucesso!');
+        setSelecionados([]);
+        await carregarExtratos();
+      } catch (error) {
+        toast.error(`Erro ao excluir em lote: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleBatchStatusChange = async () => {
+    if (!novoStatus) {
+      toast.error('Por favor, selecione um novo status.');
+      return;
+    }
+    try {
+      setLoading(true);
+      await extratosService.alterarStatusEmLote(selecionados, novoStatus);
+      toast.success('Status dos lançamentos alterado com sucesso!');
+      setShowStatusModal(false);
+      setSelecionados([]);
+      await carregarExtratos();
+    } catch (error) {
+      toast.error(`Erro ao alterar status em lote: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBatchUnitChange = async () => {
+    if (!novaUnidade) {
+      toast.error('Por favor, selecione uma nova unidade.');
+      return;
+    }
+    try {
+      setLoading(true);
+      await extratosService.alterarUnidadeEmLote(selecionados, novaUnidade);
+      toast.success('Unidade dos lançamentos alterada com sucesso!');
+      setShowUnitModal(false);
+      setSelecionados([]);
+      await carregarExtratos();
+    } catch (error) {
+      toast.error(`Erro ao alterar unidade em lote: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Log para debug do status de admin
-  console.log('👤 Status do usuário:', { isAdmin, userProfile });
+  console.log('👤 Status do usuário:', { isAdmin, user });
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -519,23 +614,47 @@ export default function Extratos() {
           )}
           <button
             onClick={exportarCSV}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
           >
-            <FileSpreadsheet size={20} />
-            Exportar CSV
+            <FileSpreadsheet size={16} />
+            Exportar
           </button>
-          {isAdmin && (
-            <button
-              onClick={() => setMostrarExcluidos(!mostrarExcluidos)}
-              className={`px-4 py-2 rounded flex items-center gap-2 ${
-                mostrarExcluidos 
-                  ? 'bg-red-500 text-white hover:bg-red-600' 
-                  : 'bg-gray-500 text-white hover:bg-gray-600'
-              }`}
-            >
-              <Trash2 size={20} />
-              {mostrarExcluidos ? 'Ocultar Excluídos' : 'Ver Excluídos'}
-            </button>
+          
+          {/* Ações em Lote Dropdown */}
+          {selecionados.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setShowBatchActions(!showBatchActions)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+              >
+                Ações em Lote ({selecionados.length})
+                <ChevronDown size={16} />
+              </button>
+              {showBatchActions && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border">
+                  <ul className="py-1">
+                    <li
+                      onClick={() => { setShowStatusModal(true); setShowBatchActions(false); }}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
+                    >
+                      <Edit3 size={16} /> Alterar Status
+                    </li>
+                    <li
+                      onClick={() => { setShowUnitModal(true); setShowBatchActions(false); }}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
+                    >
+                      <Target size={16} /> Alterar Unidade
+                    </li>
+                    <li
+                      onClick={() => { handleBatchDelete(); setShowBatchActions(false); }}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600 flex items-center gap-2"
+                    >
+                      <Trash2 size={16} /> Excluir Lançamentos
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -563,48 +682,58 @@ export default function Extratos() {
       )}
 
       {/* Navegação de Competência */}
-      <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow">
-        <button
-          onClick={() => navegarCompetencia('anterior')}
-          className="p-2 hover:bg-gray-100 rounded-full"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <div className="flex items-center gap-2">
-          <Calendar size={20} className="text-gray-500" />
-          <span className="text-lg font-semibold">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4 mb-6 p-4 bg-white rounded-lg shadow">
+        {/* Controles de navegação de competência */}
+        <div className="flex items-center justify-center space-x-2">
+          <button onClick={() => navegarCompetencia('anterior')} className="p-2 rounded-md hover:bg-gray-100 transition-colors">
+            <ChevronLeft className="h-5 w-5 text-gray-600" />
+          </button>
+          <span className="text-lg font-semibold text-gray-700 w-48 text-center">
             {formatarMes(competenciaAtual.mes, competenciaAtual.ano)}
           </span>
+          <button onClick={() => navegarCompetencia('proxima')} className="p-2 rounded-md hover:bg-gray-100 transition-colors">
+            <ChevronRight className="h-5 w-5 text-gray-600" />
+          </button>
         </div>
-        <button
-          onClick={() => navegarCompetencia('proximo')}
-          className="p-2 hover:bg-gray-100 rounded-full"
-        >
-          <ChevronRight size={24} />
-        </button>
+
+        {/* Filtros e Ações */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button 
+            onClick={carregarExtratos}
+            className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors shadow"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </button>
+          <button
+            onClick={toggleMostrarExcluidos}
+            className={`flex items-center px-4 py-2 rounded-lg transition-colors shadow ${
+              mostrarExcluidos
+                ? 'bg-red-500 text-white hover:bg-red-600'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border'
+            }`}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {mostrarExcluidos ? 'Ocultar Excluídos' : 'Mostrar Excluídos'}
+          </button>
+          <div className="relative">
+            <select 
+              value={filtros.tipo} 
+              onChange={(e) => handleFiltroChange('tipo', e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              {tiposTransacao.map((tipo) => (
+                <option key={tipo.value} value={tipo.value}>
+                  {tipo.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* Filtro por Tipo de Transação */}
-      <div className="mb-6 p-4 bg-white rounded-lg shadow">
-        <div className="flex items-center gap-2 mb-2">
-          <Filter size={20} className="text-gray-500" />
-          <span className="font-semibold">Filtrar por tipo:</span>
-        </div>
-        <select
-          value={filtros.tipo}
-          onChange={(e) => handleFiltroChange('tipo', e.target.value)}
-          className="w-full p-2 border rounded"
-        >
-          {tiposTransacao.map((tipo) => (
-            <option key={tipo.value} value={tipo.value}>
-              {tipo.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {/* Cards de Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
@@ -669,104 +798,81 @@ export default function Extratos() {
             </p>
           </div>
         ) : (
-          agruparExtratosPorDia(extratos).map((extratosData) => (
-            <div key={extratosData.data.toISOString()} className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="p-4 bg-gray-50 border-b">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">{formatDate(extratosData.data)}</h3>
-                  <div className="flex gap-4">
-                    <span className="text-green-500">
-                      + {formatCurrency(extratosData.totais.receitas)}
-                    </span>
-                    <span className="text-red-500">
-                      - {formatCurrency(extratosData.totais.despesas)}
-                    </span>
-                  </div>
-                </div>
+          Object.entries(agruparExtratosPorDia(extratos)).map(([dia, grupo]) => (
+            <div key={dia} className="mb-6">
+              <div className="bg-gray-100 px-4 py-2 font-semibold text-gray-700 rounded-t-lg">
+                {formatarDataCompleta(dia)} - Saldo do dia: {formatCurrency(grupo.saldoDia)}
               </div>
-              <div className="overflow-x-auto">
+              <div className="bg-white rounded-b-lg shadow overflow-hidden">
                 <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="px-4 py-2 text-left">Cliente</th>
-                      <th className="px-4 py-2 text-left">Descrição</th>
-                      <th className="px-4 py-2 text-left">Unidade</th>
-                      <th className="px-4 py-2 text-left">Tipo</th>
-                      <th className="px-4 py-2 text-right">Valor</th>
-                      <th className="px-4 py-2 text-center">Status</th>
-                      {isAdmin && <th className="px-4 py-2 text-center">Ações</th>}
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="w-8 px-4 py-2">
+                        <input
+                          type="checkbox"
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelecionados(extratos.map(ext => ext.id));
+                            } else {
+                              setSelecionados([]);
+                            }
+                          }}
+                          checked={selecionados.length === extratos.length && extratos.length > 0}
+                        />
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidade</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {extratosData.extratos.map(extrato => (
-                      <tr key={extrato.id} className={`border-t hover:bg-gray-50 ${
-                        extrato.status === 'EXCLUIDO' ? 'opacity-50 bg-gray-100' : ''
-                      }`}>
-                        <td className="px-4 py-2">{extrato.cliente || '-'}</td>
+                  <tbody className="divide-y divide-gray-200">
+                    {grupo.extratos.map(extrato => (
+                      <tr key={extrato.id} className={`hover:bg-gray-50 ${extrato.status === 'DELETED' ? 'bg-red-50 opacity-60' : ''}`}>
                         <td className="px-4 py-2">
-                          {extrato.descricao || extrato.observacoes}
-                          {extrato.status === 'EXCLUIDO' && (
-                            <span className="ml-2 text-xs text-red-500">(EXCLUÍDO)</span>
+                          <input
+                            type="checkbox"
+                            checked={selecionados.includes(extrato.id)}
+                            onChange={() => {
+                              setSelecionados(prev => 
+                                prev.includes(extrato.id)
+                                  ? prev.filter(id => id !== extrato.id)
+                                  : [...prev, extrato.id]
+                              );
+                            }}
+                          />
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-800">{extrato.descricao || extrato.description}</td>
+                        <td className={`px-4 py-2 text-sm font-semibold ${getTipoTransacaoColor(extrato)}`}>
+                          {formatCurrency(extrato.valor || extrato.value)}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-500">{getTipoTransacaoText(extrato)}</td>
+                        <td className="px-4 py-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(extrato)}`}>
+                            {getStatusText(extrato)}
+                          </span>
+                        </td>
+                         <td className="px-4 py-2 text-sm text-gray-500">{extrato.unidade}</td>
+                        <td className="px-4 py-2 text-sm">
+                          {extrato.status === 'DELETED' ? (
+                            <button onClick={() => restaurarLancamento(extrato.id)} className="text-blue-600 hover:text-blue-800">
+                              Restaurar
+                            </button>
+                          ) : (
+                            <div className="flex items-center space-x-2">
+                              {isLancamentoManual(extrato) && (
+                                <button onClick={() => editarLancamento(extrato)} className="text-blue-600 hover:text-blue-800">
+                                  <Edit3 size={16} />
+                                </button>
+                              )}
+                              <button onClick={() => excluirLancamento(extrato.id)} className="text-red-600 hover:text-red-800">
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           )}
                         </td>
-                        <td className="px-4 py-2">{extrato.unidade || '-'}</td>
-                        <td className="px-4 py-2">
-                          <span className={`inline-flex items-center gap-1 ${getTipoTransacaoColor(extrato)}`}>
-                            {extrato.tipo === 'CREDIT' || extrato.tipo === 'RECEITA' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                            {getTipoTransacaoText(extrato)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <span className={extrato.tipo === 'CREDIT' || extrato.tipo === 'RECEITA' ? 'text-green-600' : 'text-gray-900'}>
-                            {formatCurrency(extrato.valor)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2">
-                          <div className="flex justify-center">
-                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${getStatusColor(extrato)}`}>
-                              {extrato.status === 'PENDING' ? (
-                                <Clock size={16} />
-                              ) : extrato.status === 'EXCLUIDO' ? (
-                                <Trash2 size={16} />
-                              ) : extrato.status === 'CANCELLED' ? (
-                                <X size={16} />
-                              ) : null}
-                              {getStatusText(extrato)}
-                            </span>
-                          </div>
-                        </td>
-                        {isAdmin && (
-                          <td className="px-4 py-2">
-                            <div className="flex justify-center gap-2">
-                              <button
-                                onClick={() => editarLancamento(extrato)}
-                                className={`${extrato.status === 'EXCLUIDO' ? 'text-gray-400 cursor-not-allowed' : 'text-blue-500 hover:text-blue-700'}`}
-                                title={extrato.status === 'EXCLUIDO' ? 'Lançamento excluído' : 'Editar lançamento'}
-                                disabled={extrato.status === 'EXCLUIDO'}
-                              >
-                                <Edit3 size={16} />
-                              </button>
-                              {isLancamentoManual(extrato) && extrato.status !== 'EXCLUIDO' && (
-                                <button
-                                  onClick={() => excluirLancamento(extrato.id)}
-                                  className="text-red-500 hover:text-red-700"
-                                  title="Excluir lançamento"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
-                              {isLancamentoManual(extrato) && extrato.status === 'EXCLUIDO' && (
-                                <button
-                                  onClick={() => restaurarLancamento(extrato.id)}
-                                  className="text-green-500 hover:text-green-700"
-                                  title="Restaurar lançamento"
-                                >
-                                  <RefreshCw size={16} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -804,6 +910,51 @@ export default function Extratos() {
           }}
           onSucesso={handleEdicaoSucesso}
         />
+      )}
+
+      {/* Modais de Ações em Lote */}
+      {showStatusModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <h3 className="text-lg font-bold mb-4">Alterar Status em Lote</h3>
+            <select
+              value={novoStatus}
+              onChange={(e) => setNovoStatus(e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              <option value="">Selecione o status</option>
+              <option value="CONFIRMED">Confirmado</option>
+              <option value="PENDING">Pendente</option>
+              <option value="CANCELLED">Cancelado</option>
+            </select>
+            <div className="flex justify-end mt-4">
+              <button onClick={() => setShowStatusModal(false)} className="mr-2 px-4 py-2 rounded bg-gray-200">Cancelar</button>
+              <button onClick={handleBatchStatusChange} className="px-4 py-2 rounded bg-blue-600 text-white">Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUnitModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <h3 className="text-lg font-bold mb-4">Alterar Unidade em Lote</h3>
+            <select
+              value={novaUnidade}
+              onChange={(e) => setNovaUnidade(e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              <option value="">Selecione a unidade</option>
+              {availableUnits.map(unit => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
+            <div className="flex justify-end mt-4">
+              <button onClick={() => setShowUnitModal(false)} className="mr-2 px-4 py-2 rounded bg-gray-200">Cancelar</button>
+              <button onClick={handleBatchUnitChange} className="px-4 py-2 rounded bg-blue-600 text-white">Confirmar</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
