@@ -438,6 +438,12 @@ export default function GestaoContasBTG() {
     setShowBatchActions(false);
   };
 
+  // Função para calcular o valor total das contas selecionadas
+  const calcularValorSelecionadas = () => {
+    const contasSelecionadas = contas.filter(conta => selecionadas.includes(conta.id));
+    return contasSelecionadas.reduce((total, conta) => total + (conta.valor || 0), 0);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Estatísticas */}
@@ -470,36 +476,46 @@ export default function GestaoContasBTG() {
         <div className="flex items-center gap-4">
           {/* Batch actions dropdown - only show when items are selected */}
           {selecionadas.length > 0 && (
-            <div className="relative">
-              <button
-                onClick={() => setShowBatchActions(!showBatchActions)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
-              >
-                Ações em Lote ({selecionadas.length})
-                <ChevronDown size={16} />
-              </button>
-              
-              {showBatchActions && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-50 border border-gray-200">
-                  <div className="py-1">
-                    <button
-                      onClick={() => handleBatchAction('baixa')}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-                    >
-                      <CheckCircle size={16} />
-                      Dar Baixa
-                    </button>
-                    <button
-                      onClick={() => handleBatchAction('excluir')}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 flex items-center gap-2"
-                    >
-                      <Trash2 size={16} />
-                      Excluir
-                    </button>
+            <>
+              <div className="relative">
+                <button
+                  onClick={() => setShowBatchActions(!showBatchActions)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
+                >
+                  Ações em Lote ({selecionadas.length})
+                  <ChevronDown size={16} />
+                </button>
+                
+                {showBatchActions && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-50 border border-gray-200">
+                    <div className="py-1">
+                      <button
+                        onClick={() => handleBatchAction('baixa')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <CheckCircle size={16} />
+                        Dar Baixa
+                      </button>
+                      <button
+                        onClick={() => handleBatchAction('excluir')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                      >
+                        <Trash2 size={16} />
+                        Excluir
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+              
+              {/* Valor total das contas selecionadas */}
+              <div className="bg-green-100 border border-green-300 rounded-lg px-4 py-2 flex items-center gap-2">
+                <DollarSign size={16} className="text-green-600" />
+                <span className="text-green-800 font-semibold">
+                  Total Selecionado: {formatarValor(calcularValorSelecionadas())}
+                </span>
+              </div>
+            </>
           )}
           
           {/* Export BTG button */}
@@ -596,6 +612,28 @@ export default function GestaoContasBTG() {
             </div>
           </div>
         </div>
+
+        {/* Barra de resumo das seleções - só aparece quando há itens selecionados */}
+        {selecionadas.length > 0 && (
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 rounded-r-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-blue-800 font-medium">
+                  {selecionadas.length} {selecionadas.length === 1 ? 'conta selecionada' : 'contas selecionadas'}
+                </span>
+                <span className="text-blue-600 font-semibold">
+                  Valor total: {formatarValor(calcularValorSelecionadas())}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelecionadas([])}
+                className="text-blue-600 hover:text-blue-800 text-sm underline"
+              >
+                Limpar seleção
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="w-full">
