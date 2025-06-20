@@ -231,38 +231,37 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header com seletor de unidade e competência */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-6 text-white">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-mobile text-white">
+        <div className="flex-mobile flex-mobile-row justify-between">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold mb-2">
+            <h1 className="text-mobile-lg lg:text-mobile-xl font-bold mb-2">
               Bem-vindo, {user?.nome}!
             </h1>
             <div className="flex items-center space-x-2 text-blue-100">
-              {/* <Building2 className="h-5 w-5" /> */}
-              <span>{getSelectedUnitDisplay()}</span>
+              <span className="text-mobile-sm">{getSelectedUnitDisplay()}</span>
             </div>
           </div>
-          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+          <div className="flex-mobile stack-mobile">
             {/* Seletor de Competência */}
-            <div className="flex items-center space-x-3 bg-white/10 rounded-lg p-3">
+            <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-3 bg-white/10 rounded-lg p-3">
               <CalendarDays className="h-5 w-5 text-blue-200" />
-              <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-blue-100">Competência:</label>
-                <div className="flex items-center space-x-2">
-                  <label className="flex items-center space-x-1 cursor-pointer">
+              <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-2">
+                <label className="text-mobile-sm font-medium text-blue-100">Competência:</label>
+                <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-2">
+                  <label className="flex items-center space-x-1 cursor-pointer touch-target">
                     <input
                       type="checkbox"
                       checked={showAllTime}
                       onChange={(e) => setShowAllTime(e.target.checked)}
                       className="rounded border-blue-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
                     />
-                    <span className="text-sm text-blue-100">Todos os meses</span>
+                    <span className="text-mobile-sm text-blue-100">Todos os meses</span>
                   </label>
                   {!showAllTime && (
                     <select
                       value={selectedMonth}
                       onChange={(e) => setSelectedMonth(e.target.value)}
-                      className="bg-white/20 border border-white/30 rounded px-3 py-1 text-sm text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
+                      className="bg-white/20 border border-white/30 rounded px-3 py-2 text-mobile-sm text-white focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent min-h-[44px]"
                     >
                       {generateMonthOptions().map(option => (
                         <option key={option.value} value={option.value} className="text-gray-900">
@@ -276,17 +275,17 @@ export default function Dashboard() {
             </div>
             
             {/* Controles de atualização */}
-            <div className="flex items-center space-x-4 text-sm">
-              <div className="flex items-center space-x-2">
+            <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4 text-mobile-sm">
+              <div className="flex items-center space-x-2 hide-mobile">
                 <Clock className="h-4 w-4" />
                 <span>Última atualização: {new Date().toLocaleTimeString('pt-BR')}</span>
               </div>
               <button
                 onClick={carregarDadosDashboard}
-                className="flex items-center space-x-2 px-3 py-1.5 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+                className="btn-mobile-secondary flex items-center space-x-2"
               >
                 <RefreshCw className="h-4 w-4" />
-                <span>Atualizar Dados</span>
+                <span>Atualizar</span>
               </button>
             </div>
           </div>
@@ -294,17 +293,17 @@ export default function Dashboard() {
       </div>
 
       {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid-mobile grid-mobile-1 grid-mobile-md-2 grid-mobile-lg-4">
         {/* Mensagens Enviadas */}
         <div
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md transition"
+          className="card-mobile cursor-pointer hover:shadow-md transition touch-target"
           onClick={() => navigate('/mensagem')}
           title="Ver mensagens enviadas"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Mensagens Enviadas</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardStats.mensagens}</p>
+              <p className="text-mobile-sm font-medium text-gray-600">Mensagens Enviadas</p>
+              <p className="text-mobile-xl font-bold text-gray-900">{dashboardStats.mensagens}</p>
             </div>
             <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
               <MessageSquare className="h-6 w-6 text-blue-600" />
@@ -312,20 +311,20 @@ export default function Dashboard() {
           </div>
           <div className="mt-4 flex items-center">
             <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-            <span className="text-sm text-green-600 font-medium">+100%</span>
+            <span className="text-mobile-sm text-green-600 font-medium">+100%</span>
           </div>
         </div>
 
         {/* Contas Cadastradas */}
         <div
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md transition"
+          className="card-mobile cursor-pointer hover:shadow-md transition touch-target"
           onClick={() => navigate('/historico-contas-btg')}
           title="Ver contas BTG"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Contas Cadastradas</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardStats.contasAtivas}</p>
+              <p className="text-mobile-sm font-medium text-gray-600">Contas Cadastradas</p>
+              <p className="text-mobile-xl font-bold text-gray-900">{dashboardStats.contasAtivas}</p>
             </div>
             <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
               <CreditCard className="h-6 w-6 text-green-600" />
@@ -333,46 +332,46 @@ export default function Dashboard() {
           </div>
           <div className="mt-4 flex items-center">
             <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-            <span className="text-sm text-green-600 font-medium">+100%</span>
+            <span className="text-mobile-sm text-green-600 font-medium">+100%</span>
           </div>
         </div>
 
         {/* Cobranças Ativas */}
         <div
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md transition"
+          className="card-mobile cursor-pointer hover:shadow-md transition touch-target"
           onClick={() => navigate('/cobrancas')}
           title="Ver cobranças"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Cobranças Ativas</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardStats.cobrancas}</p>
+              <p className="text-mobile-sm font-medium text-gray-600">Cobranças Ativas</p>
+              <p className="text-mobile-xl font-bold text-gray-900">{dashboardStats.cobrancas}</p>
             </div>
             <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
               <Receipt className="h-6 w-6 text-purple-600" />
             </div>
           </div>
           <div className="mt-4 flex items-center">
-            <span className="text-sm text-gray-500 font-medium">0%</span>
+            <span className="text-mobile-sm text-gray-500 font-medium">0%</span>
           </div>
         </div>
 
         {/* Saldo (Extratos) */}
         <div
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md transition"
+          className="card-mobile cursor-pointer hover:shadow-md transition touch-target"
           onClick={() => navigate('/extratos')}
           title="Ver extratos"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-mobile-sm font-medium text-gray-600">
                 Saldo (Extratos) {!showAllTime && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-mobile-xs text-gray-500">
                     - {generateMonthOptions().find(opt => opt.value === selectedMonth)?.label}
                   </span>
                 )}
               </p>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(dashboardStats.saldo)}</p>
+              <p className="text-mobile-xl font-bold text-gray-900">{formatCurrency(dashboardStats.saldo)}</p>
             </div>
             <div className="h-12 w-12 bg-orange-100 rounded-xl flex items-center justify-center">
               <BarChart3 className="h-6 w-6 text-orange-600" />
@@ -380,7 +379,7 @@ export default function Dashboard() {
           </div>
           <div className="mt-4 flex items-center">
             <Calendar className="h-4 w-4 text-blue-500 mr-1" />
-            <span className="text-sm text-blue-600 font-medium">
+            <span className="text-mobile-sm text-blue-600 font-medium">
               {showAllTime ? 'Todos os períodos' : 'Mês selecionado'}
             </span>
           </div>

@@ -486,23 +486,23 @@ export default function FolhaPagamento() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Folha de Pagamento</h1>
-        <div className="flex gap-2">
+    <div className="container-mobile spacing-responsive">
+      <div className="flex-mobile flex-mobile-row justify-between mb-6">
+        <h1 className="text-mobile-lg font-bold">Folha de Pagamento</h1>
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={handleAbrirModal}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center"
+            className="btn-mobile btn-mobile-primary bg-blue-500 hover:bg-blue-600 flex items-center gap-2"
           >
-            <Plus className="mr-2" />
-            Adicionar Funcionário
+            <Plus size={16} />
+            <span className="hide-mobile">Adicionar</span> Funcionário
           </button>
           <button
             onClick={handleAbrirModalLote}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center"
+            className="btn-mobile btn-mobile-primary bg-green-600 hover:bg-green-700 flex items-center gap-2"
           >
-            <Calendar className="mr-2" />
-            Programar Lote de Pagamento
+            <Calendar size={16} />
+            <span className="hide-mobile">Programar</span> Lote
           </button>
         </div>
       </div>
@@ -515,57 +515,67 @@ export default function FolhaPagamento() {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por nome, CPF ou CNPJ..."
-            className="w-full p-2 pl-10 border rounded-lg"
+            className="form-input-mobile pl-10"
           />
         </div>
       </div>
 
       {loading ? (
-        <p>Carregando...</p>
+        <div className="card-mobile text-center">
+          <p className="text-mobile-base">Carregando...</p>
+        </div>
       ) : (
-        <div className="overflow-x-auto bg-white rounded-lg shadow">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="table-mobile-container">
+          <table className="table-mobile">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPF/CNPJ</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salário</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Adiantamento</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                <th className="text-mobile-xs">Nome</th>
+                <th className="text-mobile-xs">CPF/CNPJ</th>
+                <th className="text-mobile-xs">Salário</th>
+                <th className="text-mobile-xs">Adiantamento</th>
+                <th className="text-mobile-xs">Ações</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {funcionariosFiltrados.map((funcionario) => (
                 <tr key={funcionario.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{capitalizeName(funcionario.nome)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{formatDocumento(funcionario.cpf || funcionario.cnpj)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="text-mobile-sm">{capitalizeName(funcionario.nome)}</td>
+                  <td className="text-mobile-sm">{formatDocumento(funcionario.cpf || funcionario.cnpj)}</td>
+                  <td>
                     <input
                       type="text"
                       value={funcionario.salario}
                       onChange={(e) => handleFuncionarioChange(funcionario.id, 'salario', e.target.value)}
                       onBlur={() => handleSalvarAlteracao(funcionario.id, 'salario')}
-                      className="w-full p-1 border rounded"
+                      className="form-input-mobile p-1 text-mobile-sm"
                       placeholder="0,00"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td>
                     <input
                       type="text"
                       value={funcionario.adiantamento}
                       onChange={(e) => handleFuncionarioChange(funcionario.id, 'adiantamento', e.target.value)}
                       onBlur={() => handleSalvarAlteracao(funcionario.id, 'adiantamento')}
-                      className="w-full p-1 border rounded"
+                      className="form-input-mobile p-1 text-mobile-sm"
                       placeholder="0,00"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button onClick={() => handleAbrirModal(funcionario)} className="text-indigo-600 hover:text-indigo-900 mr-4">
-                      <Edit2 size={18} />
-                    </button>
-                    <button onClick={() => handleExcluirFuncionario(funcionario)} className="text-red-600 hover:text-red-900">
-                      <Trash2 size={18} />
-                    </button>
+                  <td>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleAbrirModal(funcionario)} 
+                        className="touch-target text-indigo-600 hover:text-indigo-900"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleExcluirFuncionario(funcionario)} 
+                        className="touch-target text-red-600 hover:text-red-900"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -576,37 +586,37 @@ export default function FolhaPagamento() {
 
       {/* Modal de Adicionar/Editar Funcionário */}
       {modalAberto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl">
-            <h2 className="text-2xl font-bold mb-6">{funcionarioParaEditar ? 'Editar Funcionário' : 'Adicionar Funcionário'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nome</label>
+        <div className="modal-mobile">
+          <div className="modal-mobile-content">
+            <h2 className="text-mobile-lg font-bold mb-6">{funcionarioParaEditar ? 'Editar Funcionário' : 'Adicionar Funcionário'}</h2>
+            <form onSubmit={handleSubmit} className="form-mobile">
+              <div className="form-group-mobile">
+                <label className="form-label-mobile">Nome</label>
                 <input
                   type="text"
                   name="nome"
                   value={formData.nome}
                   onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
+                  className="form-input-mobile"
                   placeholder="Nome completo"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Tipo de Documento</label>
+              <div className="form-group-mobile">
+                <label className="form-label-mobile">Tipo de Documento</label>
                 <select
                   name="tipoDocumento"
                   value={formData.tipoDocumento}
                   onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
+                  className="form-input-mobile"
                   required
                 >
                   <option value="cpf">CPF (Pessoa Física)</option>
                   <option value="cnpj">CNPJ (Pessoa Jurídica)</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
+              <div className="form-group-mobile">
+                <label className="form-label-mobile">
                   {formData.tipoDocumento === 'cpf' ? 'CPF' : 'CNPJ'}
                 </label>
                 <input
@@ -614,18 +624,18 @@ export default function FolhaPagamento() {
                   name={formData.tipoDocumento}
                   value={formData.tipoDocumento === 'cpf' ? formData.cpf : formData.cnpj}
                   onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
+                  className="form-input-mobile"
                   placeholder={formData.tipoDocumento === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'}
                   required
                 />
               </div>
-               <div>
-                <label className="block text-sm font-medium text-gray-700">Unidade</label>
+               <div className="form-group-mobile">
+                <label className="form-label-mobile">Unidade</label>
                 <select
                   name="unidade"
                   value={formData.unidade}
                   onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
+                  className="form-input-mobile"
                   required
                 >
                   <option value="">Selecione uma unidade</option>
@@ -634,20 +644,20 @@ export default function FolhaPagamento() {
                   ))}
                 </select>
               </div>
-               <div>
-                <label className="block text-sm font-medium text-gray-700">Salário Base</label>
+               <div className="form-group-mobile">
+                <label className="form-label-mobile">Salário Base</label>
                 <input
                   type="text"
                   name="salario"
                   value={formatCurrencyForInput(formData.salario)}
                   onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
+                  className="form-input-mobile"
                   placeholder="0,00"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Tipo de Chave PIX</label>
-                <select name="tipoPix" value={formData.tipoPix} onChange={handleInputChange} className="w-full p-2 border rounded" required>
+              <div className="form-group-mobile">
+                <label className="form-label-mobile">Tipo de Chave PIX</label>
+                <select name="tipoPix" value={formData.tipoPix} onChange={handleInputChange} className="form-input-mobile" required>
                   <option value="">Selecione</option>
                   <option value="CPF">CPF</option>
                   <option value="CNPJ">CNPJ</option>
@@ -656,21 +666,21 @@ export default function FolhaPagamento() {
                   <option value="ALEATORIA">Chave Aleatória</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Chave PIX</label>
+              <div className="form-group-mobile">
+                <label className="form-label-mobile">Chave PIX</label>
                 <input
                   type="text"
                   name="chavePix"
                   value={formData.chavePix}
                   onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
+                  className="form-input-mobile"
                   placeholder="Digite a chave PIX"
                   required
                 />
               </div>
-              <div className="flex justify-end space-x-4">
-                <button type="button" onClick={handleFecharModal} className="px-4 py-2 bg-gray-300 rounded-lg">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Salvar</button>
+              <div className="flex-mobile flex-mobile-row justify-end">
+                <button type="button" onClick={handleFecharModal} className="btn-mobile btn-mobile-secondary">Cancelar</button>
+                <button type="submit" className="btn-mobile btn-mobile-primary bg-blue-500 hover:bg-blue-600">Salvar</button>
               </div>
             </form>
           </div>

@@ -193,7 +193,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 transform transition-all duration-300 ease-in-out
+        fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 transform transition-all duration-300 ease-in-out smooth-scroll
         ${isMobile 
           ? `w-80 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
           : `${isCollapsed ? 'w-16' : 'w-64'} translate-x-0`
@@ -263,7 +263,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                       <button
                         onClick={() => toggleSubmenu(item.name)}
                         className={`
-                          group flex items-center w-full px-4 py-2 my-1 rounded-full transition
+                          group flex items-center w-full px-4 py-2 my-1 rounded-full transition touch-target
                           ${hasActiveSubmenu
                             ? 'bg-blue-100 text-blue-700 font-semibold shadow-sm'
                             : 'text-gray-700 hover:bg-blue-50'}
@@ -292,7 +292,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                                 to={subItem.href}
                                 onClick={closeSidebar}
                                 className={`
-                                  block p-2 rounded-lg text-sm transition-all duration-200
+                                  block p-2 rounded-lg text-mobile-sm transition-all duration-200 touch-target
                                   ${isActive 
                                     ? 'bg-blue-600 text-white' 
                                     : 'text-gray-600 hover:bg-gray-100'
@@ -319,7 +319,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                     onClick={closeSidebar}
                     className={`
                       group flex items-center w-full px-4 py-2 my-1
-                      rounded-full transition
+                      rounded-full transition touch-target
                       ${isActive
                         ? 'bg-blue-100 text-blue-700 font-semibold shadow-sm'
                         : 'text-gray-700 hover:bg-blue-50'}

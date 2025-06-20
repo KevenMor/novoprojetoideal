@@ -715,4 +715,180 @@ h6 { font-size: 0.875rem; }
 
 .sidebar-shadow div[class*="bg-white rounded-"]:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* ============================================
+   MELHORIAS ESPECÍFICAS PARA MOBILE
+   ============================================ */
+
+/* Mobile first - até 640px */
+@media (max-width: 640px) {
+  /* Tipografia mobile */
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
+  
+  /* Container principal */
+  .container {
+    padding: 0 12px;
+  }
+  
+  /* Header mobile */
+  .header {
+    padding: 0 12px;
+    height: 60px;
+  }
+  
+  .header h1 {
+    font-size: 1.125rem;
+  }
+  
+  /* Cards mobile */
+  .card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  /* Tabelas mobile - scroll horizontal */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
+  
+  .table-responsive table {
+    min-width: 600px;
+  }
+  
+  /* Formulários mobile */
+  .form-container {
+    padding: 1rem;
+  }
+  
+  .form-input,
+  .form-select {
+    font-size: 16px; /* Evita zoom no iOS */
+    padding: 12px;
+  }
+  
+  /* Botões mobile */
+  .btn {
+    padding: 12px 16px;
+    font-size: 1rem;
+    min-height: 44px; /* Touch target */
+  }
+  
+  /* Grid de estatísticas mobile */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  /* Modal mobile */
+  .modal {
+    margin: 0;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+  
+  .modal-content {
+    padding: 1rem;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* Tablet - 641px até 1023px */
+@media (min-width: 641px) and (max-width: 1023px) {
+  /* Grid de estatísticas tablet */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  /* Formulários tablet */
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* Cards tablet */
+  .card {
+    padding: 1.5rem;
+  }
+}
+
+/* Melhorias gerais para touch devices */
+@media (hover: none) and (pointer: coarse) {
+  /* Aumentar área de toque */
+  .btn,
+  .sidebar-nav-item,
+  .table-action-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Remover hover effects em touch */
+  .btn:hover,
+  .card:hover,
+  .sidebar-nav-item:hover {
+    transform: none;
+    box-shadow: inherit;
+  }
+}
+
+/* Classes utilitárias mobile */
+.mobile-only {
+  display: block;
+}
+
+.desktop-only {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .mobile-only {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: block;
+  }
+}
+
+/* Stack mobile - empilha elementos verticalmente */
+.stack-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .stack-mobile {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* Texto responsivo */
+.text-responsive {
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+}
+
+/* Espaçamento responsivo */
+.spacing-responsive {
+  padding: clamp(1rem, 4vw, 2rem);
+}
+
+/* Grid responsivo automático */
+.grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .grid-responsive {
+    gap: 1.5rem;
+  }
 } 

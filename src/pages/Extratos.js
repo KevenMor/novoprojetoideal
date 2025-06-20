@@ -589,35 +589,35 @@ export default function Extratos() {
   console.log('👤 Status do usuário:', { isAdmin, user });
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container-mobile spacing-responsive">
       {/* Cabeçalho com título e botões de ação */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold mb-4 md:mb-0">Extratos Financeiros</h1>
+      <div className="flex-mobile flex-mobile-row justify-between mb-6">
+        <h1 className="text-mobile-lg font-bold">Extratos Financeiros</h1>
         <div className="flex flex-wrap gap-2">
           {isAdmin && (
             <>
               <button
                 onClick={() => setMostrarModalReceita(true)}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-2"
+                className="btn-mobile btn-mobile-primary bg-green-500 hover:bg-green-600 flex items-center gap-2"
               >
-                <TrendingUp size={20} />
-                Nova Receita
+                <TrendingUp size={16} />
+                <span className="hide-mobile">Nova</span> Receita
               </button>
               <button
                 onClick={() => setMostrarModalDespesa(true)}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center gap-2"
+                className="btn-mobile btn-mobile-primary bg-red-500 hover:bg-red-600 flex items-center gap-2"
               >
-                <TrendingDown size={20} />
-                Nova Despesa
+                <TrendingDown size={16} />
+                <span className="hide-mobile">Nova</span> Despesa
               </button>
             </>
           )}
           <button
             onClick={exportarCSV}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
+            className="btn-mobile btn-mobile-primary bg-green-600 hover:bg-green-700 flex items-center gap-2"
           >
             <FileSpreadsheet size={16} />
-            Exportar
+            <span className="hide-mobile">Exportar</span>
           </button>
           
           {/* Ações em Lote Dropdown */}
@@ -625,29 +625,29 @@ export default function Extratos() {
             <div className="relative">
               <button
                 onClick={() => setShowBatchActions(!showBatchActions)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+                className="btn-mobile btn-mobile-primary bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
               >
-                Ações em Lote ({selecionados.length})
+                <span className="hide-mobile">Ações em Lote</span> ({selecionados.length})
                 <ChevronDown size={16} />
               </button>
               {showBatchActions && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border">
+                <div className="modal-mobile-content absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border">
                   <ul className="py-1">
                     <li
                       onClick={() => { setShowStatusModal(true); setShowBatchActions(false); }}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2 touch-target"
                     >
                       <Edit3 size={16} /> Alterar Status
                     </li>
                     <li
                       onClick={() => { setShowUnitModal(true); setShowBatchActions(false); }}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2 touch-target"
                     >
                       <Target size={16} /> Alterar Unidade
                     </li>
                     <li
                       onClick={() => { handleBatchDelete(); setShowBatchActions(false); }}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600 flex items-center gap-2"
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600 flex items-center gap-2 touch-target"
                     >
                       <Trash2 size={16} /> Excluir Lançamentos
                     </li>
@@ -661,15 +661,15 @@ export default function Extratos() {
 
       {/* Seletor de Unidade (se necessário) */}
       {shouldShowUnitSelector && (
-        <div className="mb-6 p-4 bg-white rounded-lg shadow">
+        <div className="card-mobile mb-6">
           <div className="flex items-center gap-2 mb-2">
             <Database size={20} className="text-gray-500" />
-            <span className="font-semibold">Unidade:</span>
+            <span className="font-semibold text-mobile-sm">Unidade:</span>
           </div>
           <select
             value={selectedUnit}
             onChange={(e) => changeSelectedUnit(e.target.value)}
-            className="w-full p-2 border rounded"
+            className="form-input-mobile"
           >
             {isAdmin && <option value="all">Geral</option>}
             {availableUnits.map((unit) => (
@@ -682,45 +682,51 @@ export default function Extratos() {
       )}
 
       {/* Navegação de Competência */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4 mb-6 p-4 bg-white rounded-lg shadow">
-        {/* Controles de navegação de competência */}
-        <div className="flex items-center justify-center space-x-2">
-          <button onClick={() => navegarCompetencia('anterior')} className="p-2 rounded-md hover:bg-gray-100 transition-colors">
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
-          </button>
-          <span className="text-lg font-semibold text-gray-700 w-48 text-center">
-            {formatarMes(competenciaAtual.mes, competenciaAtual.ano)}
-          </span>
-          <button onClick={() => navegarCompetencia('proxima')} className="p-2 rounded-md hover:bg-gray-100 transition-colors">
-            <ChevronRight className="h-5 w-5 text-gray-600" />
-          </button>
-        </div>
+      <div className="card-mobile mb-6">
+        <div className="flex-mobile flex-mobile-row justify-between">
+          {/* Controles de navegação de competência */}
+          <div className="flex items-center justify-center space-x-2">
+            <button 
+              onClick={() => navegarCompetencia('anterior')} 
+              className="btn-mobile-secondary p-2 rounded-md hover:bg-gray-100 transition-colors touch-target"
+            >
+              <ChevronLeft className="h-5 w-5 text-gray-600" />
+            </button>
+            <span className="text-mobile-base font-semibold text-gray-700 text-center min-w-[150px]">
+              {formatarMes(competenciaAtual.mes, competenciaAtual.ano)}
+            </span>
+            <button 
+              onClick={() => navegarCompetencia('proxima')} 
+              className="btn-mobile-secondary p-2 rounded-md hover:bg-gray-100 transition-colors touch-target"
+            >
+              <ChevronRight className="h-5 w-5 text-gray-600" />
+            </button>
+          </div>
 
-        {/* Filtros e Ações */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <button 
-            onClick={carregarExtratos}
-            className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors shadow"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
-          </button>
-          <button
-            onClick={toggleMostrarExcluidos}
-            className={`flex items-center px-4 py-2 rounded-lg transition-colors shadow ${
-              mostrarExcluidos
-                ? 'bg-red-500 text-white hover:bg-red-600'
-                : 'bg-white text-gray-700 hover:bg-gray-100 border'
-            }`}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {mostrarExcluidos ? 'Ocultar Excluídos' : 'Mostrar Excluídos'}
-          </button>
-          <div className="relative">
+          {/* Filtros e Ações */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button 
+              onClick={carregarExtratos}
+              className="btn-mobile btn-mobile-secondary bg-gray-600 text-white hover:bg-gray-700 flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span className="hide-mobile">Atualizar</span>
+            </button>
+            <button
+              onClick={toggleMostrarExcluidos}
+              className={`btn-mobile flex items-center gap-2 ${
+                mostrarExcluidos
+                  ? 'bg-red-500 text-white hover:bg-red-600'
+                  : 'btn-mobile-secondary border'
+              }`}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hide-mobile">{mostrarExcluidos ? 'Ocultar' : 'Mostrar'} Excluídos</span>
+            </button>
             <select 
               value={filtros.tipo} 
               onChange={(e) => handleFiltroChange('tipo', e.target.value)}
-              className="w-full p-2 border rounded"
+              className="form-input-mobile text-mobile-sm"
             >
               {tiposTransacao.map((tipo) => (
                 <option key={tipo.value} value={tipo.value}>
@@ -733,49 +739,49 @@ export default function Extratos() {
       </div>
 
       {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
+      <div className="grid-mobile grid-mobile-1 grid-mobile-md-2 grid-mobile-lg-4 mb-6">
+        <div className="card-mobile">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">
+              <p className="text-mobile-sm text-gray-500">
                 {mostrarExcluidos ? 'Receitas Excluídas' : 'Total de Receitas'}
               </p>
-              <p className="text-xl font-bold text-green-500">{formatCurrency(estatisticas.receitas)}</p>
+              <p className="text-mobile-lg font-bold text-green-500">{formatCurrency(estatisticas.receitas)}</p>
             </div>
-            <TrendingUp size={24} className="text-green-500" />
+            <TrendingUp size={20} className="text-green-500" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="card-mobile">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">
+              <p className="text-mobile-sm text-gray-500">
                 {mostrarExcluidos ? 'Despesas Excluídas' : 'Total de Despesas'}
               </p>
-              <p className="text-xl font-bold text-red-500">{formatCurrency(estatisticas.despesas)}</p>
+              <p className="text-mobile-lg font-bold text-red-500">{formatCurrency(estatisticas.despesas)}</p>
             </div>
-            <TrendingDown size={24} className="text-red-500" />
+            <TrendingDown size={20} className="text-red-500" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="card-mobile">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">
+              <p className="text-mobile-sm text-gray-500">
                 {mostrarExcluidos ? 'Saldo Excluído' : 'Saldo'}
               </p>
-              <p className={`text-xl font-bold ${estatisticas.saldo >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <p className={`text-mobile-lg font-bold ${estatisticas.saldo >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {formatCurrency(estatisticas.saldo)}
               </p>
             </div>
-            <BarChart3 size={24} className={estatisticas.saldo >= 0 ? 'text-green-500' : 'text-red-500'} />
+            <BarChart3 size={20} className={estatisticas.saldo >= 0 ? 'text-green-500' : 'text-red-500'} />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="card-mobile">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">
+              <p className="text-mobile-sm text-gray-500">
                 {mostrarExcluidos ? 'Transações Excluídas' : 'Total de Transações'}
               </p>
-              <p className="text-xl font-bold text-blue-500">{estatisticas.transacoes}</p>
+              <p className="text-mobile-lg font-bold text-blue-500">{estatisticas.transacoes}</p>
             </div>
             <Target size={24} className="text-blue-500" />
           </div>
