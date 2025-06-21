@@ -24,6 +24,11 @@ import * as XLSX from 'xlsx';
 export default function GestaoContasBTG() {
   const { isAdmin } = useAuth();
   const { selectedUnit } = useUnitFilter();
+  
+  // Debug logs
+  console.log('🔍 GestaoContasBTG - selectedUnit:', selectedUnit);
+  console.log('🔍 GestaoContasBTG - isAdmin:', isAdmin);
+  
   const [loading, setLoading] = useState(true);
   const [contas, setContas] = useState([]);
   const [estatisticas, setEstatisticas] = useState(null);
@@ -32,7 +37,7 @@ export default function GestaoContasBTG() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [contaParaEditar, setContaParaEditar] = useState(null);
   const [filtros, setFiltros] = useState({
-    unidade: selectedUnit || '',
+    unidade: '',  // Iniciar vazio para não filtrar por unidade inicialmente
     status: '',
     tipo: '',
     dataInicial: '',
@@ -83,23 +88,36 @@ export default function GestaoContasBTG() {
     
     processarLote();
     setInitialLoad(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!initialLoad) {
       console.log('🔄 Effect triggered by filters/unit. Loading contas...');
+      console.log('🔄 Current filtros:', filtros);
+      console.log('🔄 Current selectedUnit:', selectedUnit);
       carregarContas();
     }
-  }, [selectedUnit, filtros]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUnit, filtros, initialLoad]);
 
   const carregarContas = async () => {
     try {
       setLoading(true);
       console.log('🔄 Carregando contas BTG com filtros:', filtros);
+      console.log('🔄 selectedUnit:', selectedUnit);
       
-      // Carregar contas aplicando os filtros
-      const todasContas = await contasBTGService.listarContasBTG(filtros);
-      console.log('✅ Contas carregadas com filtros aplicados:', todasContas);
+      // Preparar filtros para o serviço - NÃO aplicar filtro de unidade se for "all" ou "Geral"
+      const filtrosParaServico = {
+        ...filtros,
+        unidade: (selectedUnit && selectedUnit !== 'all' && selectedUnit !== 'Geral') ? selectedUnit : (filtros.unidade !== '' ? filtros.unidade : undefined)
+      };
+      
+      console.log('🔄 Filtros para serviço:', filtrosParaServico);
+      
+      // Carregar contas com filtros aplicados
+      const todasContas = await contasBTGService.listarContasBTG(filtrosParaServico);
+      console.log('✅ Contas carregadas:', todasContas.length);
 
       // Garantir que todas as contas têm os campos necessários
       const contasNormalizadas = todasContas.map(conta => ({
@@ -121,7 +139,6 @@ export default function GestaoContasBTG() {
         tipoConta: conta.tipoConta || ''
       }));
 
-      console.log('✅ Contas normalizadas:', contasNormalizadas);
       setContas(contasNormalizadas);
 
       // Carregar estatísticas globais (sem filtros) para o dashboard
@@ -136,10 +153,8 @@ export default function GestaoContasBTG() {
 
   const carregarEstatisticasGlobais = async () => {
     try {
-      console.log('📊 Carregando estatísticas globais...');
-      
       // Buscar todas as contas para estatísticas (sem filtros)
-      const todasContasParaEstatisticas = await contasBTGService.buscarContas();
+      const todasContasParaEstatisticas = await contasBTGService.listarContasBTG({});
       
       const estatisticasCalculadas = {
         total: todasContasParaEstatisticas.length,
@@ -154,7 +169,6 @@ export default function GestaoContasBTG() {
           .reduce((acc, curr) => acc + (curr.valor || 0), 0)
       };
 
-      console.log('📊 Estatísticas globais calculadas:', estatisticasCalculadas);
       setEstatisticas(estatisticasCalculadas);
     } catch (error) {
       console.error('❌ Erro ao carregar estatísticas:', error);
@@ -169,6 +183,7 @@ export default function GestaoContasBTG() {
       ...prev,
       [name]: value
     }));
+    // Os dados são carregados automaticamente através do useEffect
   };
 
   const formatarData = (data) => {
@@ -469,10 +484,10 @@ export default function GestaoContasBTG() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="page-container-xl">
       {/* Estatísticas */}
       {estatisticas && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="stats-grid mb-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-700">Total de Contas</h3>
             <p className="text-3xl font-bold text-gray-900">{estatisticas.total}</p>
@@ -572,43 +587,48 @@ export default function GestaoContasBTG() {
       </div>
 
       <div className="mb-6">
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="bg-white rounded-xl shadow-lg p-8 mb-8 border border-gray-100">
+          <div className="flex items-center gap-3 mb-6">
+            <Filter className="w-6 h-6 text-gray-600" />
+            <h3 className="text-xl font-semibold text-gray-900">Filtros de Pesquisa</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
                 Status
               </label>
               <select
                 name="status"
                 value={filtros.status}
                 onChange={handleFiltroChange}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="w-full h-14 px-4 rounded-lg border-2 border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               >
-                <option value="">Todos</option>
-                <option value="AGUARDANDO">Aguardando</option>
-                <option value="PAGO">Pago</option>
-                <option value="CANCELADO">Cancelado</option>
+                <option value="">Todos os status</option>
+                <option value="AGUARDANDO">⏳ Aguardando</option>
+                <option value="PAGO">✅ Pago</option>
+                <option value="CANCELADO">❌ Cancelado</option>
               </select>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
                 Tipo
               </label>
               <select
                 name="tipo"
                 value={filtros.tipo}
                 onChange={handleFiltroChange}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="w-full h-14 px-4 rounded-lg border-2 border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               >
-                <option value="">Todos</option>
-                <option value="boleto">Boleto</option>
-                <option value="pix">PIX</option>
+                <option value="">Todos os tipos</option>
+                <option value="boleto">📄 Boleto</option>
+                <option value="pix">💳 PIX</option>
               </select>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
                 Data Inicial
               </label>
               <input
@@ -616,12 +636,12 @@ export default function GestaoContasBTG() {
                 name="dataInicial"
                 value={filtros.dataInicial}
                 onChange={handleFiltroChange}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="w-full h-14 px-4 rounded-lg border-2 border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
                 Data Final
               </label>
               <input
@@ -629,18 +649,37 @@ export default function GestaoContasBTG() {
                 name="dataFinal"
                 value={filtros.dataFinal}
                 onChange={handleFiltroChange}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="w-full h-14 px-4 rounded-lg border-2 border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               />
             </div>
 
-            <div className="flex items-end space-x-2">
-              <button
-                onClick={carregarContas}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Atualizar
-              </button>
+            <div className="space-y-3 col-span-1 sm:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 invisible">Ações</label>
+              <div className="flex gap-4">
+                <button
+                  onClick={carregarContas}
+                  className="flex-1 h-14 bg-blue-600 text-white px-6 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-3 font-semibold text-base transition-colors"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                  Atualizar Lista
+                </button>
+                <button
+                  onClick={() => {
+                    setFiltros({
+                      unidade: '',
+                      status: '',
+                      tipo: '',
+                      dataInicial: '',
+                      dataFinal: ''
+                    });
+                    console.log('🔄 Filtros limpos');
+                  }}
+                  className="flex-1 h-14 bg-gray-600 text-white px-6 rounded-lg hover:bg-gray-700 flex items-center justify-center gap-3 font-semibold text-base transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                  Limpar Filtros
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -667,8 +706,9 @@ export default function GestaoContasBTG() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full">
+        <div className="table-container">
+          <div className="table-scroll">
+            <table className="w-full min-w-full">
             <thead className="bg-gray-50">
               <tr>
                 <th className="w-8 px-4 py-2">
@@ -697,77 +737,104 @@ export default function GestaoContasBTG() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {contas.map((conta) => (
-                <tr key={conta.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2">
-                    <input
-                      type="checkbox"
-                      checked={selecionadas.includes(conta.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelecionadas([...selecionadas, conta.id]);
-                        } else {
-                          setSelecionadas(selecionadas.filter(id => id !== conta.id));
-                        }
-                        setShowBatchActions(false);
-                      }}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900">{conta.descricao}</td>
-                  <td className="px-4 py-2 text-sm text-gray-900">{formatarValor(conta.valor)}</td>
-                  <td className="px-4 py-2">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(conta.status)}`}>
-                      {conta.status === 'AGUARDANDO' && <Clock className="w-3 h-3 mr-1" />}
-                      {conta.status === 'PAGO' && <CheckCircle className="w-3 h-3 mr-1" />}
-                      {conta.status === 'CANCELADO' && <X className="w-3 h-3 mr-1" />}
-                      {conta.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900">{formatarData(conta.vencimento)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-900">{formatarData(conta.dataPagamento) || '-'}</td>
-                  <td className="px-4 py-2 text-sm text-gray-900">
-                    <span className="inline-flex items-center">
-                      {conta.tipo === 'boleto' ? (
-                        <FileText className="w-4 h-4 mr-1 text-gray-500" />
-                      ) : (
-                        <QrCode className="w-4 h-4 mr-1 text-gray-500" />
-                      )}
-                      {conta.tipo}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900">{conta.unidade}</td>
-                  <td className="px-4 py-2 text-sm text-gray-900">
-                    <div className="flex items-center space-x-2">
-                      {conta.status === 'AGUARDANDO' && (
-                        <button
-                          onClick={() => handleDarBaixaIndividual(conta.id)}
-                          className="text-green-600 hover:text-green-800"
-                          title="Dar baixa"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleEditarConta(conta)}
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Editar"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleExcluirConta(conta.id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Excluir"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+              {loading ? (
+                <tr>
+                  <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
+                    <div className="flex items-center justify-center">
+                      <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                      Carregando contas...
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : contas.length === 0 ? (
+                <tr>
+                  <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
+                    <div className="flex flex-col items-center">
+                      <CreditCard className="w-12 h-12 mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">Nenhuma conta encontrada</p>
+                      <p className="text-sm text-gray-400">
+                        {filtros.status || filtros.unidade || filtros.tipo || filtros.dataInicial || filtros.dataFinal
+                          ? 'Tente ajustar os filtros para ver mais resultados'
+                          : 'Cadastre a primeira conta BTG para começar'
+                        }
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                contas.map((conta) => (
+                  <tr key={conta.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2">
+                      <input
+                        type="checkbox"
+                        checked={selecionadas.includes(conta.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelecionadas([...selecionadas, conta.id]);
+                          } else {
+                            setSelecionadas(selecionadas.filter(id => id !== conta.id));
+                          }
+                          setShowBatchActions(false);
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-900">{conta.descricao}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900">{formatarValor(conta.valor)}</td>
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(conta.status)}`}>
+                        {conta.status === 'AGUARDANDO' && <Clock className="w-3 h-3 mr-1" />}
+                        {conta.status === 'PAGO' && <CheckCircle className="w-3 h-3 mr-1" />}
+                        {conta.status === 'CANCELADO' && <X className="w-3 h-3 mr-1" />}
+                        {conta.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-900">{formatarData(conta.vencimento)}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900">{formatarData(conta.dataPagamento) || '-'}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900">
+                      <span className="inline-flex items-center">
+                        {conta.tipo === 'boleto' ? (
+                          <FileText className="w-4 h-4 mr-1 text-gray-500" />
+                        ) : (
+                          <QrCode className="w-4 h-4 mr-1 text-gray-500" />
+                        )}
+                        {conta.tipo}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-900">{conta.unidade}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900">
+                      <div className="flex items-center space-x-2">
+                        {conta.status === 'AGUARDANDO' && (
+                          <button
+                            onClick={() => handleDarBaixaIndividual(conta.id)}
+                            className="text-green-600 hover:text-green-800"
+                            title="Dar baixa"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleEditarConta(conta)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Editar"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleExcluirConta(conta.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -794,7 +861,8 @@ export default function GestaoContasBTG() {
                     step="0.01"
                     value={contaParaEditar.valor}
                     onChange={(e) => setContaParaEditar({ ...contaParaEditar, valor: parseFloat(e.target.value) || 0 })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    className="mt-1 block w-full pl-20 rounded-md border-gray-300 shadow-sm"
+                    placeholder="R$ 0,00"
                   />
                 </div>
                 <div>

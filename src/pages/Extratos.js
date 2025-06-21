@@ -589,7 +589,7 @@ export default function Extratos() {
   console.log('👤 Status do usuário:', { isAdmin, user });
 
   return (
-    <div className="container-mobile spacing-responsive">
+    <div className="page-container-xl space-y-8">
       {/* Cabeçalho com título e botões de ação */}
       <div className="flex-mobile flex-mobile-row justify-between mb-6">
         <h1 className="text-mobile-lg font-bold">Extratos Financeiros</h1>
@@ -739,7 +739,7 @@ export default function Extratos() {
       </div>
 
       {/* Cards de Estatísticas */}
-      <div className="grid-mobile grid-mobile-1 grid-mobile-md-2 grid-mobile-lg-4 mb-6">
+      <div className="stats-grid mb-8">
         <div className="card-mobile">
           <div className="flex items-center justify-between">
             <div>

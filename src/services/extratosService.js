@@ -52,23 +52,44 @@ async function buscarContasBTGPagas(filtros) {
   try {
     console.log('🔄 Buscando contas BTG pagas...');
     
-    // Buscar contas BTG com status PAGO
+    // Buscar contas BTG com status PAGO (sem orderBy para evitar índice composto)
     let q = query(
       collection(db, 'contas_btg'), 
-      where('status', '==', 'PAGO'),
-      orderBy('dataPagamento', 'desc')
+      where('status', '==', 'PAGO')
     );
     
     const snapshot = await getDocs(q);
     
-    let contasBTG = snapshot.docs.map(doc => {
+    let contasBTG = [];
+    
+    snapshot.docs.forEach(doc => {
       const data = doc.data();
+      
+      // Aplicar filtros de data no lado do cliente
+      const dataPagamento = data.dataPagamento ? new Date(data.dataPagamento) : null;
+      const dataVencimento = data.vencimento ? new Date(data.vencimento) : null;
+      const dataCriacao = data.dataCriacao ? new Date(data.dataCriacao) : null;
+      const dataReferencia = dataPagamento || dataVencimento || dataCriacao;
+      
+      // Filtro de data inicial
+      if (filtros.dataInicial && dataReferencia) {
+        const dataIni = new Date(filtros.dataInicial);
+        if (dataReferencia < dataIni) return;
+      }
+      
+      // Filtro de data final
+      if (filtros.dataFinal && dataReferencia) {
+        const dataFim = new Date(filtros.dataFinal);
+        dataFim.setHours(23, 59, 59, 999);
+        if (dataReferencia > dataFim) return;
+      }
+      
       console.log('📄 Conta BTG paga encontrada:', data);
       
       // Converter para formato de extrato
-      return {
+      const extrato = {
         id: `btg_${doc.id}`,
-        descricao: data.descricao || 'Pagamento BTG',
+        descricao: data.descricao || `BTG - ${data.favorecido || 'Pagamento'}`,
         valor: Math.abs(data.valor || 0), // Garantir que seja positivo
         data: data.dataPagamento || data.vencimento || data.dataCriacao,
         tipo: 'DEBIT', // Contas BTG são sempre despesas
@@ -81,6 +102,8 @@ async function buscarContasBTGPagas(filtros) {
         chavePix: data.chavePix || '',
         linhaDigitavel: data.linhaDigitavel || ''
       };
+      
+      contasBTG.push(extrato);
     });
 
     console.log(`✅ ${contasBTG.length} contas BTG pagas encontradas`);

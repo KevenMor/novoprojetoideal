@@ -145,69 +145,68 @@ export const dashboardService = {
 
   async getExtratosStats(unidades, mesAno = null) {
     try {
-      console.log('🔄 [DASHBOARD] Buscando estatísticas de extratos para:', unidades, mesAno ? `(${mesAno})` : '(todos os meses)');
+      console.log('🎯 [DASHBOARD] getExtratosStats chamada com:', { unidades, mesAno });
+      console.log('🎯 [DASHBOARD] Tipo de mesAno:', typeof mesAno, 'Valor:', mesAno);
       
       if (!unidades || unidades.length === 0) {
         return { saldo: 0, receitas: 0, despesas: 0, registros: 0 };
       }
 
-      let saldoTotal = 0;
-      let totalReceitas = 0;
-      let totalDespesas = 0;
-      let totalRegistros = 0;
-
-      // Para cada unidade, buscar extratos
-      for (const unidade of unidades) {
-        try {
-          const extratos = await extratosService.buscarExtratos({ unidade });
-          
-          // Filtrar extratos por mês/ano se especificado
-          let extratosFiltered = extratos;
-          if (mesAno) {
-            const [ano, mes] = mesAno.split('-');
-            extratosFiltered = extratos.filter(extrato => {
-              const dataExtrato = extrato.data?.toDate ? extrato.data.toDate() : new Date(extrato.data);
-              return dataExtrato.getFullYear() === parseInt(ano) && 
-                     (dataExtrato.getMonth() + 1) === parseInt(mes);
-            });
-          }
-
-          // Filtrar extratos excluídos (mesma lógica da página Extratos)
-          extratosFiltered = extratosFiltered.filter(extrato => {
-            const status = (extrato.status || '').toLowerCase();
-            return status !== 'excluido' && status !== 'deleted';
-          });
-          
-          // Refatoração: calcular estatísticas da unidade sem depender de variáveis externas
-          const statsUnidade = extratosFiltered.reduce((acc, extrato) => {
-            const valor = extrato.valor || extrato.value || 0;
-            const tipo = extrato.tipo || extrato.type;
-            if (tipo === 'RECEITA' || tipo === 'CREDIT') {
-              acc.receitas += valor;
-              acc.saldo += valor;
-            } else {
-              acc.despesas += valor;
-              acc.saldo -= valor;
-            }
-            return acc;
-          }, { saldo: 0, receitas: 0, despesas: 0 });
-
-          saldoTotal += statsUnidade.saldo;
-          totalReceitas += statsUnidade.receitas;
-          totalDespesas += statsUnidade.despesas;
-          totalRegistros += extratosFiltered.length;
-          
-          console.log(`💰 [DASHBOARD] ${unidade}: R$ ${statsUnidade.saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${extratosFiltered.length} registros)`);
-        } catch (error) {
-          console.error(`Erro ao buscar extratos da unidade ${unidade}:`, error);
-        }
+      // Construir filtros igual à página Extratos
+      let filtrosExtrato = {};
+      
+      // Se for uma unidade específica, usar ela. Se for array com múltiplas, usar 'all'
+      if (unidades.length === 1 && unidades[0] !== 'all') {
+        filtrosExtrato.unidade = unidades[0];
+      } else {
+        filtrosExtrato.unidade = 'all'; // Usar 'all' como os Extratos fazem
       }
+      
+      if (mesAno) {
+        const [ano, mes] = mesAno.split('-');
+        // Criar datas de início e fim do mês (igual à página Extratos)
+        const primeiroDia = new Date(parseInt(ano), parseInt(mes) - 1, 1);
+        const ultimoDia = new Date(parseInt(ano), parseInt(mes), 0);
+        
+        filtrosExtrato.dataInicial = primeiroDia.toISOString().split('T')[0];
+        filtrosExtrato.dataFinal = ultimoDia.toISOString().split('T')[0];
+        
+        console.log(`🗓️ [DASHBOARD] Buscando com filtros de data: ${filtrosExtrato.dataInicial} a ${filtrosExtrato.dataFinal}`);
+      }
+      
+      console.log('🔍 [DASHBOARD] Filtros finais:', filtrosExtrato);
+      
+      const extratos = await extratosService.buscarExtratos(filtrosExtrato);
+      console.log(`📊 [DASHBOARD] ${extratos.length} extratos encontrados com filtros`);
+      
+      // Filtrar extratos excluídos (mesma lógica da página Extratos)
+      const extratosFiltered = extratos.filter(extrato => {
+        const status = (extrato.status || '').toLowerCase();
+        return status !== 'excluido' && status !== 'deleted';
+      });
+      console.log(`🗑️ [DASHBOARD] ${extratosFiltered.length} após filtrar excluídos`);
+      
+      // Calcular estatísticas (mesma lógica da página Extratos)
+      const stats = extratosFiltered.reduce((acc, extrato) => {
+        const valor = parseFloat(extrato.valor || extrato.value || 0);
+        const tipo = (extrato.tipo || extrato.type || '').toLowerCase();
+        
+        // Verificar se é receita ou despesa usando a mesma lógica da página Extratos
+        if (tipo === 'receita' || tipo === 'credit') {
+          acc.receitas += valor;
+          acc.saldo += valor;
+        } else if (tipo === 'despesa' || tipo === 'debit') {
+          acc.despesas += valor;
+          acc.saldo -= valor;
+        }
+        return acc;
+      }, { saldo: 0, receitas: 0, despesas: 0 });
 
       const resultado = {
-        saldo: saldoTotal,
-        receitas: totalReceitas,
-        despesas: totalDespesas,
-        registros: totalRegistros
+        saldo: stats.saldo,
+        receitas: stats.receitas,
+        despesas: stats.despesas,
+        registros: extratosFiltered.length
       };
 
       console.log('🎯 [DASHBOARD] RESULTADO FINAL:', resultado);
@@ -232,19 +231,28 @@ export const dashboardService = {
       // Para cada unidade, buscar atividades recentes
       for (const unidade of unidades) {
         try {
-          // Buscar mensagens recentes
+          // Buscar mensagens recentes (sem orderBy para evitar índice composto)
           const qMensagens = query(
             collection(db, 'mensagens'),
             where('unidade', '==', unidade),
-            orderBy('createdAt', 'desc'),
-            limit(3)
+            limit(10) // Buscar mais para poder ordenar em memória
           );
           
           const mensagensSnapshot = await getDocs(qMensagens);
-          mensagensSnapshot.docs.forEach(doc => {
-            const data = doc.data();
+          
+          // Ordenar por data de criação e pegar apenas as 3 mais recentes
+          const mensagensRecentes = mensagensSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a, b) => {
+              const dataA = a.createdAt?.toDate() || new Date(0);
+              const dataB = b.createdAt?.toDate() || new Date(0);
+              return dataB - dataA;
+            })
+            .slice(0, 3);
+          
+          mensagensRecentes.forEach(data => {
             atividades.push({
-              id: doc.id,
+              id: data.id,
               title: 'Mensagem enviada',
               description: `WhatsApp para ${data.destinatario || 'cliente'}`,
               time: this.formatTimeAgo(data.createdAt?.toDate() || new Date()),
@@ -254,19 +262,28 @@ export const dashboardService = {
             });
           });
 
-          // Buscar cobranças recentes
+          // Buscar cobranças recentes (sem orderBy para evitar índice composto)
           const qCobrancas = query(
             collection(db, 'cobrancas'),
             where('unidade', '==', unidade),
-            orderBy('createdAt', 'desc'),
-            limit(3)
+            limit(10) // Buscar mais para poder ordenar em memória
           );
           
           const cobrancasSnapshot = await getDocs(qCobrancas);
-          cobrancasSnapshot.docs.forEach(doc => {
-            const data = doc.data();
+          
+          // Ordenar por data de criação e pegar apenas as 3 mais recentes
+          const cobrancasRecentes = cobrancasSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a, b) => {
+              const dataA = a.createdAt?.toDate() || new Date(0);
+              const dataB = b.createdAt?.toDate() || new Date(0);
+              return dataB - dataA;
+            })
+            .slice(0, 3);
+          
+          cobrancasRecentes.forEach(data => {
             atividades.push({
-              id: doc.id,
+              id: data.id,
               title: 'Cobrança registrada',
               description: `R$ ${(data.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
               time: this.formatTimeAgo(data.createdAt?.toDate() || new Date()),
@@ -276,22 +293,31 @@ export const dashboardService = {
             });
           });
 
-          // Buscar contas BTG recentes
+          // Buscar contas BTG recentes (sem orderBy para evitar índice composto)
           const qContas = query(
             collection(db, 'contas_btg'),
             where('unidade', '==', unidade),
-            orderBy('createdAt', 'desc'),
-            limit(2)
+            limit(10) // Buscar mais para poder ordenar em memória
           );
           
           const contasSnapshot = await getDocs(qContas);
-          contasSnapshot.docs.forEach(doc => {
-            const data = doc.data();
+          
+          // Ordenar por data de criação e pegar apenas os 2 mais recentes
+          const contasRecentes = contasSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a, b) => {
+              const dataA = a.createdAt?.toDate() || a.dataCriacao || new Date(0);
+              const dataB = b.createdAt?.toDate() || b.dataCriacao || new Date(0);
+              return dataB - dataA;
+            })
+            .slice(0, 2);
+          
+          contasRecentes.forEach(data => {
             atividades.push({
-              id: doc.id,
+              id: data.id,
               title: 'Conta BTG cadastrada',
-              description: `${data.nome || 'Cliente'} - ${data.tipo || 'Boleto'}`,
-              time: this.formatTimeAgo(data.createdAt?.toDate() || new Date()),
+              description: `${data.nome || data.favorecido || 'Cliente'} - ${data.tipo || 'Boleto'}`,
+              time: this.formatTimeAgo(data.createdAt?.toDate() || data.dataCriacao || new Date()),
               unit: unidade,
               icon: 'CreditCard',
               color: 'green'
@@ -592,8 +618,6 @@ export const dashboardService = {
       };
     }
   },
-
-
 
   // Obter visão geral das unidades (Admin) - ATUALIZADA com dados reais
   async getUnitsOverview() {

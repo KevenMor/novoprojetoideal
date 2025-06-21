@@ -178,14 +178,18 @@ export default function FolhaPagamento() {
     
     if (name === 'salario') {
       // Remove tudo que não é número
-      let numericValue = value.replace(/[^\\d]/g, '');
+      let numericValue = value.replace(/[^\d]/g, '');
       
       // Converte para centavos e depois para reais com duas casas decimais
       if (numericValue) {
-        const reais = (parseInt(numericValue) / 100).toFixed(2);
+        const reais = (parseInt(numericValue) / 100);
+        const formatted = reais.toLocaleString('pt-BR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
         setFormData(prev => ({
           ...prev,
-          [name]: reais
+          [name]: formatted
         }));
       } else {
         setFormData(prev => ({
@@ -231,9 +235,30 @@ export default function FolhaPagamento() {
   };
 
   const handleFuncionarioChange = (id, campo, valor) => {
-    setFuncionarios(prev => prev.map(f => 
-      f.id === id ? { ...f, [campo]: valor } : f
-    ));
+    // Formatação automática para campos de valor
+    if (campo === 'salario' || campo === 'adiantamento') {
+      // Remove tudo que não é número
+      let numericValue = valor.replace(/[^\d]/g, '');
+      
+      if (numericValue) {
+        const reais = (parseInt(numericValue) / 100);
+        const formatted = reais.toLocaleString('pt-BR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        setFuncionarios(prev => prev.map(f => 
+          f.id === id ? { ...f, [campo]: formatted } : f
+        ));
+      } else {
+        setFuncionarios(prev => prev.map(f => 
+          f.id === id ? { ...f, [campo]: '' } : f
+        ));
+      }
+    } else {
+      setFuncionarios(prev => prev.map(f => 
+        f.id === id ? { ...f, [campo]: valor } : f
+      ));
+    }
   };
 
   const handleSalvarAlteracao = async (id, campo) => {
@@ -244,7 +269,8 @@ export default function FolhaPagamento() {
     }
 
     const valorString = funcionario[campo] || '0';
-    const valorNumerico = parseFloat(String(valorString).replace(/\\./g, '').replace(',', '.')) || 0;
+    // Converte valor formatado brasileiro para número
+    const valorNumerico = parseFloat(String(valorString).replace(/\./g, '').replace(',', '.')) || 0;
 
     const dadosParaAtualizar = { ...funcionario, [campo]: valorNumerico };
 
@@ -252,8 +278,14 @@ export default function FolhaPagamento() {
       await funcionariosService.atualizarFuncionario(id, dadosParaAtualizar);
       toast.success(`${capitalizeName(campo)} atualizado!`);
       
+      // Mantém a formatação na interface
+      const valorFormatado = valorNumerico.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      
       setFuncionarios(prev => prev.map(f => 
-        f.id === id ? { ...f, [campo]: formatToBRLString(valorNumerico) } : f
+        f.id === id ? { ...f, [campo]: valorFormatado } : f
       ));
 
     } catch (error) {
@@ -419,7 +451,18 @@ export default function FolhaPagamento() {
   };
 
   const formatCurrencyForInput = (value) => {
-    return value || '';
+    if (!value) return '';
+    
+    // Se já é um número, formata
+    if (typeof value === 'number') {
+      return value.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+    
+    // Se é string, retorna como está (já formatada)
+    return value;
   };
 
   const handleAbrirModalLote = () => {
@@ -486,7 +529,7 @@ export default function FolhaPagamento() {
   };
 
   return (
-    <div className="container-mobile spacing-responsive">
+    <div className="page-container-xl space-y-8">
       <div className="flex-mobile flex-mobile-row justify-between mb-6">
         <h1 className="text-mobile-lg font-bold">Folha de Pagamento</h1>
         <div className="flex flex-wrap gap-2">
@@ -507,17 +550,15 @@ export default function FolhaPagamento() {
         </div>
       </div>
 
-      <div className="mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome, CPF ou CNPJ..."
-            className="form-input-mobile pl-10"
-          />
-        </div>
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Buscar funcionário</label>
+        <input
+          type="text"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Digite o nome, CPF ou CNPJ do funcionário..."
+          className="form-input-mobile w-full"
+        />
       </div>
 
       {loading ? (
@@ -547,8 +588,8 @@ export default function FolhaPagamento() {
                       value={funcionario.salario}
                       onChange={(e) => handleFuncionarioChange(funcionario.id, 'salario', e.target.value)}
                       onBlur={() => handleSalvarAlteracao(funcionario.id, 'salario')}
-                      className="form-input-mobile p-1 text-mobile-sm"
-                      placeholder="0,00"
+                      className="form-input-mobile p-1 pl-20 text-mobile-sm"
+                      placeholder="R$ 0,00"
                     />
                   </td>
                   <td>
@@ -557,8 +598,8 @@ export default function FolhaPagamento() {
                       value={funcionario.adiantamento}
                       onChange={(e) => handleFuncionarioChange(funcionario.id, 'adiantamento', e.target.value)}
                       onBlur={() => handleSalvarAlteracao(funcionario.id, 'adiantamento')}
-                      className="form-input-mobile p-1 text-mobile-sm"
-                      placeholder="0,00"
+                      className="form-input-mobile p-1 pl-20 text-mobile-sm"
+                      placeholder="R$ 0,00"
                     />
                   </td>
                   <td>
@@ -651,8 +692,8 @@ export default function FolhaPagamento() {
                   name="salario"
                   value={formatCurrencyForInput(formData.salario)}
                   onChange={handleInputChange}
-                  className="form-input-mobile"
-                  placeholder="0,00"
+                  className="form-input-mobile pl-20"
+                  placeholder="R$ 0,00"
                 />
               </div>
               <div className="form-group-mobile">

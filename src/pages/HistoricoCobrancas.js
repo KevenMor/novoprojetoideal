@@ -246,10 +246,10 @@ export default function HistoricoCobrancas() {
   }, [cobrancas, filtradas, todasParcelasFiltradas]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] bg-gray-50 py-8">
+    <div className="page-container-xl space-y-8">
       <h1 className="text-3xl font-bold mb-8 text-center">Histórico de Cobranças</h1>
       {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 w-full max-w-6xl mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col items-center">
           <span className="text-sm font-medium text-gray-600 mb-1">Total de Parcelas</span>
           <span className="text-2xl font-bold text-gray-900">{totalParcelas}</span>
@@ -273,56 +273,113 @@ export default function HistoricoCobrancas() {
         </div>
       </div>
       {/* Barra de busca e filtros ajustada */}
-      <div className="w-full max-w-6xl flex flex-row items-center gap-2 mb-4">
-        <input
-          type="text"
-          className="input-field max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg"
-          placeholder="Buscar por nome do aluno..."
-          value={buscaAluno}
-          onChange={e => setBuscaAluno(e.target.value)}
-        />
-        <button
-          className="btn-secondary flex items-center gap-1 px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50"
-          onClick={() => setShowFiltros(v => !v)}
-        >
-          <Filter className="w-4 h-4" /> Filtros
-        </button>
+      <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
+        <div className="flex-1 max-w-md">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Buscar aluno</label>
+          <input
+            type="text"
+            className="input-field w-full"
+            placeholder="Digite o nome, CPF ou CNPJ do aluno..."
+            value={buscaAluno}
+            onChange={e => setBuscaAluno(e.target.value)}
+          />
+        </div>
+        <div className="flex-shrink-0">
+          <label className="block text-sm font-medium text-gray-700 mb-2 sm:invisible">Ações</label>
+          <button
+            className="btn-secondary flex items-center gap-2 px-4 py-2 w-full sm:w-auto"
+            onClick={() => setShowFiltros(v => !v)}
+          >
+            <Filter className="w-4 h-4" /> 
+            <span>{showFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}</span>
+          </button>
+        </div>
       </div>
       {showFiltros && (
-        <div className="w-full max-w-6xl bg-white rounded-xl shadow p-6 mb-8 animate-fade-in">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Unidade</label>
-              <select className="input-field" value={filtros.unidade} onChange={e => {
-                setFiltros(f => ({ ...f, unidade: e.target.value }));
-                setShowFiltros(false); // fecha filtros ao selecionar
-                setPagina(1); // volta para página 1
-              }}>
-                <option value="">Todas</option>
+        <div className="w-full bg-white rounded-xl shadow p-6 mb-8 animate-fade-in">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtros Avançados</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Unidade</label>
+              <select 
+                className="input-field w-full" 
+                value={filtros.unidade} 
+                onChange={e => {
+                  setFiltros(f => ({ ...f, unidade: e.target.value }));
+                  setPagina(1); // volta para página 1
+                }}
+              >
+                <option value="">Todas as unidades</option>
                 {availableUnits.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Cadastro: de</label>
-              <input type="date" className="input-field" value={filtros.dataCadastroIni} onChange={e => setFiltros(f => ({ ...f, dataCadastroIni: e.target.value }))} />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Data de Cadastro (De)</label>
+              <input 
+                type="date" 
+                className="input-field w-full" 
+                value={filtros.dataCadastroIni} 
+                onChange={e => setFiltros(f => ({ ...f, dataCadastroIni: e.target.value }))} 
+              />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Cadastro: até</label>
-              <input type="date" className="input-field" value={filtros.dataCadastroFim} onChange={e => setFiltros(f => ({ ...f, dataCadastroFim: e.target.value }))} />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Data de Cadastro (Até)</label>
+              <input 
+                type="date" 
+                className="input-field w-full" 
+                value={filtros.dataCadastroFim} 
+                onChange={e => setFiltros(f => ({ ...f, dataCadastroFim: e.target.value }))} 
+              />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Vencimento: de</label>
-              <input type="date" className="input-field" value={filtros.dataVencIni} onChange={e => setFiltros(f => ({ ...f, dataVencIni: e.target.value }))} />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Vencimento (De)</label>
+              <input 
+                type="date" 
+                className="input-field w-full" 
+                value={filtros.dataVencIni} 
+                onChange={e => setFiltros(f => ({ ...f, dataVencIni: e.target.value }))} 
+              />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Vencimento: até</label>
-              <input type="date" className="input-field" value={filtros.dataVencFim} onChange={e => setFiltros(f => ({ ...f, dataVencFim: e.target.value }))} />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Vencimento (Até)</label>
+              <input 
+                type="date" 
+                className="input-field w-full" 
+                value={filtros.dataVencFim} 
+                onChange={e => setFiltros(f => ({ ...f, dataVencFim: e.target.value }))} 
+              />
             </div>
+          </div>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <button
+              className="btn-primary px-4 py-2"
+              onClick={() => {
+                // Aplicar filtros (já aplicados automaticamente)
+                setShowFiltros(false);
+              }}
+            >
+              Aplicar Filtros
+            </button>
+            <button
+              className="btn-secondary px-4 py-2"
+              onClick={() => {
+                setFiltros({
+                  unidade: '',
+                  dataCadastroIni: '',
+                  dataCadastroFim: '',
+                  dataVencIni: '',
+                  dataVencFim: ''
+                });
+                setPagina(1);
+              }}
+            >
+              Limpar Filtros
+            </button>
           </div>
         </div>
       )}
       {/* Tabela resumida de clientes */}
-      <div className="w-full max-w-6xl bg-white rounded-xl shadow border overflow-x-auto">
+      <div className="w-full bg-white rounded-xl shadow border overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>

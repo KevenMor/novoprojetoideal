@@ -107,10 +107,10 @@ export default function GerenciarModelosMensagem() {
   const inativos = modelos.filter(m => !m.ativa).length;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] bg-gray-50 py-8">
+    <div className="page-container-xl space-y-8">
       <h1 className="text-3xl font-bold mb-8 text-center">Gerenciar Modelos de Mensagem</h1>
       {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-5xl mb-8">
+      <div className="stats-grid mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col items-center">
           <span className="text-sm font-medium text-gray-600 mb-1">Total de Modelos</span>
           <span className="text-2xl font-bold text-gray-900">{total}</span>
@@ -124,7 +124,7 @@ export default function GerenciarModelosMensagem() {
           <span className="text-2xl font-bold text-gray-400">{inativos}</span>
         </div>
       </div>
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg p-8">
+              <div className="w-full bg-white rounded-2xl shadow-lg p-8">
         <div className="mb-6 flex justify-between items-center">
           <span className="text-lg font-semibold">Modelos Cadastrados</span>
           <button className="btn-primary flex items-center gap-2 px-5 py-2.5 text-base" onClick={() => openMsgModal('new')}>

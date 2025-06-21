@@ -176,8 +176,8 @@ const CadastrarContasBTG = () => {
 
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
+    <div className="page-container-xl">
+      <div className="w-full bg-white p-8 rounded-lg shadow-md">
         <h1 className="text-2xl font-bold mb-2">Cadastrar Contas BTG</h1>
         <p className="text-gray-600 mb-6">Cadastre contas para pagamento via boleto ou PIX.</p>
         
@@ -219,19 +219,17 @@ const CadastrarContasBTG = () => {
                 className="input-field w-full p-2 border rounded"
                 maxLength="44"
               />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">R$</span>
-                  <input 
-                    name="valor" 
-                    value={boletoData.valor} 
-                    onChange={(e) => handleChange(e, 'boleto')} 
-                    placeholder="0,00" 
-                    className="input-field w-full p-2 pl-10 border rounded"
-                  />
-                </div>
-                <input type="date" name="vencimento" value={boletoData.vencimento} onChange={(e) => handleChange(e, 'boleto')} placeholder="Vencimento *" className="input-field w-full p-2 border rounded"/>
+              <div className="form-group">
+                <label>Valor</label>
+                <input 
+                  name="valor" 
+                  value={boletoData.valor} 
+                  onChange={(e) => handleChange(e, 'boleto')} 
+                  placeholder="R$ 0,00" 
+                  className="input-field w-full p-2 pl-20 border rounded"
+                />
               </div>
+              <input type="date" name="vencimento" value={boletoData.vencimento} onChange={(e) => handleChange(e, 'boleto')} placeholder="Vencimento *" className="input-field w-full p-2 border rounded"/>
               <input name="descricao" value={boletoData.descricao} onChange={(e) => handleChange(e, 'boleto')} placeholder="Descrição *" className="input-field w-full p-2 border rounded"/>
             </div>
           )}
@@ -253,19 +251,17 @@ const CadastrarContasBTG = () => {
                 <input name="favorecido" value={pixData.favorecido} onChange={(e) => handleChange(e, 'pix')} placeholder="Nome do Favorecido *" className="input-field w-full p-2 border rounded"/>
                 <input name="cpfCnpjFavorecido" value={pixData.cpfCnpjFavorecido} onChange={(e) => handleChange(e, 'pix')} placeholder="CPF/CNPJ do Favorecido *" className="input-field w-full p-2 border rounded"/>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">R$</span>
-                  <input 
-                    name="valor" 
-                    value={pixData.valor} 
-                    onChange={(e) => handleChange(e, 'pix')} 
-                    placeholder="0,00" 
-                    className="input-field w-full p-2 pl-10 border rounded"
-                  />
-                </div>
-                <input type="date" name="vencimento" value={pixData.vencimento} onChange={(e) => handleChange(e, 'pix')} placeholder="Vencimento *" className="input-field w-full p-2 border rounded"/>
+              <div className="form-group">
+                <label>Valor</label>
+                <input 
+                  name="valor" 
+                  value={pixData.valor} 
+                  onChange={(e) => handleChange(e, 'pix')} 
+                  placeholder="R$ 0,00" 
+                  className="input-field w-full p-2 pl-20 border rounded"
+                />
               </div>
+              <input type="date" name="vencimento" value={pixData.vencimento} onChange={(e) => handleChange(e, 'pix')} placeholder="Vencimento *" className="input-field w-full p-2 border rounded"/>
               <input name="descricao" value={pixData.descricao} onChange={(e) => handleChange(e, 'pix')} placeholder="Descrição *" className="input-field w-full p-2 border rounded"/>
             </div>
           )}

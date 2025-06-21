@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { dashboardService } from '../services/dashboardService';
 import toast from 'react-hot-toast';
+import UnitSelector from '../components/UnitSelector';
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -25,7 +26,8 @@ export default function Dashboard() {
     selectedUnit, 
     availableUnits, 
     getSelectedUnitDisplay,
-    isViewingAll
+    isViewingAll,
+    hasMultipleUnits
   } = useUnitFilter();
   const navigate = useNavigate();
   
@@ -44,9 +46,13 @@ export default function Dashboard() {
   // Estado para seleção de competência
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+    const mesAtual = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+    console.log('📅 [DASHBOARD] Data atual detectada:', now.toLocaleDateString('pt-BR'));
+    console.log('📅 [DASHBOARD] Mês selecionado inicial:', mesAtual);
+    console.log('📅 [DASHBOARD] Ano:', now.getFullYear(), 'Mês:', now.getMonth() + 1);
+    return mesAtual;
   });
-  const [showAllTime, setShowAllTime] = useState(false);
+  const [showAllTime, setShowAllTime] = useState(false); // Mudando de volta para false para filtrar por mês
 
   const carregarDadosDashboard = useCallback(async () => {
     try {
@@ -57,6 +63,9 @@ export default function Dashboard() {
       // Buscar dados baseado na unidade selecionada
       const unidadesParaFiltrar = isViewingAll ? availableUnits : [selectedUnit];
       
+      // DEBUG: Comparar cálculos
+      console.log('🔍 [DEBUG DASHBOARD] Unidades para filtrar:', unidadesParaFiltrar);
+      
       // Rodar todas as chamadas em paralelo
       const [mensagensData, contasData, cobrancasData, extratosData, atividadesData] = await Promise.all([
         dashboardService.getMensagensStats(unidadesParaFiltrar),
@@ -65,6 +74,8 @@ export default function Dashboard() {
         dashboardService.getExtratosStats(unidadesParaFiltrar, mesParaFiltro),
         dashboardService.getRecentActivities(unidadesParaFiltrar)
       ]);
+      
+      console.log('🎯 [DEBUG DASHBOARD] Dados dos extratos recebidos:', extratosData);
       
       setDashboardStats({
         mensagens: mensagensData.total || 0,
@@ -114,11 +125,14 @@ export default function Dashboard() {
     const options = [];
     const now = new Date();
     
+    console.log('📅 [DASHBOARD] Gerando opções de meses a partir de:', now.toLocaleDateString('pt-BR'));
+    
     // Gerar os últimos 12 meses
     for (let i = 0; i < 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const value = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
       const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      console.log(`📅 [DASHBOARD] Opção ${i}: ${label} (${value})`);
       options.push({ value, label });
     }
     
@@ -230,158 +244,174 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header com seletor de unidade e competência */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-mobile text-white">
-        <div className="flex-mobile flex-mobile-row justify-between">
+      {/* Header com seletor de unidade e filtros */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
           <div>
-            <h1 className="text-mobile-lg lg:text-mobile-xl font-bold mb-2">
-              Bem-vindo, {user?.nome}!
-            </h1>
-            <div className="flex items-center space-x-2 text-blue-100">
-              <span className="text-mobile-sm">{getSelectedUnitDisplay()}</span>
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+            <p className="text-gray-600 text-lg">
+              {isViewingAll ? 'Visão geral de todas as unidades' : `Unidade: ${selectedUnit}`}
+            </p>
           </div>
-          <div className="flex-mobile stack-mobile">
-            {/* Seletor de Competência */}
-            <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-3 bg-white/10 rounded-lg p-3">
-              <CalendarDays className="h-5 w-5 text-blue-200" />
-              <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-2">
-                <label className="text-mobile-sm font-medium text-blue-100">Competência:</label>
-                <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-2">
-                  <label className="flex items-center space-x-1 cursor-pointer touch-target">
-                    <input
-                      type="checkbox"
-                      checked={showAllTime}
-                      onChange={(e) => setShowAllTime(e.target.checked)}
-                      className="rounded border-blue-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
-                    />
-                    <span className="text-mobile-sm text-blue-100">Todos os meses</span>
-                  </label>
-                  {!showAllTime && (
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(e.target.value)}
-                      className="bg-white/20 border border-white/30 rounded px-3 py-2 text-mobile-sm text-white focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent min-h-[44px]"
-                    >
-                      {generateMonthOptions().map(option => (
-                        <option key={option.value} value={option.value} className="text-gray-900">
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+          
+          {/* Filtro de Período Modernizado */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="h-8 w-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                <CalendarDays className="h-4 w-4 text-white" />
+              </div>
+              
+              <label className="flex items-center gap-2 text-gray-700 cursor-pointer group">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={showAllTime}
+                    onChange={(e) => setShowAllTime(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-4 h-4 rounded border-2 transition-all duration-200 ${
+                    showAllTime 
+                      ? 'bg-blue-500 border-blue-500' 
+                      : 'border-gray-300 group-hover:border-blue-400'
+                  }`}>
+                    {showAllTime && (
+                      <svg className="w-2.5 h-2.5 text-white absolute top-0.5 left-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-            
-            {/* Controles de atualização */}
-            <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4 text-mobile-sm">
-              <div className="flex items-center space-x-2 hide-mobile">
-                <Clock className="h-4 w-4" />
-                <span>Última atualização: {new Date().toLocaleTimeString('pt-BR')}</span>
-              </div>
-              <button
-                onClick={carregarDadosDashboard}
-                className="btn-mobile-secondary flex items-center space-x-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span>Atualizar</span>
-              </button>
+                <span className="text-sm font-medium">Todos os períodos</span>
+              </label>
+              
+              {!showAllTime && (
+                <div className="relative">
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 font-medium appearance-none cursor-pointer hover:border-gray-300 transition-all duration-200 min-w-[160px]"
+                  >
+                    {generateMonthOptions().map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Cards de estatísticas */}
-      <div className="grid-mobile grid-mobile-1 grid-mobile-md-2 grid-mobile-lg-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Mensagens Enviadas */}
         <div
-          className="card-mobile cursor-pointer hover:shadow-md transition touch-target"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200 group"
           onClick={() => navigate('/mensagem')}
           title="Ver mensagens enviadas"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-mobile-sm font-medium text-gray-600">Mensagens Enviadas</p>
-              <p className="text-mobile-xl font-bold text-gray-900">{dashboardStats.mensagens}</p>
-            </div>
-            <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
               <MessageSquare className="h-6 w-6 text-blue-600" />
             </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-gray-900">{dashboardStats.mensagens}</p>
+              <p className="text-sm text-gray-500">Mensagens</p>
+            </div>
           </div>
-          <div className="mt-4 flex items-center">
-            <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-            <span className="text-mobile-sm text-green-600 font-medium">+100%</span>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-600">Mensagens Enviadas</p>
+            <div className="flex items-center text-green-600">
+              <TrendingUp className="h-4 w-4 mr-1" />
+              <span className="text-sm font-medium">+100%</span>
+            </div>
           </div>
         </div>
 
         {/* Contas Cadastradas */}
         <div
-          className="card-mobile cursor-pointer hover:shadow-md transition touch-target"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md hover:border-green-200 transition-all duration-200 group"
           onClick={() => navigate('/historico-contas-btg')}
           title="Ver contas BTG"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-mobile-sm font-medium text-gray-600">Contas Cadastradas</p>
-              <p className="text-mobile-xl font-bold text-gray-900">{dashboardStats.contasAtivas}</p>
-            </div>
-            <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
               <CreditCard className="h-6 w-6 text-green-600" />
             </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-gray-900">{dashboardStats.contasAtivas}</p>
+              <p className="text-sm text-gray-500">Contas</p>
+            </div>
           </div>
-          <div className="mt-4 flex items-center">
-            <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-            <span className="text-mobile-sm text-green-600 font-medium">+100%</span>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-600">Contas Cadastradas</p>
+            <div className="flex items-center text-green-600">
+              <TrendingUp className="h-4 w-4 mr-1" />
+              <span className="text-sm font-medium">+100%</span>
+            </div>
           </div>
         </div>
 
         {/* Cobranças Ativas */}
         <div
-          className="card-mobile cursor-pointer hover:shadow-md transition touch-target"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md hover:border-purple-200 transition-all duration-200 group"
           onClick={() => navigate('/cobrancas')}
           title="Ver cobranças"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-mobile-sm font-medium text-gray-600">Cobranças Ativas</p>
-              <p className="text-mobile-xl font-bold text-gray-900">{dashboardStats.cobrancas}</p>
-            </div>
-            <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
               <Receipt className="h-6 w-6 text-purple-600" />
             </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-gray-900">{dashboardStats.cobrancas}</p>
+              <p className="text-sm text-gray-500">Cobranças</p>
+            </div>
           </div>
-          <div className="mt-4 flex items-center">
-            <span className="text-mobile-sm text-gray-500 font-medium">0%</span>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-600">Cobranças Ativas</p>
+            <div className="flex items-center text-gray-500">
+              <span className="text-sm font-medium">Estável</span>
+            </div>
           </div>
         </div>
 
         {/* Saldo (Extratos) */}
         <div
-          className="card-mobile cursor-pointer hover:shadow-md transition touch-target"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md hover:border-orange-200 transition-all duration-200 group"
           onClick={() => navigate('/extratos')}
           title="Ver extratos"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-mobile-sm font-medium text-gray-600">
-                Saldo (Extratos) {!showAllTime && (
-                  <span className="text-mobile-xs text-gray-500">
-                    - {generateMonthOptions().find(opt => opt.value === selectedMonth)?.label}
-                  </span>
-                )}
-              </p>
-              <p className="text-mobile-xl font-bold text-gray-900">{formatCurrency(dashboardStats.saldo)}</p>
-            </div>
-            <div className="h-12 w-12 bg-orange-100 rounded-xl flex items-center justify-center">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-12 w-12 bg-orange-100 rounded-xl flex items-center justify-center group-hover:bg-orange-200 transition-colors">
               <BarChart3 className="h-6 w-6 text-orange-600" />
             </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(dashboardStats.saldo)}</p>
+              <p className="text-sm text-gray-500">Saldo</p>
+            </div>
           </div>
-          <div className="mt-4 flex items-center">
-            <Calendar className="h-4 w-4 text-blue-500 mr-1" />
-            <span className="text-mobile-sm text-blue-600 font-medium">
-              {showAllTime ? 'Todos os períodos' : 'Mês selecionado'}
-            </span>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-600">
+              Saldo Atual
+              {!showAllTime && (
+                <span className="block text-xs text-gray-400 mt-1">
+                  {generateMonthOptions().find(opt => opt.value === selectedMonth)?.label}
+                </span>
+              )}
+            </p>
+            <div className="flex items-center text-blue-600">
+              <Calendar className="h-4 w-4 mr-1" />
+              <span className="text-sm font-medium">
+                {showAllTime ? 'Total' : 'Mensal'}
+              </span>
+            </div>
           </div>
         </div>
       </div>

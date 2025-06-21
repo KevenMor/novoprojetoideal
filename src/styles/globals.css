@@ -1,7 +1,7 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+@import './responsive.css';
 @import './responsive-utils.css';
 
 /* CSS Variables for Theme Support */
@@ -191,12 +191,7 @@ code {
 
 /* Loading Animation */
 .loading-spinner {
-  border: 2px solid var(--border-primary);
-  border-top: 2px solid #3b82f6;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  animation: spin 1s linear infinite;
+  @apply w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin;
 }
 
 @keyframes spin {
@@ -219,12 +214,31 @@ code {
 
 /* Form Groups */
 .form-group {
-  @apply space-y-2;
+  @apply space-y-3 mb-6;
 }
 
 .form-label {
   color: var(--text-primary);
   @apply block text-sm font-semibold mb-2;
+}
+
+/* Ensures no overlapping of input elements */
+.input-field, .select-field, .textarea-field {
+  @apply relative z-10;
+  min-height: 2.5rem;
+}
+
+/* Better spacing for search fields with icons */
+.search-field-container {
+  @apply relative mb-4;
+}
+
+.search-field-container .form-label {
+  @apply mb-3;
+}
+
+.search-field-container .input-field {
+  @apply w-full pr-4;
 }
 
 .form-error {
@@ -330,48 +344,147 @@ code {
   @apply flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0;
 }
 
-/* Mobile-first responsive adjustments */
-@media (max-width: 640px) {
-  .card {
-    @apply p-4 rounded-xl;
-  }
-  
-  .card-compact {
-    @apply p-3 rounded-lg;
-  }
-  
-  .sidebar-item {
-    @apply px-3 py-2.5 rounded-lg;
-  }
-  
-  .btn-primary, .btn-secondary, .btn-danger, .btn-success {
-    @apply py-2.5 px-4 text-sm rounded-lg;
-  }
-  
-  .input-field, .select-field, .textarea-field {
-    @apply py-2.5 px-3 text-sm rounded-lg;
-  }
-  
-  .stat-card {
-    @apply p-4 rounded-xl;
-  }
+/* Layout Classes for Better Responsiveness */
+.page-container {
+  @apply w-full mx-auto;
+  @apply px-4 sm:px-6 lg:px-8 xl:px-12;
+  @apply py-6 lg:py-8;
 }
 
-@media (min-width: 641px) and (max-width: 768px) {
-  .card {
-    @apply p-5 rounded-xl;
-  }
+/* Responsive containers with proper max-widths */
+.page-container-sm {
+  @apply page-container max-w-4xl;
+}
+
+.page-container-md {
+  @apply page-container max-w-6xl;
+}
+
+.page-container-lg {
+  @apply page-container max-w-7xl;
+}
+
+.page-container-xl {
+  @apply page-container;
+  max-width: none;
 }
 
 @media (min-width: 1024px) {
-  .sidebar-item {
-    @apply px-4 py-3 rounded-xl;
+  .page-container-xl {
+    max-width: 1800px;
   }
 }
 
-/* Layout Transitions */
+@media (min-width: 1920px) {
+  .page-container-xl {
+    max-width: none;
+    @apply px-16;
+  }
+}
+
+/* Card Grid Responsive */
+.stats-grid {
+  @apply grid gap-4 sm:gap-6;
+  @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
+}
+
+/* Form Grid Responsive */
+.filters-grid {
+  @apply grid gap-4 sm:gap-6;
+  @apply grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6;
+}
+
+/* Action Buttons Responsive */
+.actions-container {
+  @apply flex flex-col sm:flex-row;
+  @apply items-stretch sm:items-end;
+  @apply space-y-2 sm:space-y-0 sm:space-x-2;
+}
+
+.actions-container > * {
+  @apply w-full sm:w-auto;
+}
+
+/* Table Container Responsive */
+.table-container {
+  @apply bg-white rounded-lg shadow overflow-hidden;
+}
+
+.table-scroll {
+  @apply overflow-x-auto;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E0 #F7FAFC;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: #F7FAFC;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #CBD5E0;
+  border-radius: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #A0AEC0;
+}
+
+/* Enhanced Mobile Experience */
+@media (max-width: 640px) {
+  .filters-grid {
+    @apply grid-cols-1 gap-3;
+  }
+  
+  .stats-grid {
+    @apply grid-cols-1 gap-4;
+  }
+  
+  .actions-container {
+    @apply space-y-3;
+  }
+  
+  .page-container {
+    @apply px-4 py-4;
+  }
+}
+
+/* Enhanced Tablet Experience */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .filters-grid {
+    @apply grid-cols-2;
+  }
+  
+  .stats-grid {
+    @apply grid-cols-2;
+  }
+}
+
+/* Desktop Optimizations */
+@media (min-width: 1024px) {
+  .page-container {
+    @apply py-8;
+  }
+  
+  .filters-grid {
+    @apply grid-cols-6;
+  }
+  
+  .stats-grid {
+    @apply grid-cols-4;
+  }
+  
+  .actions-container {
+    @apply flex-row space-y-0 space-x-2;
+  }
+}
+
+/* Layout Transition */
 .layout-transition {
-  transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
+  @apply transition-all duration-300 ease-in-out;
 }
 
 /* Print Styles */
@@ -380,9 +493,12 @@ code {
     display: none !important;
   }
   
-  .card {
-    box-shadow: none !important;
-    border: 1px solid #e5e7eb !important;
+  body {
+    @apply text-black bg-white;
+  }
+  
+  .page-container {
+    @apply p-0 max-w-none;
   }
 }
 
@@ -409,14 +525,19 @@ code {
   }
 }
 
-/* Focus Ring */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+/* Focus styles for better accessibility */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
 }
 
 /* Skip Link for Accessibility */
 .skip-link {
-  @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded-md z-50;
+  @apply absolute -top-96 left-4 z-50;
+  @apply bg-blue-600 text-white px-4 py-2 rounded;
+  @apply focus:top-4 transition-all duration-200;
 }
 
 /* Select with icon spacing utilities */
@@ -446,45 +567,26 @@ code {
 }
 
 /* Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.fade-in {
+  @apply opacity-0 animate-pulse;
+  animation: fadeIn 0.3s ease-in forwards;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
   to {
     opacity: 1;
   }
 }
 
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.slide-up {
+  @apply transform translate-y-4 opacity-0;
+  animation: slideUp 0.4s ease-out forwards;
 }
 
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
+@keyframes slideUp {
   to {
+    transform: translateY(0);
     opacity: 1;
-    transform: translateX(0);
   }
 }
 

@@ -168,7 +168,7 @@ export default function RegistrarCobrancas() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+          <div className="page-container-xl space-y-6">
       <div className="card">
         <div className="flex items-center space-x-3 mb-6">
           <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -249,7 +249,7 @@ export default function RegistrarCobrancas() {
               Dados do Pagamento
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
+              <div className="form-group">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Tipo de Pagamento *</label>
                 <select
                   className="input-field"
@@ -263,23 +263,19 @@ export default function RegistrarCobrancas() {
                   ))}
                 </select>
               </div>
-              <div>
+              <div className="form-group">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Valor Total *</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
-                    R$
-                  </span>
-                  <input
-                    type="text"
-                    className="input-field pl-10"
-                    value={formData.valorTotal}
-                    onChange={handleValorChange}
-                    placeholder="0,00"
-                    required
-                  />
-                </div>
+                <input
+                  type="text"
+                  name="valorTotal"
+                  value={formData.valorTotal}
+                  onChange={handleValorChange}
+                  className="input-field pl-20"
+                  placeholder="R$ 0,00"
+                  required
+                />
               </div>
-              <div>
+              <div className="form-group">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Nº de Parcelas *</label>
                 <select
                   className="input-field"
@@ -297,17 +293,17 @@ export default function RegistrarCobrancas() {
                   </p>
                 )}
               </div>
-              <div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 mt-4">
+              <div className="form-group">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Data 1º Vencimento *</label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    required
-                    className="input-field"
-                    value={formData.dataVencimento}
-                    onChange={(e) => setFormData({...formData, dataVencimento: e.target.value})}
-                  />
-                </div>
+                <input
+                  type="date"
+                  required
+                  className="input-field"
+                  value={formData.dataVencimento}
+                  onChange={(e) => setFormData({...formData, dataVencimento: e.target.value})}
+                />
               </div>
             </div>
           </div>

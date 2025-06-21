@@ -548,16 +548,14 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
 
         {/* Busca */}
         <div className="mb-6">
-          <div className="relative">
-            <Search className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Digite nome ou email para buscar usuários..."
-              className="input-field pl-10 w-full md:w-96"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Buscar usuários</label>
+          <input
+            type="text"
+            placeholder="Digite nome ou email para buscar usuários..."
+            className="input-field w-full md:w-96"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
 
         {/* Lista de Usuários */}

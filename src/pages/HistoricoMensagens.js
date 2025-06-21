@@ -110,50 +110,62 @@ export default function HistoricoMensagens() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto mt-10 px-2">
+            <div className="page-container-xl mt-10">
       {/* Filtros visualmente destacados */}
-      <div className="bg-white rounded-xl shadow p-4 mb-6 flex flex-wrap gap-4 items-end border border-gray-100">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Unidade</label>
-          <select className="w-48 h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-200" value={filtros.unidade} onChange={e => setFiltros({ ...filtros, unidade: e.target.value })}>
-            <option value="">Todas</option>
-            <option value="Geral">Geral</option>
-            {availableUnits.filter(unit => unit !== 'all').map(unit => (
-              <option key={unit} value={unit}>{getUnitDisplayName(unit)}</option>
-            ))}
-            <option value="Comercial">Comercial</option>
-          </select>
+              <div className="bg-white rounded-xl shadow p-6 mb-8 border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtros</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Unidade</label>
+              <select className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={filtros.unidade} onChange={e => setFiltros({ ...filtros, unidade: e.target.value })}>
+                <option value="">Todas as unidades</option>
+                <option value="Geral">Geral</option>
+                {availableUnits.filter(unit => unit !== 'all').map(unit => (
+                  <option key={unit} value={unit}>{getUnitDisplayName(unit)}</option>
+                ))}
+                <option value="Comercial">Comercial</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Tipo</label>
+              <select className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={filtros.tipo} onChange={e => setFiltros({ ...filtros, tipo: e.target.value })}>
+                <option value="">Todos os tipos</option>
+                <option value="Boas-vindas">Boas-vindas</option>
+                <option value="Comercial">Comercial</option>
+                <option value="Chamar Cliente">Chamar Cliente</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Status</label>
+              <select className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={filtros.status} onChange={e => setFiltros({ ...filtros, status: e.target.value })}>
+                <option value="">Todos os status</option>
+                <option value="success">✅ Enviado</option>
+                <option value="error">❌ Erro</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Data Inicial</label>
+              <input type="date" className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={filtros.dataInicial} onChange={e => setFiltros({ ...filtros, dataInicial: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Data Final</label>
+              <input type="date" className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={filtros.dataFinal} onChange={e => setFiltros({ ...filtros, dataFinal: e.target.value })} />
+            </div>
+            <div className="space-y-2 flex flex-col justify-end">
+              <label className="block text-sm font-medium text-gray-700 invisible">Ações</label>
+              <div className="flex gap-3">
+                <button onClick={() => exportToCSV(mensagensFiltradas)} className="h-12 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2">
+                  <Download className="w-4 h-4" /> Exportar CSV
+                </button>
+                {filtrosAtivos && (
+                  <button onClick={limparFiltros} className="h-12 px-6 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" /> Limpar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Tipo</label>
-          <select className="w-40 h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-200" value={filtros.tipo} onChange={e => setFiltros({ ...filtros, tipo: e.target.value })}>
-            <option value="">Todos</option>
-            <option value="Boas-vindas">Boas-vindas</option>
-            <option value="Comercial">Comercial</option>
-            <option value="Chamar Cliente">Chamar Cliente</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
-          <select className="w-36 h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-200" value={filtros.status} onChange={e => setFiltros({ ...filtros, status: e.target.value })}>
-            <option value="">Todos</option>
-            <option value="success">Enviado</option>
-            <option value="error">Erro</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Data Inicial</label>
-          <input type="date" className="w-36 h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-200" value={filtros.dataInicial} onChange={e => setFiltros({ ...filtros, dataInicial: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Data Final</label>
-          <input type="date" className="w-36 h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-200" value={filtros.dataFinal} onChange={e => setFiltros({ ...filtros, dataFinal: e.target.value })} />
-        </div>
-        <div className="flex gap-2 items-center mt-2 md:mt-0">
-          <button onClick={() => exportToCSV(mensagensFiltradas)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 transition"><Download className="w-4 h-4" /> Exportar CSV</button>
-          {filtrosAtivos && <button onClick={limparFiltros} className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-500 hover:text-red-600"><Trash2 className="w-4 h-4" /> Limpar</button>}
-        </div>
-      </div>
       {/* Tabela visual no padrão contas cadastradas */}
       {loading ? (
         <div className="text-center text-gray-500">Carregando...</div>

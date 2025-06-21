@@ -390,57 +390,58 @@ export const contasBTGService = {
 
   async listarContasBTG(filtros = {}) {
     try {
-      console.log('Listando contas BTG com filtros:', filtros);
-      
-      // Iniciar com uma query básica
-      let q = collection(db, COLECAO_CONTAS_BTG);
-      
-      // Construir a query com os filtros disponíveis
-      if (filtros.unidade && filtros.unidade !== 'Geral') {
-        if (filtros.status) {
-          // Usar o índice composto com status
-          q = query(q, 
-            where('unidade', '==', filtros.unidade),
-            where('status', '==', filtros.status),
-            orderBy('vencimento', 'desc')
-          );
-        } else {
-          // Usar o índice básico
-          q = query(q, 
-            where('unidade', '==', filtros.unidade),
-            orderBy('vencimento', 'desc')
-          );
-        }
-      } else {
-        // Caso contrário, apenas ordenar por data
-        q = query(q, orderBy('vencimento', 'desc'));
-      }
-      
-      // Executar a query
-      const snapshot = await getDocs(q);
+      // Buscar todos os documentos
+      const querySnapshot = await getDocs(collection(db, COLECAO_CONTAS_BTG));
       
       // Mapear os resultados
-      let contas = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        vencimento: doc.data().vencimento?.toDate(),
-        dataCriacao: doc.data().dataCriacao?.toDate(),
-        dataAtualizacao: doc.data().dataAtualizacao?.toDate(),
-        dataPagamento: doc.data().dataPagamento?.toDate()
-      }));
+      let contas = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          vencimento: data.vencimento?.toDate ? data.vencimento.toDate() : data.vencimento,
+          dataCriacao: data.dataCriacao?.toDate ? data.dataCriacao.toDate() : data.dataCriacao,
+          dataAtualizacao: data.dataAtualizacao?.toDate ? data.dataAtualizacao.toDate() : data.dataAtualizacao,
+          dataPagamento: data.dataPagamento?.toDate ? data.dataPagamento.toDate() : data.dataPagamento
+        };
+      });
 
-      // Aplicar filtros adicionais em memória
+      // Aplicar filtros em memória
+      if (filtros.status && filtros.status !== '') {
+        contas = contas.filter(c => c.status === filtros.status);
+      }
+      
+      if (filtros.unidade && filtros.unidade !== 'Geral' && filtros.unidade !== '' && filtros.unidade !== 'all' && filtros.unidade !== undefined) {
+        contas = contas.filter(c => c.unidade === filtros.unidade);
+      }
+      
+      if (filtros.tipo && filtros.tipo !== '') {
+        contas = contas.filter(c => c.tipo === filtros.tipo);
+      }
+      
       if (filtros.dataInicial) {
         const dataInicial = new Date(filtros.dataInicial);
-        contas = contas.filter(c => c.vencimento >= dataInicial);
+        contas = contas.filter(c => {
+          const vencimento = c.vencimento ? new Date(c.vencimento) : null;
+          return vencimento && vencimento >= dataInicial;
+        });
       }
       
       if (filtros.dataFinal) {
         const dataFinal = new Date(filtros.dataFinal);
-        contas = contas.filter(c => c.vencimento <= dataFinal);
+        contas = contas.filter(c => {
+          const vencimento = c.vencimento ? new Date(c.vencimento) : null;
+          return vencimento && vencimento <= dataFinal;
+        });
       }
 
-      console.log('Contas BTG encontradas:', contas.length);
+      // Ordenar por vencimento (mais recente primeiro)
+      contas.sort((a, b) => {
+        const dataA = a.vencimento ? new Date(a.vencimento) : new Date(0);
+        const dataB = b.vencimento ? new Date(b.vencimento) : new Date(0);
+        return dataB - dataA;
+      });
+      
       return contas;
     } catch (error) {
       console.error('Erro ao listar contas BTG:', error);

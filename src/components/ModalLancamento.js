@@ -241,13 +241,12 @@ export default function ModalLancamento({
                 Valor *
               </label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                name="valor"
                 value={formData.valor}
                 onChange={(e) => handleInputChange('valor', e.target.value)}
-                placeholder="0,00"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-3 pl-20 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="R$ 0,00"
                 required
               />
             </div>
