@@ -529,7 +529,9 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
             <div className="loading-spinner w-8 h-8"></div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div>
+            {/* Desktop Table - Hidden on mobile */}
+            <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full table-auto">
               <thead className="bg-gray-50">
                 <tr>
@@ -649,6 +651,107 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards - Visible only on mobile */}
+          <div className="md:hidden space-y-4">
+            {filteredUsuarios.map((usuario) => (
+              <div key={usuario.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                      {usuario.nome}
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-2">
+                      {usuario.email}
+                    </p>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        usuario.perfil === 'admin' 
+                          ? 'bg-purple-100 text-purple-800' 
+                          : usuario.perfil === 'manager' 
+                            ? 'bg-blue-100 text-blue-800'
+                            : usuario.perfil === 'operator' 
+                              ? 'bg-green-100 text-green-800'
+                              : usuario.perfil === 'viewer' 
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {usuario.perfil === 'admin' 
+                          ? 'Admin' 
+                          : usuario.perfil === 'manager' 
+                            ? 'Gerente' 
+                            : usuario.perfil === 'operator' 
+                              ? 'Operador' 
+                              : usuario.perfil === 'viewer' 
+                                ? 'Viewer' 
+                                : 'Custom'
+                        }
+                      </span>
+                      <button
+                        onClick={() => toggleUserStatus(usuario)}
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer touch-manipulation ${
+                          usuario.ativo 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {usuario.ativo ? 'Ativo' : 'Inativo'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-1 ml-2">
+                    <button
+                      onClick={() => handleEdit(usuario)}
+                      className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation"
+                      title="Editar usuário"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => enviarEmailRedefinicaoSenha(usuario.email)}
+                      className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors touch-manipulation"
+                      title="Enviar email para redefinir senha"
+                    >
+                      <Mail className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(usuario.id)}
+                      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors touch-manipulation"
+                      title="Excluir usuário"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 text-xs text-gray-600">
+                  <div>
+                    <span className="font-medium">Unidades:</span> {usuario.perfil === 'admin' 
+                      ? '🏢 Todas as unidades' 
+                      : (usuario.unidades || []).join(', ') || 'Nenhuma unidade'
+                    }
+                  </div>
+                  <div>
+                    <span className="font-medium">Permissões:</span> {usuario.permissions && usuario.permissions.length > 0 ? (
+                      <span className="inline-block ml-1">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                          {usuario.permissions.length} permissões
+                        </span>
+                        {usuario.perfil === 'custom' && (
+                          <span className="ml-1 px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                            Personalizado
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">Nenhuma</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
             {filteredUsuarios.length === 0 && (
               <div className="text-center py-8 text-gray-500">

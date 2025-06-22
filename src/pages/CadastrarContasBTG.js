@@ -224,7 +224,7 @@ const CadastrarContasBTG = () => {
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/44 números</p>
               </div>
               
-              <div className="form-group">
+              <div className="form-group relative">
                 <label className="block text-gray-700 text-sm font-semibold mb-2">Valor *</label>
                 <input 
                   name="valor" 
@@ -233,7 +233,7 @@ const CadastrarContasBTG = () => {
                   placeholder="0,00" 
                   className="input-field w-full p-3 sm:p-2 pl-12 border rounded-lg text-sm touch-manipulation"
                 />
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm pointer-events-none">R$</span>
+                <span className="absolute left-3 top-[42px] text-gray-500 text-sm pointer-events-none">R$</span>
               </div>
               
               <div className="form-group">

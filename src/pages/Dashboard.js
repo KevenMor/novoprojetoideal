@@ -337,68 +337,68 @@ export default function Dashboard() {
 
         {/* Contas Cadastradas */}
         <div
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md hover:border-green-200 transition-all duration-200 group"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 cursor-pointer hover:shadow-md hover:border-green-200 transition-all duration-200 group touch-manipulation"
           onClick={() => navigate('/historico-contas-btg')}
           title="Ver contas BTG"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
-              <CreditCard className="h-6 w-6 text-green-600" />
+          <div className="flex flex-col sm:flex-row items-center sm:justify-between mb-2 sm:mb-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors mb-2 sm:mb-0">
+              <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-gray-900">{dashboardStats.contasAtivas}</p>
-              <p className="text-sm text-gray-500">Contas</p>
+            <div className="text-center sm:text-right">
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardStats.contasAtivas}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Contas</p>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-600">Contas Cadastradas</p>
+          <div className="flex flex-col sm:flex-row items-center sm:justify-between">
+            <p className="text-xs sm:text-sm font-medium text-gray-600 text-center sm:text-left mb-1 sm:mb-0">Contas Cadastradas</p>
             <div className="flex items-center text-green-600">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              <span className="text-sm font-medium">+100%</span>
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <span className="text-xs sm:text-sm font-medium">+100%</span>
             </div>
           </div>
         </div>
 
         {/* Cobranças Ativas */}
         <div
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md hover:border-purple-200 transition-all duration-200 group"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 cursor-pointer hover:shadow-md hover:border-purple-200 transition-all duration-200 group touch-manipulation"
           onClick={() => navigate('/cobrancas')}
           title="Ver cobranças"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-              <Receipt className="h-6 w-6 text-purple-600" />
+          <div className="flex flex-col sm:flex-row items-center sm:justify-between mb-2 sm:mb-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors mb-2 sm:mb-0">
+              <Receipt className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-gray-900">{dashboardStats.cobrancas}</p>
-              <p className="text-sm text-gray-500">Cobranças</p>
+            <div className="text-center sm:text-right">
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardStats.cobrancas}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Cobranças</p>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-600">Cobranças Ativas</p>
+          <div className="flex flex-col sm:flex-row items-center sm:justify-between">
+            <p className="text-xs sm:text-sm font-medium text-gray-600 text-center sm:text-left mb-1 sm:mb-0">Cobranças Ativas</p>
             <div className="flex items-center text-gray-500">
-              <span className="text-sm font-medium">Estável</span>
+              <span className="text-xs sm:text-sm font-medium">Estável</span>
             </div>
           </div>
         </div>
 
         {/* Saldo (Extratos) */}
         <div
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md hover:border-orange-200 transition-all duration-200 group"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 cursor-pointer hover:shadow-md hover:border-orange-200 transition-all duration-200 group touch-manipulation"
           onClick={() => navigate('/extratos')}
           title="Ver extratos"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="h-12 w-12 bg-orange-100 rounded-xl flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-              <BarChart3 className="h-6 w-6 text-orange-600" />
+          <div className="flex flex-col sm:flex-row items-center sm:justify-between mb-2 sm:mb-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 bg-orange-100 rounded-xl flex items-center justify-center group-hover:bg-orange-200 transition-colors mb-2 sm:mb-0">
+              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(dashboardStats.saldo)}</p>
-              <p className="text-sm text-gray-500">Saldo</p>
+            <div className="text-center sm:text-right">
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(dashboardStats.saldo)}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Saldo</p>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-600">
+          <div className="flex flex-col sm:flex-row items-center sm:justify-between">
+            <p className="text-xs sm:text-sm font-medium text-gray-600 text-center sm:text-left">
               Saldo Atual
               {!showAllTime && (
                 <span className="block text-xs text-gray-400 mt-1">
@@ -406,9 +406,9 @@ export default function Dashboard() {
                 </span>
               )}
             </p>
-            <div className="flex items-center text-blue-600">
-              <Calendar className="h-4 w-4 mr-1" />
-              <span className="text-sm font-medium">
+            <div className="flex items-center text-blue-600 mt-1 sm:mt-0">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <span className="text-xs sm:text-sm font-medium">
                 {showAllTime ? 'Total' : 'Mensal'}
               </span>
             </div>

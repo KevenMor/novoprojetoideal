@@ -825,34 +825,89 @@ export default function Extratos() {
                 {formatarDataCompleta(dia)} - Saldo do dia: {formatCurrency(grupo.saldoDia)}
               </div>
               <div className="bg-white rounded-b-lg shadow overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="w-8 px-4 py-2">
-                        <input
-                          type="checkbox"
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelecionados(extratos.map(ext => ext.id));
-                            } else {
-                              setSelecionados([]);
-                            }
-                          }}
-                          checked={selecionados.length === extratos.length && extratos.length > 0}
-                        />
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidade</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {grupo.extratos.map(extrato => (
-                      <tr key={extrato.id} className={`hover:bg-gray-50 ${extrato.status === 'DELETED' ? 'bg-red-50 opacity-60' : ''}`}>
-                        <td className="px-4 py-2">
+                {/* Desktop Table - Hidden on mobile */}
+                <div className="hidden md:block">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="w-8 px-4 py-2">
+                          <input
+                            type="checkbox"
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelecionados(extratos.map(ext => ext.id));
+                              } else {
+                                setSelecionados([]);
+                              }
+                            }}
+                            checked={selecionados.length === extratos.length && extratos.length > 0}
+                          />
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidade</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {grupo.extratos.map(extrato => (
+                        <tr key={extrato.id} className={`hover:bg-gray-50 ${extrato.status === 'DELETED' ? 'bg-red-50 opacity-60' : ''}`}>
+                          <td className="px-4 py-2">
+                            <input
+                              type="checkbox"
+                              checked={selecionados.includes(extrato.id)}
+                              onChange={() => {
+                                setSelecionados(prev => 
+                                  prev.includes(extrato.id)
+                                    ? prev.filter(id => id !== extrato.id)
+                                    : [...prev, extrato.id]
+                                );
+                              }}
+                            />
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-800">{extrato.descricao || extrato.description}</td>
+                          <td className={`px-4 py-2 text-sm font-semibold ${getTipoTransacaoColor(extrato)}`}>
+                            {formatCurrency(extrato.valor || extrato.value)}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-500">{getTipoTransacaoText(extrato)}</td>
+                          <td className="px-4 py-2">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(extrato)}`}>
+                              {getStatusText(extrato)}
+                            </span>
+                          </td>
+                           <td className="px-4 py-2 text-sm text-gray-500">{formatarUnidade(extrato.unidade)}</td>
+                          <td className="px-4 py-2 text-sm">
+                            {extrato.status === 'DELETED' ? (
+                              <button onClick={() => restaurarLancamento(extrato.id)} className="text-blue-600 hover:text-blue-800">
+                                Restaurar
+                              </button>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                {isLancamentoManual(extrato) && (
+                                  <button onClick={() => editarLancamento(extrato)} className="text-blue-600 hover:text-blue-800">
+                                    <Edit3 size={16} />
+                                  </button>
+                                )}
+                                <button onClick={() => excluirLancamento(extrato.id)} className="text-red-600 hover:text-red-800">
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Cards - Visible only on mobile */}
+                <div className="md:hidden space-y-3 p-3">
+                  {grupo.extratos.map(extrato => (
+                    <div key={extrato.id} className={`bg-gray-50 rounded-lg p-4 border ${extrato.status === 'DELETED' ? 'bg-red-50 opacity-60 border-red-200' : 'border-gray-200'}`}>
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start space-x-3">
                           <input
                             type="checkbox"
                             checked={selecionados.includes(extrato.id)}
@@ -863,41 +918,63 @@ export default function Extratos() {
                                   : [...prev, extrato.id]
                               );
                             }}
+                            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
-                        </td>
-                        <td className="px-4 py-2 text-sm text-gray-800">{extrato.descricao || extrato.description}</td>
-                        <td className={`px-4 py-2 text-sm font-semibold ${getTipoTransacaoColor(extrato)}`}>
-                          {formatCurrency(extrato.valor || extrato.value)}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-gray-500">{getTipoTransacaoText(extrato)}</td>
-                        <td className="px-4 py-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(extrato)}`}>
-                            {getStatusText(extrato)}
-                          </span>
-                        </td>
-                         <td className="px-4 py-2 text-sm text-gray-500">{formatarUnidade(extrato.unidade)}</td>
-                        <td className="px-4 py-2 text-sm">
-                          {extrato.status === 'DELETED' ? (
-                            <button onClick={() => restaurarLancamento(extrato.id)} className="text-blue-600 hover:text-blue-800">
-                              Restaurar
-                            </button>
-                          ) : (
-                            <div className="flex items-center space-x-2">
-                              {isLancamentoManual(extrato) && (
-                                <button onClick={() => editarLancamento(extrato)} className="text-blue-600 hover:text-blue-800">
-                                  <Edit3 size={16} />
-                                </button>
-                              )}
-                              <button onClick={() => excluirLancamento(extrato.id)} className="text-red-600 hover:text-red-800">
-                                <Trash2 size={16} />
-                              </button>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-medium text-gray-900 mb-1">
+                              {extrato.descricao || extrato.description}
+                            </h4>
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className={`text-lg font-bold ${getTipoTransacaoColor(extrato)}`}>
+                                {formatCurrency(extrato.valor || extrato.value)}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {getTipoTransacaoText(extrato)}
+                              </span>
                             </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(extrato)}`}>
+                                  {getStatusText(extrato)}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {formatarUnidade(extrato.unidade)}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                {extrato.status === 'DELETED' ? (
+                                  <button 
+                                    onClick={() => restaurarLancamento(extrato.id)} 
+                                    className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation"
+                                  >
+                                    <CheckCircle size={16} />
+                                  </button>
+                                ) : (
+                                  <>
+                                    {isLancamentoManual(extrato) && (
+                                      <button 
+                                        onClick={() => editarLancamento(extrato)} 
+                                        className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation"
+                                      >
+                                        <Edit3 size={16} />
+                                      </button>
+                                    )}
+                                    <button 
+                                      onClick={() => excluirLancamento(extrato.id)} 
+                                      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors touch-manipulation"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           ))
