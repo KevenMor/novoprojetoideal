@@ -21,7 +21,7 @@ export default function MainLayout({ children }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 touch-manipulation">
       {/* Skip to main content link for accessibility */}
       <a href="#main-content" className="skip-link">
         Pular para o conteúdo principal
@@ -39,11 +39,12 @@ export default function MainLayout({ children }) {
             flex-1 flex flex-col layout-transition
             ${isMobile ? 'w-full' : 'lg:ml-0'}
             ${sidebarOpen && isMobile ? 'overflow-hidden' : ''}
+            touch-manipulation
           `}
         >
           {/* Content Container */}
-          <div className="flex-1 overflow-auto">
-            <div className="main-content py-6 lg:py-8">
+          <div className="flex-1 overflow-auto touch-manipulation">
+            <div className="main-content py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-8">
               <div className="animate-fade-in-up">
                 {children}
               </div>

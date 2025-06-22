@@ -310,27 +310,27 @@ export default function Dashboard() {
       </div>
 
       {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
         {/* Mensagens Enviadas */}
         <div
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200 group"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200 group touch-manipulation"
           onClick={() => navigate('/mensagem')}
           title="Ver mensagens enviadas"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-              <MessageSquare className="h-6 w-6 text-blue-600" />
+          <div className="flex flex-col sm:flex-row items-center sm:justify-between mb-2 sm:mb-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors mb-2 sm:mb-0">
+              <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-gray-900">{dashboardStats.mensagens}</p>
-              <p className="text-sm text-gray-500">Mensagens</p>
+            <div className="text-center sm:text-right">
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardStats.mensagens}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Mensagens</p>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-600">Mensagens Enviadas</p>
+          <div className="flex flex-col sm:flex-row items-center sm:justify-between">
+            <p className="text-xs sm:text-sm font-medium text-gray-600 text-center sm:text-left mb-1 sm:mb-0">Mensagens Enviadas</p>
             <div className="flex items-center text-green-600">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              <span className="text-sm font-medium">+100%</span>
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <span className="text-xs sm:text-sm font-medium">+100%</span>
             </div>
           </div>
         </div>
@@ -417,7 +417,7 @@ export default function Dashboard() {
       </div>
 
       {/* Grid de conteúdo */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Atividades Recentes */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
           <div className="p-6 border-b border-gray-100">
@@ -464,20 +464,20 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold text-gray-900">Ações Rápidas</h2>
           </div>
           <div className="p-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {quickActions.map((action, index) => {
                 const Icon = action.icon;
                 return (
                   <button
                     key={index}
                     onClick={() => navigate(action.href)}
-                    className="p-4 border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all duration-200 text-left group"
+                    className="p-3 sm:p-4 border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all duration-200 text-left group touch-manipulation"
                   >
-                    <div className={`h-10 w-10 rounded-lg ${getIconBgClasses(action.color)} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                      <Icon className="h-5 w-5 text-white" />
+                    <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg ${getIconBgClasses(action.color)} flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform`}>
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                     </div>
-                    <h3 className="font-medium text-gray-900 text-sm">{action.name}</h3>
-                    <p className="text-xs text-gray-500 mt-1">{action.description}</p>
+                    <h3 className="font-medium text-gray-900 text-xs sm:text-sm">{action.name}</h3>
+                    <p className="text-xs text-gray-500 mt-1 hidden sm:block">{action.description}</p>
                   </button>
                 );
               })}

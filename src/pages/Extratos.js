@@ -601,35 +601,38 @@ export default function Extratos() {
   console.log('👤 Status do usuário:', { isAdmin, user });
 
   return (
-    <div className="page-container-xl space-y-8">
+    <div className="page-container-xl space-y-6 sm:space-y-8">
       {/* Cabeçalho com título e botões de ação */}
-      <div className="flex-mobile flex-mobile-row justify-between mb-6">
-        <h1 className="text-mobile-lg font-bold">Extratos Financeiros</h1>
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold">Extratos Financeiros</h1>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           {isAdmin && (
             <>
               <button
                 onClick={() => setMostrarModalReceita(true)}
-                className="btn-mobile btn-mobile-primary bg-green-500 hover:bg-green-600 flex items-center gap-2"
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-3 sm:py-2 rounded-lg flex items-center justify-center gap-2 text-sm sm:text-base transition-colors touch-manipulation"
               >
                 <TrendingUp size={16} />
-                <span className="hide-mobile">Nova</span> Receita
+                <span className="sm:hidden">Nova Receita</span>
+                <span className="hidden sm:inline">Nova Receita</span>
               </button>
               <button
                 onClick={() => setMostrarModalDespesa(true)}
-                className="btn-mobile btn-mobile-primary bg-red-500 hover:bg-red-600 flex items-center gap-2"
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-3 sm:py-2 rounded-lg flex items-center justify-center gap-2 text-sm sm:text-base transition-colors touch-manipulation"
               >
                 <TrendingDown size={16} />
-                <span className="hide-mobile">Nova</span> Despesa
+                <span className="sm:hidden">Nova Despesa</span>
+                <span className="hidden sm:inline">Nova Despesa</span>
               </button>
             </>
           )}
           <button
             onClick={exportarCSV}
-            className="btn-mobile btn-mobile-primary bg-green-600 hover:bg-green-700 flex items-center gap-2"
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 sm:py-2 rounded-lg flex items-center justify-center gap-2 text-sm sm:text-base transition-colors touch-manipulation"
           >
             <FileSpreadsheet size={16} />
-            <span className="hide-mobile">Exportar</span>
+            <span className="sm:hidden">Exportar</span>
+            <span className="hidden sm:inline">Exportar</span>
           </button>
           
           {/* Ações em Lote Dropdown */}
@@ -751,51 +754,51 @@ export default function Extratos() {
       </div>
 
       {/* Cards de Estatísticas */}
-      <div className="stats-grid mb-8">
-        <div className="card-mobile">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-mobile-sm text-gray-500">
-                {mostrarExcluidos ? 'Receitas Excluídas' : 'Total de Receitas'}
+              <p className="text-xs sm:text-sm text-gray-500">
+                {mostrarExcluidos ? 'Receitas Excluídas' : 'Receitas'}
               </p>
-              <p className="text-mobile-lg font-bold text-green-500">{formatCurrency(estatisticas.receitas)}</p>
+              <p className="text-lg sm:text-2xl font-bold text-green-500">{formatCurrency(estatisticas.receitas)}</p>
             </div>
-            <TrendingUp size={20} className="text-green-500" />
+            <TrendingUp size={18} className="text-green-500 sm:w-5 sm:h-5" />
           </div>
         </div>
-        <div className="card-mobile">
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-mobile-sm text-gray-500">
-                {mostrarExcluidos ? 'Despesas Excluídas' : 'Total de Despesas'}
+              <p className="text-xs sm:text-sm text-gray-500">
+                {mostrarExcluidos ? 'Despesas Excluídas' : 'Despesas'}
               </p>
-              <p className="text-mobile-lg font-bold text-red-500">{formatCurrency(estatisticas.despesas)}</p>
+              <p className="text-lg sm:text-2xl font-bold text-red-500">{formatCurrency(estatisticas.despesas)}</p>
             </div>
-            <TrendingDown size={20} className="text-red-500" />
+            <TrendingDown size={18} className="text-red-500 sm:w-5 sm:h-5" />
           </div>
         </div>
-        <div className="card-mobile">
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-mobile-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 {mostrarExcluidos ? 'Saldo Excluído' : 'Saldo'}
               </p>
-              <p className={`text-mobile-lg font-bold ${estatisticas.saldo >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <p className={`text-lg sm:text-2xl font-bold ${estatisticas.saldo >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {formatCurrency(estatisticas.saldo)}
               </p>
             </div>
-            <BarChart3 size={20} className={estatisticas.saldo >= 0 ? 'text-green-500' : 'text-red-500'} />
+            <BarChart3 size={18} className={`${estatisticas.saldo >= 0 ? 'text-green-500' : 'text-red-500'} sm:w-5 sm:h-5`} />
           </div>
         </div>
-        <div className="card-mobile">
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-mobile-sm text-gray-500">
-                {mostrarExcluidos ? 'Transações Excluídas' : 'Total de Transações'}
+              <p className="text-xs sm:text-sm text-gray-500">
+                {mostrarExcluidos ? 'Transações Excluídas' : 'Transações'}
               </p>
-              <p className="text-mobile-lg font-bold text-blue-500">{estatisticas.transacoes}</p>
+              <p className="text-lg sm:text-2xl font-bold text-blue-500">{estatisticas.transacoes}</p>
             </div>
-            <Target size={24} className="text-blue-500" />
+            <Target size={18} className="text-blue-500 sm:w-6 sm:h-6" />
           </div>
         </div>
       </div>

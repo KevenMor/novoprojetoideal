@@ -60,13 +60,13 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
               {/* Mobile menu button */}
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 lg:hidden transition-all duration-200"
+                className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 lg:hidden transition-all duration-200 touch-manipulation"
                 aria-label="Toggle menu"
               >
                 {sidebarOpen ? (
-                  <X className="h-5 w-5" />
+                  <X className="h-6 w-6" />
                 ) : (
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-6 w-6" />
                 )}
               </button>
               {/* Logo */}
@@ -81,8 +81,8 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
             <div className="flex items-center space-x-3">
               {/* Notifications */}
               <div className="relative">
-                <button onClick={() => setNotifOpen(v => !v)} className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200">
-                  <Bell className="h-5 w-5" />
+                <button onClick={() => setNotifOpen(v => !v)} className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 touch-manipulation">
+                  <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                       {unreadCount}
@@ -90,7 +90,7 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
                   )}
                 </button>
                 {notifOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 max-h-96 overflow-y-auto">
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 max-h-96 overflow-y-auto">
                     <div className="px-4 py-2 border-b border-gray-100 font-semibold text-gray-900">Notificações</div>
                     {notifications.length === 0 && (
                       <div className="px-4 py-6 text-gray-500 text-sm text-center">Nenhuma notificação</div>
@@ -122,7 +122,7 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
                 )}
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-all duration-200"
+                  className="flex items-center space-x-2 sm:space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-all duration-200 touch-manipulation"
                 >
                   <div className="hidden md:flex flex-col items-end text-right">
                     <p className="text-sm font-medium text-gray-900">

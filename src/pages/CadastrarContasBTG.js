@@ -177,32 +177,32 @@ const CadastrarContasBTG = () => {
 
   return (
     <div className="page-container-xl">
-      <div className="w-full bg-white p-8 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-2">Cadastrar Contas BTG</h1>
-        <p className="text-gray-600 mb-6">Cadastre contas para pagamento via boleto ou PIX.</p>
+      <div className="w-full bg-white p-4 sm:p-8 rounded-lg shadow-md">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2">Cadastrar Contas BTG</h1>
+        <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">Cadastre contas para pagamento via boleto ou PIX.</p>
         
-        <div className="mb-4">
+        <div className="mb-4 sm:mb-6">
           <label className="block text-gray-700 text-sm font-bold mb-2">Unidade</label>
           <UnitSelector />
         </div>
 
         <form onSubmit={handleSubmit}>
           {/* TIPO DE PAGAMENTO */}
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Tipo de Pagamento *</label>
-            <div className="flex gap-4">
-               <button type="button" onClick={() => setTipo('boleto')} className={`flex-1 p-4 border-2 rounded-lg text-left transition-colors flex items-center ${tipo === 'boleto' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                <FileText className="h-6 w-6 text-blue-600 mr-3" />
+          <div className="mb-4 sm:mb-6">
+            <label className="block text-gray-700 text-sm font-bold mb-3">Tipo de Pagamento *</label>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+               <button type="button" onClick={() => setTipo('boleto')} className={`flex-1 p-3 sm:p-4 border-2 rounded-lg text-left transition-colors flex items-center touch-manipulation ${tipo === 'boleto' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 mr-3" />
                 <div>
-                  <div className="font-medium">Boleto</div>
-                  <div className="text-sm text-gray-500">Linha digitável</div>
+                  <div className="font-medium text-sm sm:text-base">Boleto</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Linha digitável</div>
                 </div>
               </button>
-              <button type="button" onClick={() => setTipo('pix')} className={`flex-1 p-4 border-2 rounded-lg text-left transition-colors flex items-center ${tipo === 'pix' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                <Smartphone className="h-6 w-6 text-green-600 mr-3" />
+              <button type="button" onClick={() => setTipo('pix')} className={`flex-1 p-3 sm:p-4 border-2 rounded-lg text-left transition-colors flex items-center touch-manipulation ${tipo === 'pix' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                <Smartphone className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mr-3" />
                  <div>
-                  <div className="font-medium">PIX</div>
-                  <div className="text-sm text-gray-500">Chave PIX</div>
+                  <div className="font-medium text-sm sm:text-base">PIX</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Chave PIX</div>
                 </div>
               </button>
             </div>
@@ -210,65 +210,158 @@ const CadastrarContasBTG = () => {
 
           {/* FORMULÁRIO BOLETO */}
           {tipo === 'boleto' && (
-            <div className="space-y-4">
-              <input 
-                name="linhaDigitavel" 
-                value={boletoData.linhaDigitavel} 
-                onChange={(e) => handleChange(e, 'boleto')} 
-                placeholder="Linha Digitável (44 números) *" 
-                className="input-field w-full p-2 border rounded"
-                maxLength="44"
-              />
+            <div className="space-y-4 sm:space-y-6">
               <div className="form-group">
-                <label>Valor</label>
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Linha Digitável *</label>
+                <input 
+                  name="linhaDigitavel" 
+                  value={boletoData.linhaDigitavel} 
+                  onChange={(e) => handleChange(e, 'boleto')} 
+                  placeholder="Digite os 44 números da linha digitável" 
+                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                  maxLength="44"
+                />
+                <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/44 números</p>
+              </div>
+              
+              <div className="form-group">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Valor *</label>
                 <input 
                   name="valor" 
                   value={boletoData.valor} 
                   onChange={(e) => handleChange(e, 'boleto')} 
-                  placeholder="R$ 0,00" 
-                  className="input-field w-full p-2 pl-20 border rounded"
+                  placeholder="0,00" 
+                  className="input-field w-full p-3 sm:p-2 pl-12 border rounded-lg text-sm touch-manipulation"
+                />
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm pointer-events-none">R$</span>
+              </div>
+              
+              <div className="form-group">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Data de Vencimento *</label>
+                <input 
+                  type="date" 
+                  name="vencimento" 
+                  value={boletoData.vencimento} 
+                  onChange={(e) => handleChange(e, 'boleto')} 
+                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
                 />
               </div>
-              <input type="date" name="vencimento" value={boletoData.vencimento} onChange={(e) => handleChange(e, 'boleto')} placeholder="Vencimento *" className="input-field w-full p-2 border rounded"/>
-              <input name="descricao" value={boletoData.descricao} onChange={(e) => handleChange(e, 'boleto')} placeholder="Descrição *" className="input-field w-full p-2 border rounded"/>
+              
+              <div className="form-group">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Descrição *</label>
+                <input 
+                  name="descricao" 
+                  value={boletoData.descricao} 
+                  onChange={(e) => handleChange(e, 'boleto')} 
+                  placeholder="Ex: Conta de luz, Aluguel, etc." 
+                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                />
+              </div>
             </div>
           )}
 
           {/* FORMULÁRIO PIX */}
           {tipo === 'pix' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <select name="tipoChave" value={pixData.tipoChave} onChange={(e) => handleChange(e, 'pix')} className="input-field w-full p-2 border rounded">
-                  <option value="celular">Celular</option>
-                  <option value="CPF">CPF</option>
-                  <option value="CNPJ">CNPJ</option>
-                  <option value="email">E-mail</option>
-                  <option value="aleatoria">Aleatória</option>
-                </select>
-                <input name="chavePix" value={pixData.chavePix} onChange={(e) => handleChange(e, 'pix')} placeholder="Chave PIX *" className="input-field w-full p-2 border rounded"/>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <input name="favorecido" value={pixData.favorecido} onChange={(e) => handleChange(e, 'pix')} placeholder="Nome do Favorecido *" className="input-field w-full p-2 border rounded"/>
-                <input name="cpfCnpjFavorecido" value={pixData.cpfCnpjFavorecido} onChange={(e) => handleChange(e, 'pix')} placeholder="CPF/CNPJ do Favorecido *" className="input-field w-full p-2 border rounded"/>
-              </div>
+            <div className="space-y-4 sm:space-y-6">
               <div className="form-group">
-                <label>Valor</label>
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Tipo de Chave PIX *</label>
+                <select 
+                  name="tipoChave" 
+                  value={pixData.tipoChave} 
+                  onChange={(e) => handleChange(e, 'pix')} 
+                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                >
+                  <option value="celular">📱 Celular</option>
+                  <option value="CPF">🆔 CPF</option>
+                  <option value="CNPJ">🏢 CNPJ</option>
+                  <option value="email">📧 E-mail</option>
+                  <option value="aleatoria">🔀 Chave Aleatória</option>
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Chave PIX *</label>
+                <input 
+                  name="chavePix" 
+                  value={pixData.chavePix} 
+                  onChange={(e) => handleChange(e, 'pix')} 
+                  placeholder="Digite a chave PIX do favorecido" 
+                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Nome do Favorecido *</label>
+                <input 
+                  name="favorecido" 
+                  value={pixData.favorecido} 
+                  onChange={(e) => handleChange(e, 'pix')} 
+                  placeholder="Nome completo do favorecido" 
+                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">CPF/CNPJ do Favorecido *</label>
+                <input 
+                  name="cpfCnpjFavorecido" 
+                  value={pixData.cpfCnpjFavorecido} 
+                  onChange={(e) => handleChange(e, 'pix')} 
+                  placeholder="000.000.000-00 ou 00.000.000/0000-00" 
+                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                />
+              </div>
+              
+              <div className="form-group relative">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Valor *</label>
                 <input 
                   name="valor" 
                   value={pixData.valor} 
                   onChange={(e) => handleChange(e, 'pix')} 
-                  placeholder="R$ 0,00" 
-                  className="input-field w-full p-2 pl-20 border rounded"
+                  placeholder="0,00" 
+                  className="input-field w-full p-3 sm:p-2 pl-12 border rounded-lg text-sm touch-manipulation"
+                />
+                <span className="absolute left-3 top-[42px] text-gray-500 text-sm pointer-events-none">R$</span>
+              </div>
+              
+              <div className="form-group">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Data de Vencimento *</label>
+                <input 
+                  type="date" 
+                  name="vencimento" 
+                  value={pixData.vencimento} 
+                  onChange={(e) => handleChange(e, 'pix')} 
+                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
                 />
               </div>
-              <input type="date" name="vencimento" value={pixData.vencimento} onChange={(e) => handleChange(e, 'pix')} placeholder="Vencimento *" className="input-field w-full p-2 border rounded"/>
-              <input name="descricao" value={pixData.descricao} onChange={(e) => handleChange(e, 'pix')} placeholder="Descrição *" className="input-field w-full p-2 border rounded"/>
+              
+              <div className="form-group">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Descrição *</label>
+                <input 
+                  name="descricao" 
+                  value={pixData.descricao} 
+                  onChange={(e) => handleChange(e, 'pix')} 
+                  placeholder="Ex: Pagamento fornecedor, Serviços, etc." 
+                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                />
+              </div>
             </div>
           )}
 
-          <div className="mt-8">
-            <button type="submit" disabled={loading} className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
-              {loading ? 'Cadastrando...' : 'Cadastrar Conta'}
+          <div className="mt-6 sm:mt-8">
+            <button 
+              type="submit" 
+              disabled={loading} 
+              className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-4 sm:py-3 px-4 rounded-lg text-base sm:text-sm focus:outline-none focus:shadow-outline transition-all duration-200 touch-manipulation"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Cadastrando...
+                </div>
+              ) : (
+                'Cadastrar Conta'
+              )}
             </button>
           </div>
         </form>

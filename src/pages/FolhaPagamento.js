@@ -529,100 +529,178 @@ export default function FolhaPagamento() {
   };
 
   return (
-    <div className="page-container-xl space-y-8">
-      <div className="flex-mobile flex-mobile-row justify-between mb-6">
-        <h1 className="text-mobile-lg font-bold">Folha de Pagamento</h1>
-        <div className="flex flex-wrap gap-2">
+    <div className="page-container-xl space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold">Folha de Pagamento</h1>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={handleAbrirModal}
-            className="btn-mobile btn-mobile-primary bg-blue-500 hover:bg-blue-600 flex items-center gap-2"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 sm:py-2 rounded-lg flex items-center justify-center gap-2 text-sm sm:text-base transition-colors touch-manipulation"
           >
             <Plus size={16} />
-            <span className="hide-mobile">Adicionar</span> Funcionário
+            <span className="sm:hidden">Adicionar Funcionário</span>
+            <span className="hidden sm:inline">Adicionar Funcionário</span>
           </button>
           <button
             onClick={handleAbrirModalLote}
-            className="btn-mobile btn-mobile-primary bg-green-600 hover:bg-green-700 flex items-center gap-2"
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 sm:py-2 rounded-lg flex items-center justify-center gap-2 text-sm sm:text-base transition-colors touch-manipulation"
           >
             <Calendar size={16} />
-            <span className="hide-mobile">Programar</span> Lote
+            <span className="sm:hidden">Programar Lote</span>
+            <span className="hidden sm:inline">Programar Lote</span>
           </button>
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">Buscar funcionário</label>
-        <input
-          type="text"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Digite o nome, CPF ou CNPJ do funcionário..."
-          className="form-input-mobile w-full"
-        />
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Digite o nome, CPF ou CNPJ do funcionário..."
+            className="w-full pl-10 pr-4 py-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base touch-manipulation"
+          />
+        </div>
       </div>
 
       {loading ? (
-        <div className="card-mobile text-center">
-          <p className="text-mobile-base">Carregando...</p>
+        <div className="bg-white p-6 rounded-lg shadow text-center">
+          <p className="text-gray-500">Carregando...</p>
         </div>
       ) : (
-        <div className="table-mobile-container">
-          <table className="table-mobile">
-            <thead>
-              <tr>
-                <th className="text-mobile-xs">Nome</th>
-                <th className="text-mobile-xs">CPF/CNPJ</th>
-                <th className="text-mobile-xs">Salário</th>
-                <th className="text-mobile-xs">Adiantamento</th>
-                <th className="text-mobile-xs">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {funcionariosFiltrados.map((funcionario) => (
-                <tr key={funcionario.id}>
-                  <td className="text-mobile-sm">{capitalizeName(funcionario.nome)}</td>
-                  <td className="text-mobile-sm">{formatDocumento(funcionario.cpf || funcionario.cnpj)}</td>
-                  <td>
-                    <input
-                      type="text"
-                      value={funcionario.salario}
-                      onChange={(e) => handleFuncionarioChange(funcionario.id, 'salario', e.target.value)}
-                      onBlur={() => handleSalvarAlteracao(funcionario.id, 'salario')}
-                      className="form-input-mobile p-1 pl-20 text-mobile-sm"
-                      placeholder="R$ 0,00"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      value={funcionario.adiantamento}
-                      onChange={(e) => handleFuncionarioChange(funcionario.id, 'adiantamento', e.target.value)}
-                      onBlur={() => handleSalvarAlteracao(funcionario.id, 'adiantamento')}
-                      className="form-input-mobile p-1 pl-20 text-mobile-sm"
-                      placeholder="R$ 0,00"
-                    />
-                  </td>
-                  <td>
+        <>
+          {/* Versão Desktop - Tabela */}
+          <div className="hidden lg:block bg-white rounded-lg shadow overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPF/CNPJ</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salário</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Adiantamento</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {funcionariosFiltrados.map((funcionario) => (
+                  <tr key={funcionario.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{capitalizeName(funcionario.nome)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDocumento(funcionario.cpf || funcionario.cnpj)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="text"
+                        value={funcionario.salario}
+                        onChange={(e) => handleFuncionarioChange(funcionario.id, 'salario', e.target.value)}
+                        onBlur={() => handleSalvarAlteracao(funcionario.id, 'salario')}
+                        className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                        placeholder="R$ 0,00"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="text"
+                        value={funcionario.adiantamento}
+                        onChange={(e) => handleFuncionarioChange(funcionario.id, 'adiantamento', e.target.value)}
+                        onBlur={() => handleSalvarAlteracao(funcionario.id, 'adiantamento')}
+                        className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                        placeholder="R$ 0,00"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleAbrirModal(funcionario)} 
+                          className="text-indigo-600 hover:text-indigo-900"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleExcluirFuncionario(funcionario)} 
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Versão Mobile - Cards */}
+          <div className="lg:hidden space-y-4">
+            {funcionariosFiltrados.length === 0 ? (
+              <div className="bg-white p-6 rounded-lg shadow text-center">
+                <p className="text-gray-500">Nenhum funcionário encontrado.</p>
+              </div>
+            ) : (
+              funcionariosFiltrados.map((funcionario) => (
+                <div key={funcionario.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  {/* Header do card */}
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-semibold text-lg text-gray-900">{capitalizeName(funcionario.nome)}</h3>
+                      <p className="text-sm text-gray-500">{formatDocumento(funcionario.cpf || funcionario.cnpj)}</p>
+                    </div>
                     <div className="flex gap-2">
                       <button 
                         onClick={() => handleAbrirModal(funcionario)} 
-                        className="touch-target text-indigo-600 hover:text-indigo-900"
+                        className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors touch-manipulation"
+                        title="Editar"
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={18} />
                       </button>
                       <button 
                         onClick={() => handleExcluirFuncionario(funcionario)} 
-                        className="touch-target text-red-600 hover:text-red-900"
+                        className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors touch-manipulation"
+                        title="Excluir"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+
+                  {/* Campos editáveis */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Salário</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">R$</span>
+                        <input
+                          type="text"
+                          value={funcionario.salario}
+                          onChange={(e) => handleFuncionarioChange(funcionario.id, 'salario', e.target.value)}
+                          onBlur={() => handleSalvarAlteracao(funcionario.id, 'salario')}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm touch-manipulation"
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Adiantamento</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">R$</span>
+                        <input
+                          type="text"
+                          value={funcionario.adiantamento}
+                          onChange={(e) => handleFuncionarioChange(funcionario.id, 'adiantamento', e.target.value)}
+                          onBlur={() => handleSalvarAlteracao(funcionario.id, 'adiantamento')}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm touch-manipulation"
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
       )}
 
       {/* Modal de Adicionar/Editar Funcionário */}

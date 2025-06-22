@@ -3,6 +3,7 @@
 @import 'tailwindcss/utilities';
 @import './responsive.css';
 @import './responsive-utils.css';
+@import './mobile-webapp.css';
 
 /* CSS Variables for Theme Support */
 :root {
