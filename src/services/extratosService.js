@@ -32,14 +32,69 @@ const normalizarData = (data) => {
 
 async function buscarLancamentosFirebase(filtros) {
   try {
-    let q = query(collection(db, 'lancamentos'), orderBy('data', 'desc'));
-    const snapshot = await getDocs(q);
+    console.log('🔍 Buscando lançamentos do Firebase...');
     
-    let lancamentos = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      origem: 'LANCAMENTO_MANUAL'
-    }));
+    // Tentar buscar por data primeiro, depois por dataLancamento se fallar
+    let q;
+    let snapshot;
+    
+    try {
+      q = query(
+        collection(db, 'lancamentos'), 
+        where('status', 'in', ['ATIVO', 'CONFIRMED']),
+        orderBy('data', 'desc')
+      );
+      snapshot = await getDocs(q);
+    } catch (error) {
+      console.log('📅 Tentando buscar por dataLancamento...');
+      try {
+        q = query(
+          collection(db, 'lancamentos'), 
+          where('status', 'in', ['ATIVO', 'CONFIRMED']),
+          orderBy('dataLancamento', 'desc')
+        );
+        snapshot = await getDocs(q);
+      } catch (error2) {
+        console.log('⚠️ Buscando sem ordenação...');
+        q = query(collection(db, 'lancamentos'), where('status', 'in', ['ATIVO', 'CONFIRMED']));
+        snapshot = await getDocs(q);
+      }
+    }
+    
+    let lancamentos = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Garantir que tenha uma data válida
+        data: data.data || data.dataLancamento,
+        // Preservar a origem original ou definir como manual se não especificada
+        origem: data.origem || 'LANCAMENTO_MANUAL',
+        // Converter tipos de lançamento para compatibilidade com extratos
+        tipo: data.tipo === 'RECEITA' ? 'CREDIT' : data.tipo === 'DESPESA' ? 'DEBIT' : data.tipo
+      };
+    });
+
+    console.log(`✅ ${lancamentos.length} lançamentos encontrados no Firebase`);
+    
+    // Log detalhado de todos os lançamentos (apenas os primeiros 5)
+    if (lancamentos.length > 0) {
+      console.log('📋 Amostra de lançamentos encontrados:');
+      lancamentos.slice(0, 5).forEach(l => {
+        console.log(`  - ID: ${l.id} | Status: ${l.status} | Origem: ${l.origem} | Tipo: ${l.tipo} | Descrição: ${l.descricao} | Valor: ${l.valor} | Unidade: ${l.unidade} | Data: ${l.data}`);
+      });
+    }
+    
+    // Log dos lançamentos automáticos encontrados
+    const automaticos = lancamentos.filter(l => l.origem === 'COBRANCA_AUTOMATICA');
+    if (automaticos.length > 0) {
+      console.log(`🤖 ${automaticos.length} lançamentos automáticos de cobrança encontrados:`);
+      automaticos.forEach(l => {
+        console.log(`  - ID: ${l.id} | Status: ${l.status} | Tipo: ${l.tipo} | Descrição: ${l.descricao} | Valor: R$ ${l.valor} | Unidade: "${l.unidade}" (${l.unidade?.length} chars) | Data: ${l.data}`);
+      });
+    } else {
+      console.log('⚠️ Nenhum lançamento automático de cobrança encontrado');
+    }
 
     return lancamentos;
   } catch (error) {
@@ -143,9 +198,50 @@ async function buscarExtratos(filtros = {}) {
     // 2. Combinar e filtrar
     let todosExtratos = [...extratosSheets, ...extratosFirebase, ...contasBTGPagas];
 
-    // Aplicar filtro de unidade (se não for 'all')
+    console.log(`📊 Total de extratos antes dos filtros: ${todosExtratos.length}`);
+    console.log(`  - Sheets: ${extratosSheets.length}`);
+    console.log(`  - Firebase: ${extratosFirebase.length}`);
+    console.log(`  - BTG: ${contasBTGPagas.length}`);
+    
+    // Verificar se há lançamentos automáticos no total
+    const totalAutomaticos = todosExtratos.filter(ext => ext.origem === 'COBRANCA_AUTOMATICA');
+    console.log(`🤖 Lançamentos automáticos no total: ${totalAutomaticos.length}`);
+
+    // Aplicar filtro de unidade (se não for 'all') - CASE INSENSITIVE
     if (unidade && unidade !== 'all') {
-      todosExtratos = todosExtratos.filter(ext => ext.unidade === unidade);
+      const antesDoFiltro = todosExtratos.length;
+      
+      // Log das unidades encontradas nos extratos para debug
+      const unidadesEncontradas = [...new Set(todosExtratos.map(ext => ext.unidade))];
+      console.log(`🏢 Unidades encontradas nos extratos:`, unidadesEncontradas);
+      console.log(`🔍 Filtrando por unidade: "${unidade}"`);
+      
+      // Filtro case-insensitive
+      todosExtratos = todosExtratos.filter(ext => {
+        const unidadeExtrato = (ext.unidade || '').toString().toLowerCase().trim();
+        const unidadeFiltro = (unidade || '').toString().toLowerCase().trim();
+        const match = unidadeExtrato === unidadeFiltro;
+        
+        // Log detalhado para lançamentos automáticos
+        if (ext.origem === 'COBRANCA_AUTOMATICA') {
+          console.log(`🤖 Lançamento automático - Unidade: "${ext.unidade}" vs Filtro: "${unidade}" | Match: ${match}`);
+        }
+        
+        return match;
+      });
+      
+      console.log(`🏢 Filtro de unidade "${unidade}": ${antesDoFiltro} → ${todosExtratos.length}`);
+      
+      // Verificar se ainda há lançamentos automáticos após filtro de unidade
+      const automaticosAposFiltro = todosExtratos.filter(ext => ext.origem === 'COBRANCA_AUTOMATICA');
+      console.log(`🤖 Lançamentos automáticos após filtro de unidade: ${automaticosAposFiltro.length}`);
+      
+      if (automaticosAposFiltro.length > 0) {
+        console.log('✅ Lançamentos automáticos que passaram pelo filtro:');
+        automaticosAposFiltro.forEach(l => {
+          console.log(`  - ${l.descricao} | Unidade: "${l.unidade}" | Valor: R$ ${l.valor}`);
+        });
+      }
     }
 
     // Aplicar filtro de data

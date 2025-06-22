@@ -7,8 +7,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   PERMISSION_GROUPS, 
   PERMISSION_DESCRIPTIONS, 
-  getPermissionsByProfile 
+  getPermissionsByProfile,
+  hasPermission,
+  PERMISSIONS
 } from '../utils/permissions';
+import PermissionSelector from '../components/PermissionSelector';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
@@ -23,7 +26,6 @@ export default function GerenciarUsuarios() {
   const [alterarSenha, setAlterarSenha] = useState(false);
   const [tipoAlteracaoSenha, setTipoAlteracaoSenha] = useState('email');
   const [showPermissions, setShowPermissions] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState({});
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -484,44 +486,7 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
     });
   };
 
-  // Função para alternar grupo de permissões expandido
-  const toggleGroup = (groupKey) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupKey]: !prev[groupKey]
-    }));
-  };
-
-  // Função para alternar permissão individual
-  const togglePermission = (permission) => {
-    setFormData(prev => ({
-      ...prev,
-      permissions: prev.permissions.includes(permission)
-        ? prev.permissions.filter(p => p !== permission)
-        : [...prev.permissions, permission]
-    }));
-  };
-
-  // Função para alternar todas as permissões de um grupo
-  const toggleGroupPermissions = (groupPermissions) => {
-    const allSelected = groupPermissions.every(permission => 
-      formData.permissions.includes(permission)
-    );
-    
-    if (allSelected) {
-      // Remover todas as permissões do grupo
-      setFormData(prev => ({
-        ...prev,
-        permissions: prev.permissions.filter(p => !groupPermissions.includes(p))
-      }));
-    } else {
-      // Adicionar todas as permissões do grupo
-      setFormData(prev => ({
-        ...prev,
-        permissions: [...new Set([...prev.permissions, ...groupPermissions])]
-      }));
-    }
-  };
+  // Funções antigas de permissões removidas - usando PermissionSelector
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -930,92 +895,17 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                   </div>
                 )}
 
-                                 {/* Permissões */}
-                 {(showPermissions || formData.perfil === 'custom') && (
-                   <div className="md:col-span-2 lg:col-span-3">
-                     <div className="flex items-center justify-between mb-4">
-                       <label className="block text-sm font-medium text-gray-700">
-                         <Shield className="inline h-4 w-4 mr-2" />
-                         Permissões Personalizadas
-                       </label>
-                       <span className="text-xs text-gray-500">
-                         {formData.permissions.length} selecionadas
-                       </span>
-                     </div>
-                     
-                     <div className="space-y-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
-                       {Object.entries(PERMISSION_GROUPS).map(([groupKey, groupData]) => {
-                         const isExpanded = expandedGroups[groupKey];
-                         const allSelected = groupData.permissions.every(permission => 
-                           formData.permissions.includes(permission)
-                         );
-                         const someSelected = groupData.permissions.some(permission => 
-                           formData.permissions.includes(permission)
-                         );
-                         
-                         return (
-                           <div key={groupKey} className="border border-gray-100 rounded-lg">
-                             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-t-lg">
-                               <div className="flex items-center space-x-3">
-                                 <input
-                                   type="checkbox"
-                                   checked={allSelected}
-                                   ref={input => {
-                                     if (input) input.indeterminate = someSelected && !allSelected;
-                                   }}
-                                   onChange={() => toggleGroupPermissions(groupData.permissions)}
-                                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                 />
-                                 <div>
-                                   <h4 className="text-sm font-semibold text-gray-900">
-                                     {groupData.name}
-                                   </h4>
-                                   <p className="text-xs text-gray-500">
-                                     {groupData.description}
-                                   </p>
-                                 </div>
-                               </div>
-                               <button
-                                 type="button"
-                                 onClick={() => toggleGroup(groupKey)}
-                                 className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                               >
-                                 {isExpanded ? (
-                                   <ChevronUp className="h-4 w-4" />
-                                 ) : (
-                                   <ChevronDown className="h-4 w-4" />
-                                 )}
-                               </button>
-                             </div>
-                             
-                             {isExpanded && (
-                               <div className="p-3 space-y-2 bg-white rounded-b-lg">
-                                 {groupData.permissions.map((permission) => (
-                                   <label key={permission} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
-                                     <input
-                                       type="checkbox"
-                                       checked={formData.permissions.includes(permission)}
-                                       onChange={() => togglePermission(permission)}
-                                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                     />
-                                     <div className="flex-1">
-                                       <span className="text-sm text-gray-700 font-medium">
-                                         {PERMISSION_DESCRIPTIONS[permission]}
-                                       </span>
-                                       <p className="text-xs text-gray-500">
-                                         {permission}
-                                       </p>
-                                     </div>
-                                   </label>
-                                 ))}
-                               </div>
-                             )}
-                           </div>
-                         );
-                       })}
-                     </div>
-                   </div>
-                 )}
+                {/* Permissões - Usando componente avançado */}
+                {(showPermissions || formData.perfil === 'custom') && (
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <PermissionSelector
+                      selectedPermissions={formData.permissions}
+                      onPermissionsChange={(permissions) => setFormData({...formData, permissions})}
+                      selectedProfile={formData.perfil}
+                      isAdmin={user?.perfil === 'admin' || hasPermission(user?.permissions, PERMISSIONS.USERS_MANAGE_PERMISSIONS)}
+                    />
+                  </div>
+                )}
 
                 {/* Status */}
                 <div className="md:col-span-2 lg:col-span-3">

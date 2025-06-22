@@ -17,6 +17,17 @@ const COLECAO_LANCAMENTOS = 'lancamentos';
 
 export const lancamentosService = {
   // Criar um novo lançamento (receita ou despesa)
+  // Função auxiliar para remover campos undefined
+  _removerCamposUndefined(obj) {
+    const resultado = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined && value !== null) {
+        resultado[key] = value;
+      }
+    }
+    return resultado;
+  },
+
   async criarLancamento(dadosLancamento) {
     try {
       console.log('💰 Criando lançamento:', dadosLancamento);
@@ -35,13 +46,18 @@ export const lancamentosService = {
         criadoPor: auth.currentUser.uid, // Adicionar ID do usuário
         emailCriador: auth.currentUser.email // Adicionar email do criador
       };
+
+      // Remover campos undefined antes de enviar para o Firebase
+      const lancamentoLimpo = this._removerCamposUndefined(lancamento);
       
-      const docRef = await addDoc(collection(db, COLECAO_LANCAMENTOS), lancamento);
+      console.log('📤 Enviando para Firebase:', lancamentoLimpo);
+      
+      const docRef = await addDoc(collection(db, COLECAO_LANCAMENTOS), lancamentoLimpo);
       console.log('✅ Lançamento criado com ID:', docRef.id);
       
       return {
         id: docRef.id,
-        ...lancamento
+        ...lancamentoLimpo
       };
     } catch (error) {
       console.error('❌ Erro ao criar lançamento:', error);
@@ -340,6 +356,103 @@ export const lancamentosService = {
     };
   },
 
+  // Criar lançamento automaticamente a partir de cobrança paga
+  async criarLancamentoDeCobranca(dadosCobranca, numeroParcela, valorParcela) {
+    try {
+      // Validar dados obrigatórios
+      if (!dadosCobranca.id) {
+        throw new Error('ID da cobrança é obrigatório');
+      }
+      if (!dadosCobranca.unidade) {
+        throw new Error('Unidade da cobrança é obrigatória');
+      }
+      if (!numeroParcela) {
+        throw new Error('Número da parcela é obrigatório');
+      }
+      if (!valorParcela || valorParcela <= 0) {
+        throw new Error('Valor da parcela deve ser maior que zero');
+      }
+
+      console.log('💰 Criando lançamento automático de cobrança paga:', {
+        cobrancaId: dadosCobranca.id,
+        parcela: numeroParcela,
+        valor: valorParcela,
+        cliente: dadosCobranca.nome || 'Cliente',
+        unidade: `"${dadosCobranca.unidade}" (${dadosCobranca.unidade?.length} chars)`
+      });
+
+      // 🧹 Limpar lançamentos duplicados desta parcela antes de criar um novo
+      console.log('🧹 Verificando lançamentos duplicados desta parcela...');
+      await this.removerLancamentoDeCobranca(dadosCobranca.id, numeroParcela);
+
+      const dadosLancamento = {
+        descricao: `Cobrança paga - ${dadosCobranca.nome || 'Cliente'} - Parcela ${numeroParcela}/${dadosCobranca.parcelas || 1}`,
+        valor: Number(valorParcela),
+        data: new Date(),
+        unidade: dadosCobranca.unidade,
+        cliente: dadosCobranca.nome || 'Cliente',
+        tipo: 'RECEITA',
+        categoria: 'COBRANCA_PAGA',
+        formaPagamento: dadosCobranca.tipoPagamento || 'NÃO_INFORMADO',
+        status: 'ATIVO', // Mudança: usar ATIVO para ser compatível com a busca de extratos
+        origem: 'COBRANCA_AUTOMATICA',
+        observacoes: `Gerado automaticamente pela cobrança ${dadosCobranca.id} - ${dadosCobranca.servico || 'Serviço'}`,
+        cobrancaId: dadosCobranca.id,
+        parcelaNumero: Number(numeroParcela)
+      };
+
+      // Validar se todos os campos obrigatórios estão presentes
+      const erros = this.validarLancamento(dadosLancamento);
+      if (erros.length > 0) {
+        throw new Error(`Dados inválidos para lançamento: ${erros.join(', ')}`);
+      }
+
+      return await this.criarLancamento(dadosLancamento);
+    } catch (error) {
+      console.error('❌ Erro ao criar lançamento de cobrança:', error);
+      throw new Error(`Erro ao criar lançamento de cobrança: ${error.message}`);
+    }
+  },
+
+  // Remover lançamento automático de cobrança
+  async removerLancamentoDeCobranca(cobrancaId, numeroParcela) {
+    try {
+      console.log('🗑️ Removendo lançamento automático de cobrança:', {
+        cobrancaId,
+        parcela: numeroParcela
+      });
+
+      // Buscar lançamentos relacionados a esta parcela (ATIVO ou CONFIRMED)
+      const lancamentos = await this.buscarLancamentos({});
+      const lancamentosRelacionados = lancamentos.filter(l => 
+        l.cobrancaId === cobrancaId && 
+        l.parcelaNumero === numeroParcela &&
+        l.origem === 'COBRANCA_AUTOMATICA' &&
+        (l.status === 'ATIVO' || l.status === 'CONFIRMED')
+      );
+
+      console.log(`🔍 Encontrados ${lancamentosRelacionados.length} lançamentos relacionados para exclusão`);
+
+      let removidos = 0;
+      for (const lancamento of lancamentosRelacionados) {
+        await this.excluirLancamento(lancamento.id);
+        console.log('✅ Lançamento de receita removido:', lancamento.id);
+        removidos++;
+      }
+
+      if (removidos > 0) {
+        console.log(`✅ ${removidos} lançamentos removidos com sucesso`);
+        return true;
+      } else {
+        console.log('⚠️ Nenhum lançamento relacionado encontrado para exclusão');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Erro ao remover lançamento de cobrança:', error);
+      throw new Error(`Erro ao remover lançamento de cobrança: ${error.message}`);
+    }
+  },
+
   // Validar dados do lançamento
   validarLancamento(dados) {
     const erros = [];
@@ -362,6 +475,17 @@ export const lancamentosService = {
 
     if (!dados.tipo || !['CREDIT', 'DEBIT', 'RECEITA', 'DESPESA'].includes(dados.tipo)) {
       erros.push('Tipo de lançamento inválido');
+    }
+
+    // Validações específicas para lançamentos automáticos de cobrança
+    if (dados.origem === 'COBRANCA_AUTOMATICA') {
+      if (!dados.cobrancaId?.trim()) {
+        erros.push('ID da cobrança é obrigatório para lançamentos automáticos');
+      }
+      
+      if (!dados.parcelaNumero || isNaN(dados.parcelaNumero) || dados.parcelaNumero <= 0) {
+        erros.push('Número da parcela deve ser um número válido maior que zero');
+      }
     }
 
     return erros;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { X, ChevronDown, ChevronUp, Eye, CheckCircle, Trash2, Download, Filter, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
@@ -57,6 +57,143 @@ function getDataHoraBrasil() {
   return new Date(now.getTime() + diff * 60000);
 }
 
+// Função robusta para garantir que o histórico NUNCA seja perdido
+// SOLUÇÃO DEFINITIVA: Transação atômica para histórico 100% confiável
+async function adicionarAcaoComTransacao(cobrancaId, novaAcao, dadosParaAtualizar = {}) {
+  const cobrancaRef = doc(db, 'cobrancas', cobrancaId);
+  
+  try {
+    console.log('🔒 [TRANSAÇÃO INICIADA] Cobrança:', cobrancaId, '- Ação:', novaAcao.acao);
+    
+    const resultado = await runTransaction(db, async (transaction) => {
+      // LEITURA ATÔMICA: Garantir dados mais recentes
+      const cobrancaDoc = await transaction.get(cobrancaRef);
+      
+      if (!cobrancaDoc.exists()) {
+        throw new Error(`Cobrança ${cobrancaId} não encontrada`);
+      }
+
+      const dadosAtuais = cobrancaDoc.data();
+      const historicoExistente = dadosAtuais.historicoAlteracoes || [];
+      
+      console.log('📋 [LEITURA TRANSAÇÃO] Total entradas existentes:', historicoExistente.length);
+      console.log('📋 [LEITURA TRANSAÇÃO] Entradas:', historicoExistente.map((h, i) => ({
+        index: i + 1,
+        acao: h.acao || h.descricao || 'SEM AÇÃO',
+        data: h.data ? (typeof h.data === 'string' ? h.data : (h.data.toDate ? h.data.toDate().toLocaleString('pt-BR') : new Date(h.data).toLocaleString('pt-BR'))) : '❌ SEM DATA',
+        usuario: h.usuario || h.user || 'SEM USUARIO'
+      })));
+
+      // PRESERVAÇÃO TOTAL: Manter TODAS as entradas sem modificação
+      const historicoPreservado = historicoExistente.map((entrada, index) => {
+        // Criar cópia EXATA dos dados existentes
+        const entradaPreservada = {};
+        
+        // Copiar TODOS os campos originais exatamente como estão
+        for (const [campo, valor] of Object.entries(entrada)) {
+          entradaPreservada[campo] = valor;
+        }
+        
+        // Adicionar metadados de auditoria SEM alterar dados originais
+        entradaPreservada._preservadoIndex = index;
+        entradaPreservada._preservadoEm = new Date().toISOString();
+        
+        return entradaPreservada;
+      });
+
+      // NOVA ENTRADA: Criar com timestamp detalhado
+      const agora = new Date();
+      const novaEntrada = {
+        acao: novaAcao.acao,
+        usuario: novaAcao.usuario || 'Sistema',
+        data: agora.toLocaleString('pt-BR', {
+          timeZone: 'America/Sao_Paulo',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }),
+        timestamp: agora.getTime(),
+        dataIso: agora.toISOString(),
+        // Dados específicos da ação
+        ...novaAcao.dadosExtras,
+        // Metadados de auditoria
+        _transacaoId: `${agora.getTime()}-${Math.random().toString(36).substr(2, 9)}`,
+        _criadoPorTransacao: true
+      };
+
+      // HISTÓRICO FINAL: Preservado + nova entrada
+      const historicoFinal = [...historicoPreservado, novaEntrada];
+      
+      console.log('💾 [ESCRITA TRANSAÇÃO] Histórico final:', {
+        totalOriginal: historicoExistente.length,
+        totalPreservado: historicoPreservado.length,
+        totalFinal: historicoFinal.length,
+        novaEntrada: {
+          acao: novaEntrada.acao,
+          data: novaEntrada.data,
+          transacaoId: novaEntrada._transacaoId
+        }
+      });
+
+      // ESCRITA ATÔMICA: Atualizar documento com histórico preservado
+      const dadosParaEscrita = {
+        ...dadosParaAtualizar,
+        historicoAlteracoes: historicoFinal,
+        ultimaAtualizacao: agora.toISOString(),
+        _ultimaTransacao: novaEntrada._transacaoId
+      };
+
+      transaction.update(cobrancaRef, dadosParaEscrita);
+
+      return historicoFinal;
+    });
+
+    console.log('✅ [TRANSAÇÃO CONCLUÍDA] Histórico salvo com sucesso:', resultado.length, 'entradas');
+    return resultado;
+    
+  } catch (error) {
+    console.error('❌ [ERRO TRANSAÇÃO]:', error);
+    throw error;
+  }
+}
+
+// Função para processar histórico e garantir auditoria completa
+function processarHistoricoParaAuditoria(historicoAlteracoes) {
+  if (!Array.isArray(historicoAlteracoes)) {
+    console.log('DEBUG - processarHistoricoParaAuditoria: entrada não é array');
+    return [];
+  }
+  
+  console.log('DEBUG - processarHistoricoParaAuditoria: processando', historicoAlteracoes.length, 'entradas');
+  
+  return historicoAlteracoes.map((item, index) => {
+    // Garantir que TODAS as entradas tenham informações básicas para auditoria
+    let dataProcessada = item.data;
+    
+    // Se não tem data, marcar como "entrada sem data" mas manter para auditoria
+    if (!dataProcessada) {
+      console.warn('AVISO - Entrada do histórico sem data encontrada (índice', index, '):', item);
+      dataProcessada = null; // Será tratado na exibição
+    }
+    
+    // Criar entrada processada com todos os dados preservados
+    const entradaProcessada = {
+      ...item, // Preservar todos os campos originais
+      data: dataProcessada,
+      acao: item.acao || item.descricao || item.status || 'Ação não especificada',
+      usuario: item.usuario || item.user || 'Usuário não informado',
+      // Adicionar metadados para auditoria
+      _indexOriginal: index,
+      _temDataValida: !!dataProcessada
+    };
+    
+    return entradaProcessada;
+  });
+}
+
 export default function HistoricoCobrancas() {
   const { availableUnits } = useUnitFilter();
   const [cobrancas, setCobrancas] = useState([]);
@@ -75,6 +212,7 @@ export default function HistoricoCobrancas() {
   const [modalCliente, setModalCliente] = useState({ open: false, nome: '', cobrancas: [] });
   const [expandedCliente, setExpandedCliente] = useState(null);
   const [showFiltros, setShowFiltros] = useState(false);
+  const [mostrarExcluidos, setMostrarExcluidos] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -203,22 +341,33 @@ export default function HistoricoCobrancas() {
   const hoje = new Date();
   hoje.setHours(0,0,0,0);
 
-  const aguardandoParcelas = todasParcelasFiltradas.filter(p =>
+  // Aplicar filtro de excluídos nas estatísticas
+  const parcelasParaEstatisticas = todasParcelasFiltradas.filter(p => {
+    if (mostrarExcluidos) {
+      // Modo "Ver Excluídos": mostrar apenas estatísticas de parcelas CANCELADAS
+      return p.status === 'CANCELADO';
+    } else {
+      // Modo "Ver Ativos": mostrar estatísticas apenas de parcelas NÃO CANCELADAS
+      return p.status !== 'CANCELADO';
+    }
+  });
+
+  const aguardandoParcelas = parcelasParaEstatisticas.filter(p =>
     statusAguardando.includes(p.status) &&
     (!p.dataVencimento || new Date(p.dataVencimento).setHours(0,0,0,0) >= hoje.getTime())
   );
   const valorAguardando = aguardandoParcelas.reduce((sum, p) => sum + p.valor, 0);
 
-  const parcelasAtrasadas = todasParcelasFiltradas.filter(p =>
+  const parcelasAtrasadas = parcelasParaEstatisticas.filter(p =>
     statusAguardando.includes(p.status) &&
     p.dataVencimento && new Date(p.dataVencimento).setHours(0,0,0,0) < hoje.getTime()
   );
   const valorAtrasado = parcelasAtrasadas.reduce((sum, p) => sum + p.valor, 0);
 
-  const pagasParcelas = todasParcelasFiltradas.filter(p => statusPago.includes(p.status));
+  const pagasParcelas = parcelasParaEstatisticas.filter(p => statusPago.includes(p.status));
   const valorPago = pagasParcelas.reduce((sum, p) => sum + p.valor, 0);
 
-  const totalParcelas = todasParcelasFiltradas.length;
+  const totalParcelas = parcelasParaEstatisticas.length;
   const taxaInadimplencia = totalParcelas > 0 ? ((parcelasAtrasadas.length / totalParcelas) * 100).toFixed(1) : '0.0';
 
   // Agrupar cobranças filtradas por CPF padronizado
@@ -229,10 +378,27 @@ export default function HistoricoCobrancas() {
     alunos[cpf].push(c);
   });
 
-  // Filtro de busca por nome do aluno
+  // Filtro de busca por nome do aluno E que tenham parcelas para mostrar
   const alunosFiltrados = Object.entries(alunos).filter(([cpf, registros]) => {
     const nome = registros[0]?.nome || '-';
-    return nome.toLowerCase().includes(buscaAluno.toLowerCase());
+    const nomeMatch = nome.toLowerCase().includes(buscaAluno.toLowerCase());
+    
+    if (!nomeMatch) return false;
+    
+    // Verificar se o aluno tem parcelas para mostrar baseado no modo atual
+    const parcelasDoAluno = todasParcelasFiltradas.filter(p => {
+      const mesmoCpf = p.cpf && p.cpf.replace(/\D/g, '') === cpf;
+      if (!mesmoCpf) return false;
+      
+      if (mostrarExcluidos) {
+        return p.status === 'CANCELADO';
+      } else {
+        return p.status !== 'CANCELADO';
+      }
+    });
+    
+    // Só mostrar o aluno se ele tiver parcelas para exibir
+    return parcelasDoAluno.length > 0;
   });
 
   const alunosPaginados = alunosFiltrados.slice((pagina-1)*porPagina, pagina*porPagina);
@@ -247,30 +413,63 @@ export default function HistoricoCobrancas() {
 
   return (
     <div className="page-container-xl space-y-8">
-      <h1 className="text-3xl font-bold mb-8 text-center">Histórico de Cobranças</h1>
+      <div className="text-center">
+        <h1 className="text-3xl font-bold mb-2">Histórico de Cobranças</h1>
+        {mostrarExcluidos && (
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <Trash2 className="w-4 h-4" />
+            <span className="text-sm font-medium">Visualizando parcelas excluídas</span>
+          </div>
+        )}
+      </div>
       {/* Cards de estatísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col items-center">
-          <span className="text-sm font-medium text-gray-600 mb-1">Total de Parcelas</span>
+          <span className="text-sm font-medium text-gray-600 mb-1">
+            {mostrarExcluidos ? 'Total Excluídos' : 'Total de Parcelas'}
+          </span>
           <span className="text-2xl font-bold text-gray-900">{totalParcelas}</span>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-yellow-100 p-6 flex flex-col items-center">
-          <span className="text-sm font-medium text-gray-600 mb-1">Aguardando Recebimento</span>
-          <span className="text-2xl font-bold text-yellow-600">R$ {valorAguardando.toFixed(2)}</span>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-green-100 p-6 flex flex-col items-center">
-          <span className="text-sm font-medium text-gray-600 mb-1">Pagos</span>
-          <span className="text-2xl font-bold text-green-600">R$ {valorPago.toFixed(2)}</span>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-red-100 p-6 flex flex-col items-center">
-          <span className="text-sm font-medium text-gray-600 mb-1">Em Atraso</span>
-          <span className="text-2xl font-bold text-red-600">R$ {valorAtrasado.toFixed(2)}</span>
-          <span className="text-xs text-gray-500">{parcelasAtrasadas.length} parcelas</span>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-purple-100 p-6 flex flex-col items-center">
-          <span className="text-sm font-medium text-gray-600 mb-1">Taxa de Inadimplência</span>
-          <span className="text-2xl font-bold text-purple-600">{taxaInadimplencia}%</span>
-        </div>
+        {!mostrarExcluidos ? (
+          <>
+            <div className="bg-white rounded-xl shadow-sm border border-yellow-100 p-6 flex flex-col items-center">
+              <span className="text-sm font-medium text-gray-600 mb-1">Aguardando Recebimento</span>
+              <span className="text-2xl font-bold text-yellow-600">R$ {valorAguardando.toFixed(2)}</span>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-green-100 p-6 flex flex-col items-center">
+              <span className="text-sm font-medium text-gray-600 mb-1">Pagos</span>
+              <span className="text-2xl font-bold text-green-600">R$ {valorPago.toFixed(2)}</span>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-red-100 p-6 flex flex-col items-center">
+              <span className="text-sm font-medium text-gray-600 mb-1">Em Atraso</span>
+              <span className="text-2xl font-bold text-red-600">R$ {valorAtrasado.toFixed(2)}</span>
+              <span className="text-xs text-gray-500">{parcelasAtrasadas.length} parcelas</span>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-purple-100 p-6 flex flex-col items-center">
+              <span className="text-sm font-medium text-gray-600 mb-1">Taxa de Inadimplência</span>
+              <span className="text-2xl font-bold text-purple-600">{taxaInadimplencia}%</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="bg-white rounded-xl shadow-sm border border-red-100 p-6 flex flex-col items-center">
+              <span className="text-sm font-medium text-gray-600 mb-1">Valor Total Excluído</span>
+              <span className="text-2xl font-bold text-red-600">R$ {(valorAguardando + valorPago + valorAtrasado).toFixed(2)}</span>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col items-center">
+              <span className="text-sm font-medium text-gray-600 mb-1">Data da Exclusão</span>
+              <span className="text-sm text-gray-600">Varie por parcela</span>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-6 flex flex-col items-center">
+              <span className="text-sm font-medium text-gray-600 mb-1">Status</span>
+              <span className="text-2xl font-bold text-orange-600">CANCELADO</span>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 flex flex-col items-center">
+              <span className="text-sm font-medium text-gray-600 mb-1">Ação Disponível</span>
+              <span className="text-sm text-blue-600">Reverter Exclusão</span>
+            </div>
+          </>
+        )}
       </div>
       {/* Barra de busca e filtros ajustada */}
       <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
@@ -284,15 +483,43 @@ export default function HistoricoCobrancas() {
             onChange={e => setBuscaAluno(e.target.value)}
           />
         </div>
-        <div className="flex-shrink-0">
-          <label className="block text-sm font-medium text-gray-700 mb-2 sm:invisible">Ações</label>
-          <button
-            className="btn-secondary flex items-center gap-2 px-4 py-2 w-full sm:w-auto"
-            onClick={() => setShowFiltros(v => !v)}
-          >
-            <Filter className="w-4 h-4" /> 
-            <span>{showFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}</span>
-          </button>
+        <div className="flex-shrink-0 flex gap-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 sm:invisible">Filtros</label>
+            <button
+              className="flex items-center gap-2 px-6 py-2.5 w-full sm:w-auto rounded-lg border-2 transition-all duration-200 font-medium bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400"
+              onClick={() => setShowFiltros(v => !v)}
+            >
+              <Filter className="w-5 h-5" /> 
+              <span>{showFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}</span>
+            </button>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 sm:invisible">Visualizar</label>
+            <button
+              className={`flex items-center gap-2 px-6 py-2.5 w-full sm:w-auto rounded-lg border-2 transition-all duration-200 font-medium ${
+                mostrarExcluidos 
+                  ? 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100 hover:border-green-400' 
+                  : 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100 hover:border-red-400'
+              }`}
+              onClick={() => {
+                setMostrarExcluidos(v => !v);
+                setPagina(1); // Resetar paginação
+              }}
+            >
+              {mostrarExcluidos ? (
+                <>
+                  <Eye className="w-5 h-5" />
+                  <span>Ver Ativos</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-5 h-5" />
+                  <span>Ver Excluídos</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
       {showFiltros && (
@@ -397,7 +624,17 @@ export default function HistoricoCobrancas() {
             {alunosPaginados.map(([cpf, registros]) => {
               const nome = registros[0]?.nome || '-';
               const parcelasAluno = todasParcelasFiltradas.filter(p => {
-                return p.cpf && p.cpf.replace(/\D/g, '') === cpf;
+                const mesmoCpf = p.cpf && p.cpf.replace(/\D/g, '') === cpf;
+                if (!mesmoCpf) return false;
+                
+                // Aplicar filtro de visualização de excluídos
+                if (mostrarExcluidos) {
+                  // Modo "Ver Excluídos": mostrar apenas parcelas CANCELADAS
+                  return p.status === 'CANCELADO';
+                } else {
+                  // Modo "Ver Ativos": mostrar apenas parcelas NÃO CANCELADAS
+                  return p.status !== 'CANCELADO';
+                }
               });
               // Valor total: soma de todas as parcelas, independentemente do status
               const valorTotal = parcelasAluno.reduce((sum, p) => sum + p.valor, 0);
@@ -475,26 +712,109 @@ export default function HistoricoCobrancas() {
                                     title="Dar baixa manualmente"
                                     className="text-green-600 hover:bg-green-100 rounded-full p-1 transition"
                                     onClick={async () => {
-                                      const cobrancaRef = doc(db, 'cobrancas', p.cobrancaId);
-                                      const docSnap = await getDoc(cobrancaRef);
-                                      const data = docSnap.data();
-                                      const historicoAlteracoes = Array.isArray(data.historicoAlteracoes) ? [...data.historicoAlteracoes] : [];
-                                      const parcelasPagas = Array.isArray(data.parcelasPagas) ? [...data.parcelasPagas] : [];
-                                      if (!parcelasPagas.includes(p.numero)) parcelasPagas.push(p.numero);
-                                      historicoAlteracoes.push({
-                                        data: getDataHoraBrasil(),
-                                        usuario: user?.nome || 'Desconhecido',
-                                        acao: `Parcela ${p.numero} marcada como paga`
-                                      });
-                                      // Se todas as parcelas estiverem pagas, status global = 'PAGO'
-                                      const totalParcelas = data.parcelas || 1;
-                                      let statusUpdate = {};
-                                      if (parcelasPagas.length === Number(totalParcelas)) {
-                                        statusUpdate.status = 'PAGO';
+                                      try {
+                                        // Confirmação antes de marcar como pago
+                                        if (!window.confirm(`Confirma o pagamento da parcela ${p.numero} de R$ ${Number(p.valor).toFixed(2)}?`)) {
+                                          return;
+                                        }
+
+                                        // Mostrar feedback visual
+                                        toast.loading('Marcando como pago...');
+
+                                        const cobrancaRef = doc(db, 'cobrancas', p.cobrancaId);
+                                        const docSnap = await getDoc(cobrancaRef);
+                                        
+                                        if (!docSnap.exists()) {
+                                          throw new Error('Cobrança não encontrada');
+                                        }
+
+                                        const data = docSnap.data();
+                                        const parcelasPagas = Array.isArray(data.parcelasPagas) ? [...data.parcelasPagas] : [];
+                                        
+                                        // Adiciona a parcela se não estiver já paga
+                                        if (!parcelasPagas.includes(p.numero)) {
+                                          parcelasPagas.push(p.numero);
+                                        }
+
+                                        // Se todas as parcelas estiverem pagas, status global = 'PAGO'
+                                        const totalParcelas = data.parcelas || 1;
+                                        let statusUpdate = {};
+                                        if (parcelasPagas.length === Number(totalParcelas)) {
+                                          statusUpdate.status = 'PAGO';
+                                        }
+
+                                        // USAR TRANSAÇÃO ATÔMICA - Garante histórico preservado 100%
+                                        const historicoAlteracoes = await adicionarAcaoComTransacao(
+                                          p.cobrancaId,
+                                          {
+                                            acao: `Parcela ${p.numero} marcada como paga manualmente - R$ ${Number(p.valor).toFixed(2)}`,
+                                            usuario: user?.nome || 'Desconhecido',
+                                            dadosExtras: {
+                                              parcelaNumero: p.numero,
+                                              valorPago: Number(p.valor),
+                                              metodoPagamento: 'CONFIRMACAO_MANUAL'
+                                            }
+                                          },
+                                          {
+                                            parcelasPagas,
+                                            ...statusUpdate
+                                          }
+                                        );
+
+                                        // Atualizar estado local
+                                        setCobrancas(prev => prev.map(c => 
+                                          c.id === p.cobrancaId 
+                                            ? { ...c, parcelasPagas, historicoAlteracoes, ...(statusUpdate.status ? { status: statusUpdate.status } : {}) } 
+                                            : c
+                                        ));
+
+                                        // 🚀 CRIAR LANÇAMENTO DE RECEITA NO EXTRATO
+                                        try {
+                                          const { lancamentosService } = await import('../services/lancamentosService');
+                                          
+                                          // Garantir que temos o ID da cobrança
+                                          const dadosCobrancaCompletos = {
+                                            ...data,
+                                            id: p.cobrancaId, // Garantir que o ID está presente
+                                            nome: registros[0]?.nome || 'Cliente'
+                                          };
+                                          
+                                          console.log('🔍 Dados da cobrança para lançamento:', {
+                                            dadosCobranca: dadosCobrancaCompletos,
+                                            parcela: p.numero,
+                                            valor: p.valor,
+                                            registros: registros[0]
+                                          });
+                                          
+                                          await lancamentosService.criarLancamentoDeCobranca(dadosCobrancaCompletos, p.numero, p.valor);
+
+                                        } catch (errorLancamento) {
+                                          console.error('❌ Erro ao criar lançamento de receita:', errorLancamento);
+                                          console.error('❌ Dados que causaram o erro:', {
+                                            data,
+                                            parcela: p,
+                                            registros
+                                          });
+                                          // Não falhar a operação principal, apenas avisar
+                                          toast.error('Pagamento confirmado, mas houve erro ao criar o lançamento no extrato: ' + errorLancamento.message);
+                                        }
+
+                                        toast.dismiss();
+                                        toast.success('Pagamento confirmado e lançado no extrato!');
+                                        
+                                        console.log('Pagamento confirmado:', {
+                                          cobrancaId: p.cobrancaId,
+                                          parcela: p.numero,
+                                          valor: p.valor,
+                                          totalParcelasPagas: parcelasPagas.length,
+                                          statusAtualizado: statusUpdate.status || 'mantido'
+                                        });
+
+                                      } catch (error) {
+                                        console.error('❌ Erro ao marcar como pago:', error);
+                                        toast.dismiss();
+                                        toast.error('Erro ao confirmar pagamento: ' + error.message);
                                       }
-                                      await updateDoc(cobrancaRef, { parcelasPagas, historicoAlteracoes, ...statusUpdate });
-                                      setCobrancas(prev => prev.map(c => c.id === p.cobrancaId ? { ...c, parcelasPagas, historicoAlteracoes, ...(statusUpdate.status ? { status: statusUpdate.status } : {}) } : c));
-                                      if (window.toast) toast.success('Cobrança marcada como paga!');
                                     }}
                                   >
                                     <CheckCircle className="w-4 h-4" />
@@ -504,21 +824,108 @@ export default function HistoricoCobrancas() {
                                       title="Desfazer pagamento confirmado"
                                       className="text-orange-600 hover:bg-orange-100 rounded-full p-1 transition"
                                       onClick={async () => {
-                                        const cobrancaRef = doc(db, 'cobrancas', p.cobrancaId);
-                                        const docSnap = await getDoc(cobrancaRef);
-                                        const data = docSnap.data();
-                                        const historicoAlteracoes = Array.isArray(data.historicoAlteracoes) ? [...data.historicoAlteracoes] : [];
-                                        const parcelasPagas = Array.isArray(data.parcelasPagas) ? [...data.parcelasPagas] : [];
-                                        const idx = parcelasPagas.indexOf(p.numero);
-                                        if (idx !== -1) parcelasPagas.splice(idx, 1);
-                                        historicoAlteracoes.push({
-                                          data: getDataHoraBrasil(),
-                                          usuario: user?.nome || 'Desconhecido',
-                                          acao: `Pagamento da parcela ${p.numero} desfeito`
-                                        });
-                                        await updateDoc(cobrancaRef, { parcelasPagas, historicoAlteracoes });
-                                        setCobrancas(prev => prev.map(c => c.id === p.cobrancaId ? { ...c, parcelasPagas, historicoAlteracoes } : c));
-                                        if (window.toast) toast.success('Pagamento desfeito!');
+                                        try {
+                                          // Confirmação antes de desfazer
+                                          if (!window.confirm(`Tem certeza que deseja desfazer o pagamento da parcela ${p.numero}?`)) {
+                                            return;
+                                          }
+
+                                          // Mostrar feedback visual
+                                          toast.loading('Desfazendo pagamento...');
+
+                                          const cobrancaRef = doc(db, 'cobrancas', p.cobrancaId);
+                                          const docSnap = await getDoc(cobrancaRef);
+                                          
+                                          if (!docSnap.exists()) {
+                                            throw new Error('Cobrança não encontrada');
+                                          }
+
+                                          const data = docSnap.data();
+                                          const parcelasPagas = Array.isArray(data.parcelasPagas) ? [...data.parcelasPagas] : [];
+                                          
+                                          // Remove a parcela do array de pagas
+                                          const idx = parcelasPagas.indexOf(p.numero);
+                                          if (idx !== -1) {
+                                            parcelasPagas.splice(idx, 1);
+                                          }
+
+                                          // Atualizar status global se necessário
+                                          let statusUpdate = {};
+                                          const totalParcelas = data.parcelas || 1;
+                                          
+                                          // Se tinha todas as parcelas pagas e agora não tem mais, volta para status anterior
+                                          if (data.status === 'PAGO' && parcelasPagas.length < Number(totalParcelas)) {
+                                            // Verificar se ainda tem parcelas vencidas
+                                            const hoje = new Date();
+                                            hoje.setHours(0,0,0,0);
+                                            
+                                            let dataVenc = data.dataVencimento;
+                                            if (typeof dataVenc === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dataVenc)) {
+                                              const [ano, mes, dia] = dataVenc.split('-');
+                                              dataVenc = new Date(Number(ano), Number(mes) - 1, Number(dia), 0, 0, 0, 0);
+                                            } else {
+                                              dataVenc = new Date(dataVenc);
+                                            }
+                                            
+                                            if (dataVenc < hoje) {
+                                              statusUpdate.status = 'VENCIDO';
+                                            } else {
+                                              statusUpdate.status = 'ENVIADO';
+                                            }
+                                          }
+
+                                          // USAR TRANSAÇÃO ATÔMICA - Garante histórico preservado 100%
+                                          const historicoAlteracoes = await adicionarAcaoComTransacao(
+                                            p.cobrancaId,
+                                            {
+                                              acao: `Pagamento da parcela ${p.numero} desfeito`,
+                                              usuario: user?.nome || 'Desconhecido',
+                                              dadosExtras: {
+                                                parcelaNumero: p.numero,
+                                                valorDesfeito: Number(p.valor),
+                                                operacao: 'DESFAZER_PAGAMENTO'
+                                              }
+                                            },
+                                            {
+                                              parcelasPagas,
+                                              ...statusUpdate
+                                            }
+                                          );
+
+                                          // Atualizar estado local
+                                          setCobrancas(prev => prev.map(c => 
+                                            c.id === p.cobrancaId 
+                                              ? { ...c, parcelasPagas, historicoAlteracoes, ...statusUpdate } 
+                                              : c
+                                          ));
+
+                                          // 🚀 REMOVER LANÇAMENTO DE RECEITA DO EXTRATO
+                                          try {
+                                            const { lancamentosService } = await import('../services/lancamentosService');
+                                            
+                                            await lancamentosService.removerLancamentoDeCobranca(p.cobrancaId, p.numero);
+
+                                          } catch (errorLancamento) {
+                                            console.error('❌ Erro ao remover lançamento de receita:', errorLancamento);
+                                            // Não falhar a operação principal, apenas avisar
+                                            toast.error('Pagamento desfeito, mas houve erro ao remover o lançamento do extrato');
+                                          }
+
+                                          toast.dismiss();
+                                          toast.success('Pagamento desfeito e removido do extrato!');
+                                          
+                                          console.log('Pagamento desfeito:', {
+                                            cobrancaId: p.cobrancaId,
+                                            parcela: p.numero,
+                                            parcelasPagasRestantes: parcelasPagas,
+                                            novoStatus: statusUpdate.status || 'mantido'
+                                          });
+
+                                        } catch (error) {
+                                          console.error('❌ Erro ao desfazer pagamento:', error);
+                                          toast.dismiss();
+                                          toast.error('Erro ao desfazer pagamento: ' + error.message);
+                                        }
                                       }}
                                     >
                                       <X className="w-4 h-4" />
@@ -538,13 +945,23 @@ export default function HistoricoCobrancas() {
                                             const canceladas = (data.parcelasCanceladas || []).filter(num => num !== p.numero);
                                             const dataCancelamentoPorParcela = { ...(data.dataCancelamentoPorParcela || {}) };
                                             delete dataCancelamentoPorParcela[p.numero];
-                                            const historicoAlteracoes = Array.isArray(data.historicoAlteracoes) ? [...data.historicoAlteracoes] : [];
-                                            historicoAlteracoes.push({
-                                              data: getDataHoraBrasil(),
-                                              usuario: user?.nome || 'Desconhecido',
-                                              acao: `Exclusão da parcela ${p.numero} desfeita`
-                                            });
-                                            await updateDoc(cobrancaRef, { parcelasCanceladas: canceladas, dataCancelamentoPorParcela, historicoAlteracoes });
+                                            
+                                            // USAR TRANSAÇÃO ATÔMICA - Garante histórico preservado 100%
+                                            const historicoAlteracoes = await adicionarAcaoComTransacao(
+                                              p.cobrancaId,
+                                              {
+                                                acao: `Exclusão da parcela ${p.numero} desfeita`,
+                                                usuario: user?.nome || 'Desconhecido',
+                                                dadosExtras: {
+                                                  parcelaNumero: p.numero,
+                                                  operacao: 'REVERTER_EXCLUSAO'
+                                                }
+                                              },
+                                              {
+                                                parcelasCanceladas: canceladas,
+                                                dataCancelamentoPorParcela
+                                              }
+                                            );
                                             setCobrancas(prev => prev.map(c => c.id === p.cobrancaId ? { ...c, parcelasCanceladas: canceladas, dataCancelamentoPorParcela, historicoAlteracoes } : c));
                                           }}
                                         >
@@ -559,19 +976,27 @@ export default function HistoricoCobrancas() {
                                             const data = docSnap.data();
                                             const canceladas = data.parcelasCanceladas || [];
                                             const dataCancelamentoPorParcela = { ...(data.dataCancelamentoPorParcela || {}) };
-                                            const historicoAlteracoes = Array.isArray(data.historicoAlteracoes) ? [...data.historicoAlteracoes] : [];
+                                            
                                             if (!canceladas.includes(p.numero)) {
                                               const now = new Date();
-                                              historicoAlteracoes.push({
-                                                data: getDataHoraBrasil(),
-                                                usuario: user?.nome || 'Desconhecido',
-                                                acao: `Parcela ${p.numero} excluída`
-                                              });
-                                              await updateDoc(cobrancaRef, {
-                                                parcelasCanceladas: [...canceladas, p.numero],
-                                                dataCancelamentoPorParcela: { ...dataCancelamentoPorParcela, [p.numero]: now },
-                                                historicoAlteracoes
-                                              });
+                                              
+                                              // USAR TRANSAÇÃO ATÔMICA - Garante histórico preservado 100%
+                                              const historicoAlteracoes = await adicionarAcaoComTransacao(
+                                                p.cobrancaId,
+                                                {
+                                                  acao: `Parcela ${p.numero} excluída`,
+                                                  usuario: user?.nome || 'Desconhecido',
+                                                  dadosExtras: {
+                                                    parcelaNumero: p.numero,
+                                                    valorExcluido: Number(p.valor),
+                                                    operacao: 'EXCLUIR_PARCELA'
+                                                  }
+                                                },
+                                                {
+                                                  parcelasCanceladas: [...canceladas, p.numero],
+                                                  dataCancelamentoPorParcela: { ...dataCancelamentoPorParcela, [p.numero]: now }
+                                                }
+                                              );
                                               setCobrancas(prev => prev.map(c => c.id === p.cobrancaId ? { ...c, parcelasCanceladas: [...(c.parcelasCanceladas || []), p.numero], dataCancelamentoPorParcela: { ...dataCancelamentoPorParcela, [p.numero]: now }, historicoAlteracoes } : c));
                                             }
                                           }
@@ -641,28 +1066,82 @@ export default function HistoricoCobrancas() {
               {Array.isArray(modal.data?.historicoAlteracoes) && modal.data.historicoAlteracoes.length > 0 && (
                 <div>
                   <span className="font-semibold">Histórico de Alterações:</span>
-                  <ul className="ml-2 mt-1 text-xs text-gray-700 list-disc">
-                    {modal.data.historicoAlteracoes.map((alt, idx) => {
-                      let dataHora = '';
-                      if (alt.data) {
-                        const data = new Date(alt.data);
-                        dataHora = data.toLocaleString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                  {/* Container com barra de rolagem para muitas entradas */}
+                  <div className="ml-2 mt-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    <ul className="text-xs text-gray-700 list-disc space-y-2">
+                      {processarHistoricoParaAuditoria(modal.data.historicoAlteracoes).map((alt, idx) => {
+                        console.log(`🔍 [DEBUG MODAL] Entrada ${idx}:`, {
+                          acao: alt.acao,
+                          data: alt.data,
+                          tipoData: typeof alt.data,
+                          usuario: alt.usuario,
+                          campos: Object.keys(alt)
                         });
-                      }
-                      return (
-                        <li key={idx} className="mb-1">
-                          <span className="font-medium text-gray-600">{dataHora}</span>
-                          {alt.usuario && <span className="text-blue-600"> • {alt.usuario}</span>}
-                          <span className="text-gray-800"> • {alt.acao || alt.descricao || alt.status}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                        // ✅ Garantir que TODAS as entradas tenham data/horário
+                        let dataHora = '';
+                        if (alt.data) {
+                          try {
+                            // Verificar se já é uma string formatada (nova implementação)
+                            if (typeof alt.data === 'string' && alt.data.includes('/') && alt.data.includes(':')) {
+                              dataHora = alt.data; // Já está formatado corretamente
+                            } else {
+                              // Tentar converter para Date (formato antigo)
+                              const data = new Date(alt.data);
+                              if (!isNaN(data.getTime())) {
+                                dataHora = data.toLocaleString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                });
+                              }
+                            }
+                          } catch (error) {
+                            console.warn('Erro ao formatar data do histórico:', error, alt);
+                          }
+                        }
+                        
+                        // Se não tem data, usar "Data não informada" para auditoria
+                        if (!dataHora) {
+                          dataHora = `Data não informada (item #${(alt._indexOriginal || idx) + 1})`;
+                        }
+
+                        // Definir cor da borda baseada na validade da data para auditoria visual
+                        const corBorda = alt._temDataValida ? 'border-blue-200' : 'border-red-300';
+                        const corFundo = alt._temDataValida ? 'bg-white' : 'bg-red-50';
+
+                        return (
+                          <li key={idx} className={`mb-1 p-2 ${corFundo} rounded border-l-4 ${corBorda}`}>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`font-semibold text-xs px-2 py-1 rounded ${
+                                  alt._temDataValida 
+                                    ? 'text-gray-800 bg-gray-100' 
+                                    : 'text-red-800 bg-red-100'
+                                }`}>
+                                  {dataHora}
+                                </span>
+                                {alt.usuario && (
+                                  <span className="text-blue-600 font-medium text-xs bg-blue-50 px-2 py-1 rounded">
+                                    {alt.usuario}
+                                  </span>
+                                )}
+                                {!alt._temDataValida && (
+                                  <span className="text-red-600 font-medium text-xs bg-red-100 px-2 py-1 rounded">
+                                    AUDITORIA
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-gray-700 text-xs ml-1">
+                                {alt.acao || alt.descricao || alt.status || 'Ação não especificada'}
+                              </span>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
                 </div>
               )}
               <div><span className="font-semibold">Observações:</span> {modal.data?.observacoes || '-'}</div>

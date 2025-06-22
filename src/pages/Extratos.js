@@ -299,19 +299,24 @@ export default function Extratos() {
       case 'recebido':
       case 'concluido':
       case 'confirmado':
-        return 'bg-green-100 text-green-800';
+      case 'ativo': // ✅ Incluir lançamentos automáticos com a mesma cor de confirmado
+      case 'confirmed':
+        return 'bg-green-100 text-green-800 font-medium';
       case 'pendente':
       case 'aguardando':
-        return 'bg-yellow-100 text-yellow-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 font-medium';
       case 'vencido':
-        return 'bg-orange-100 text-orange-800';
+      case 'overdue':
+        return 'bg-orange-100 text-orange-800 font-medium';
       case 'cancelado':
-        return 'bg-gray-400 text-white';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-600 font-medium';
       case 'excluido':
       case 'deleted':
-        return 'bg-red-200 text-red-800 font-bold';
+        return 'bg-red-100 text-red-800 font-medium';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-blue-50 text-blue-700 font-medium';
     }
   };
 
@@ -329,6 +334,7 @@ export default function Extratos() {
       case 'recebido':
       case 'concluido':
       case 'confirmado':
+      case 'ativo': // ✅ Incluir lançamentos automáticos de cobrança como confirmados
         return 'Confirmado';
       case 'pendente':
       case 'aguardando':
@@ -344,6 +350,12 @@ export default function Extratos() {
         // Retorna o status original se não for reconhecido, ou N/A
         return extrato.status ? extrato.status.charAt(0).toUpperCase() + extrato.status.slice(1) : 'N/A';
     }
+  };
+
+  // ✅ Função para formatar unidade em padrão visual (primeira letra maiúscula)
+  const formatarUnidade = (unidade) => {
+    if (!unidade) return '-';
+    return unidade.toLowerCase().charAt(0).toUpperCase() + unidade.toLowerCase().slice(1);
   };
 
   const calcularEstatisticas = (extratosList) => {
@@ -860,7 +872,7 @@ export default function Extratos() {
                             {getStatusText(extrato)}
                           </span>
                         </td>
-                         <td className="px-4 py-2 text-sm text-gray-500">{extrato.unidade}</td>
+                         <td className="px-4 py-2 text-sm text-gray-500">{formatarUnidade(extrato.unidade)}</td>
                         <td className="px-4 py-2 text-sm">
                           {extrato.status === 'DELETED' ? (
                             <button onClick={() => restaurarLancamento(extrato.id)} className="text-blue-600 hover:text-blue-800">
@@ -952,7 +964,7 @@ export default function Extratos() {
             >
               <option value="">Selecione a unidade</option>
               {availableUnits.map(unit => (
-                <option key={unit} value={unit}>{unit}</option>
+                <option key={unit} value={unit}>{formatarUnidade(unit)}</option>
               ))}
             </select>
             <div className="flex justify-end mt-4">
