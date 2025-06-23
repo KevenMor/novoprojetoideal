@@ -1,0 +1,22 @@
+# Arquivos de ambiente
+.env*
+*.env*
+
+# Arquivos de desenvolvimento
+env.example
+
+# Arquivos de configuração locais
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+.temp/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db 
