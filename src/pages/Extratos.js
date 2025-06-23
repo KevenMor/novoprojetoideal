@@ -984,16 +984,18 @@ export default function Extratos() {
       {/* Modais */}
       {mostrarModalReceita && (
         <ModalLancamento
-          tipo="CREDIT"
+          isOpen={mostrarModalReceita}
+          tipo="RECEITA"
           onClose={() => setMostrarModalReceita(false)}
-          onSuccess={handleLancamentoSucesso}
+          onSucesso={handleLancamentoSucesso}
         />
       )}
       {mostrarModalDespesa && (
         <ModalLancamento
-          tipo="DEBIT"
+          isOpen={mostrarModalDespesa}
+          tipo="DESPESA"
           onClose={() => setMostrarModalDespesa(false)}
-          onSuccess={handleLancamentoSucesso}
+          onSucesso={handleLancamentoSucesso}
         />
       )}
       {mostrarModalEdicao && lancamentoParaEditar && (

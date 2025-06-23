@@ -24,6 +24,7 @@ import Perfil from './pages/Perfil';
 import Configuracoes from './pages/Configuracoes';
 import CadastroRapidoFuncionarios from './pages/CadastroRapidoFuncionarios';
 import CadastroRapidoVilaProgresso from './pages/CadastroRapidoVilaProgresso';
+import CategoriasAdmin from './pages/CategoriasAdmin';
 
 function App() {
   return (
@@ -75,6 +76,7 @@ function App() {
                   <Route path="configuracoes" element={<Configuracoes />} />
                   <Route path="cadastro-rapido-funcionarios" element={<CadastroRapidoFuncionarios />} />
                   <Route path="cadastro-rapido-vila-progresso" element={<CadastroRapidoVilaProgresso />} />
+                  <Route path="admin/categorias" element={<CategoriasAdmin />} />
                 </Route>
 
                 {/* Rota padrão */}

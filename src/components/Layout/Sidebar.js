@@ -135,7 +135,18 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
       icon: Users,
       permission: PERMISSIONS.USERS_VIEW,
       description: 'Gerenciar usuários do sistema'
-    }
+    },
+    ...(user?.perfil === 'admin' ? [{
+      name: 'Administração',
+      icon: Settings,
+      description: 'Cadastros do sistema',
+      submenu: [
+        { name: 'Categorias', href: '/admin/categorias', description: 'Gerenciar categorias' },
+        { name: 'Contas', href: '/admin/contas', description: 'Gerenciar contas bancárias/cartões' },
+        { name: 'Formas de Pagamento', href: '/admin/formas-pagamento', description: 'Gerenciar formas de pagamento' },
+        { name: 'Clientes/Fornecedores', href: '/admin/clientes-fornecedores', description: 'Gerenciar clientes e fornecedores' }
+      ]
+    }] : [])
   ];
 
   // Filtrar menus por permissão

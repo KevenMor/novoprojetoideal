@@ -167,6 +167,9 @@ export default function ModalLancamento({
 
   if (!isOpen) return null;
 
+  const tipoCategoria = tipo === 'RECEITA' ? 'RECEITA' : 'DESPESA';
+  const categoriasUsar = categorias[tipoCategoria];
+
   const tituloModal = modoEdicao 
     ? (tipo === 'RECEITA' ? 'Editar Receita' : 'Editar Despesa')
     : (tipo === 'RECEITA' ? 'Cadastrar Receita' : 'Cadastrar Despesa');

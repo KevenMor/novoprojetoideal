@@ -19,7 +19,7 @@ const FormasPagamentoController = require('./controllers/formasPagamentoControll
 const ClientesFornecedoresController = require('./controllers/clientesFornecedoresController');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Middlewares de segurança
 app.use(helmet({
