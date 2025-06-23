@@ -839,194 +839,243 @@ export default function Extratos() {
         </div>
       )}
 
-      {/* Navegação de Competência */}
-      <div className="card-mobile mb-6">
-        <div className="flex-mobile flex-mobile-row justify-between">
-          {/* Controles de navegação de competência */}
-          <div className="flex items-center justify-center space-x-2">
+      {/* Modern Page Header */}
+      <div className="modern-page-header mb-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+          {/* Page Title & Navigation */}
+          <div className="flex items-center space-x-4">
             <button 
               onClick={() => navegarCompetencia('anterior')} 
-              className="btn-mobile-secondary p-2 rounded-md hover:bg-gray-100 transition-colors touch-target"
+              className="modern-btn modern-btn-secondary p-3 hover:scale-110 transition-all duration-200"
             >
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
-            <span className="text-mobile-base font-semibold text-gray-700 text-center min-w-[150px]">
-              {formatarMes(competenciaAtual.mes, competenciaAtual.ano)}
-            </span>
+            <div className="text-center">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                Extratos Financeiros
+              </h1>
+              <p className="text-blue-100 text-lg font-medium">
+                {formatarMes(competenciaAtual.mes, competenciaAtual.ano)}
+              </p>
+            </div>
             <button 
               onClick={() => navegarCompetencia('proxima')} 
-              className="btn-mobile-secondary p-2 rounded-md hover:bg-gray-100 transition-colors touch-target"
+              className="modern-btn modern-btn-secondary p-3 hover:scale-110 transition-all duration-200"
             >
-              <ChevronRight className="h-5 w-5 text-gray-600" />
+              <ChevronRight className="h-5 w-5" />
             </button>
-          </div>
-
-          {/* Filtros e Ações */}
-          <div className="space-y-3">
-            {/* Filtros básicos */}
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <button 
-                onClick={carregarExtratos}
-                className="btn-mobile btn-mobile-secondary bg-gray-600 text-white hover:bg-gray-700 flex items-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span className="hide-mobile">Atualizar</span>
-              </button>
-              <button
-                onClick={toggleMostrarExcluidos}
-                className={`btn-mobile flex items-center gap-2 ${
-                  mostrarExcluidos
-                    ? 'bg-red-500 text-white hover:bg-red-600'
-                    : 'btn-mobile-secondary border'
-                }`}
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="hide-mobile">{mostrarExcluidos ? 'Ocultar' : 'Mostrar'} Excluídos</span>
-              </button>
-              <select 
-                value={filtros.tipo} 
-                onChange={(e) => handleFiltroChange('tipo', e.target.value)}
-                className="form-input-mobile text-mobile-sm"
-              >
-                {tiposTransacao.map((tipo) => (
-                  <option key={tipo.value} value={tipo.value}>
-                    {tipo.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => setFiltrosAvancados(!filtrosAvancados)}
-                className="btn-mobile btn-mobile-secondary flex items-center gap-2"
-              >
-                <Filter className="h-4 w-4" />
-                <span className="hide-mobile">Filtros Avançados</span>
-              </button>
-            </div>
-
-            {/* Filtros avançados */}
-            {filtrosAvancados && (
-              <div className="bg-gray-50 p-4 rounded-lg border">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {/* Busca por texto */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Buscar por nome/descrição
-                    </label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={filtros.buscarTexto}
-                        onChange={(e) => handleFiltroChange('buscarTexto', e.target.value)}
-                        placeholder="Digite para buscar..."
-                        className="form-input-mobile text-mobile-sm pl-10 w-full"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Forma de pagamento */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Forma de Pagamento
-                    </label>
-                    <select 
-                      value={filtros.formaPagamento} 
-                      onChange={(e) => handleFiltroChange('formaPagamento', e.target.value)}
-                      className="form-input-mobile text-mobile-sm w-full"
-                    >
-                      {formasPagamentoPadrao.map((forma) => (
-                        <option key={forma.value} value={forma.value}>
-                          {forma.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Categoria */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Categoria
-                    </label>
-                    <select 
-                      value={filtros.categoria} 
-                      onChange={(e) => handleFiltroChange('categoria', e.target.value)}
-                      className="form-input-mobile text-mobile-sm w-full"
-                    >
-                      {categoriasPadrao.map((categoria) => (
-                        <option key={categoria.value} value={categoria.value}>
-                          {categoria.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                
-                {/* Botão limpar filtros */}
-                <div className="mt-3 flex justify-end">
-                  <button
-                    onClick={() => setFiltros({
-                      ...filtros,
-                      formaPagamento: '',
-                      categoria: '',
-                      buscarTexto: ''
-                    })}
-                    className="btn-mobile btn-mobile-secondary text-sm"
-                  >
-                    Limpar Filtros
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-        <div className="bg-white p-3 sm:p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500">
-                {mostrarExcluidos ? 'Receitas Excluídas' : 'Receitas'}
-              </p>
-              <p className="text-lg sm:text-2xl font-bold text-green-500">{formatCurrency(estatisticas.receitas)}</p>
+      {/* Modern Action Bar */}
+      <div className="glass-panel p-6 mb-6">
+        {/* Primary Actions */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
+          <button 
+            onClick={carregarExtratos}
+            className="modern-btn modern-btn-primary px-6 py-3 flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4 animated-icon" />
+            <span className="font-medium">Atualizar</span>
+          </button>
+          
+          <button
+            onClick={toggleMostrarExcluidos}
+            className={`modern-btn px-6 py-3 flex items-center gap-2 ${
+              mostrarExcluidos
+                ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg hover:shadow-xl'
+                : 'modern-btn-secondary'
+            }`}
+          >
+            <Trash2 className="h-4 w-4 animated-icon" />
+            <span className="font-medium">{mostrarExcluidos ? 'Ocultar' : 'Mostrar'} Excluídos</span>
+          </button>
+          
+          <select 
+            value={filtros.tipo} 
+            onChange={(e) => handleFiltroChange('tipo', e.target.value)}
+            className="modern-select min-w-[160px]"
+          >
+            {tiposTransacao.map((tipo) => (
+              <option key={tipo.value} value={tipo.value}>
+                {tipo.label}
+              </option>
+            ))}
+          </select>
+          
+          <button
+            onClick={() => setFiltrosAvancados(!filtrosAvancados)}
+            className={`filter-toggle-btn px-6 py-3 flex items-center gap-2 ${filtrosAvancados ? 'active' : ''}`}
+          >
+            <Filter className="h-4 w-4 animated-icon" />
+            <span className="font-medium">Filtros Avançados</span>
+          </button>
+        </div>
+
+        {/* Advanced Filters Panel */}
+        {filtrosAvancados && (
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-xl"></div>
+            <div className="relative glass-panel p-6">
+              <div className="modern-filter-grid">
+                {/* Smart Search */}
+                <div>
+                  <label className="modern-label">
+                    🔍 Busca Inteligente
+                  </label>
+                  <div className="modern-search-container">
+                    <Search className="modern-search-icon h-5 w-5" />
+                    <input
+                      type="text"
+                      value={filtros.buscarTexto}
+                      onChange={(e) => handleFiltroChange('buscarTexto', e.target.value)}
+                      placeholder="Digite nome, descrição ou cliente..."
+                      className="modern-search-input"
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Method Filter */}
+                <div>
+                  <label className="modern-label">
+                    💳 Forma de Pagamento
+                  </label>
+                  <select 
+                    value={filtros.formaPagamento} 
+                    onChange={(e) => handleFiltroChange('formaPagamento', e.target.value)}
+                    className="modern-select w-full"
+                  >
+                    {formasPagamentoPadrao.map((forma) => (
+                      <option key={forma.value} value={forma.value}>
+                        {forma.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Category Filter */}
+                <div>
+                  <label className="modern-label">
+                    📂 Categoria
+                  </label>
+                  <select 
+                    value={filtros.categoria} 
+                    onChange={(e) => handleFiltroChange('categoria', e.target.value)}
+                    className="modern-select w-full"
+                  >
+                    {categoriasPadrao.map((categoria) => (
+                      <option key={categoria.value} value={categoria.value}>
+                        {categoria.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {/* Clear Filters */}
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setFiltros({
+                    ...filtros,
+                    formaPagamento: '',
+                    categoria: '',
+                    buscarTexto: ''
+                  })}
+                  className="modern-btn modern-btn-clear px-6 py-2.5 flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span className="font-medium">Limpar Filtros</span>
+                </button>
+              </div>
             </div>
-            <TrendingUp size={18} className="text-green-500 sm:w-5 sm:h-5" />
+          </div>
+        )}
+      </div>
+
+      {/* Modern Stats Dashboard */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+        {/* Revenue Card */}
+        <div className="modern-stat-card group">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="stat-icon-container bg-gradient-to-br from-emerald-500 to-green-600">
+                  <TrendingUp size={18} className="text-white" />
+                </div>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                  {mostrarExcluidos ? 'Receitas Excluídas' : 'Receitas'}
+                </p>
+              </div>
+              <p className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                {formatCurrency(estatisticas.receitas)}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="bg-white p-3 sm:p-6 rounded-lg shadow">
+
+        {/* Expense Card */}
+        <div className="modern-stat-card group">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500">
-                {mostrarExcluidos ? 'Despesas Excluídas' : 'Despesas'}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="stat-icon-container bg-gradient-to-br from-red-500 to-rose-600">
+                  <TrendingDown size={18} className="text-white" />
+                </div>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                  {mostrarExcluidos ? 'Despesas Excluídas' : 'Despesas'}
+                </p>
+              </div>
+              <p className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
+                {formatCurrency(estatisticas.despesas)}
               </p>
-              <p className="text-lg sm:text-2xl font-bold text-red-500">{formatCurrency(estatisticas.despesas)}</p>
             </div>
-            <TrendingDown size={18} className="text-red-500 sm:w-5 sm:h-5" />
           </div>
         </div>
-        <div className="bg-white p-3 sm:p-6 rounded-lg shadow">
+
+        {/* Balance Card */}
+        <div className="modern-stat-card group">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500">
-                {mostrarExcluidos ? 'Saldo Excluído' : 'Saldo'}
-              </p>
-              <p className={`text-lg sm:text-2xl font-bold ${estatisticas.saldo >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`stat-icon-container ${
+                  estatisticas.saldo >= 0 
+                    ? 'bg-gradient-to-br from-blue-500 to-indigo-600' 
+                    : 'bg-gradient-to-br from-orange-500 to-red-600'
+                }`}>
+                  <BarChart3 size={18} className="text-white" />
+                </div>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                  {mostrarExcluidos ? 'Saldo Excluído' : 'Saldo'}
+                </p>
+              </div>
+              <p className={`text-2xl lg:text-3xl font-bold ${
+                estatisticas.saldo >= 0 
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent' 
+                  : 'bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent'
+              }`}>
                 {formatCurrency(estatisticas.saldo)}
               </p>
             </div>
-            <BarChart3 size={18} className={`${estatisticas.saldo >= 0 ? 'text-green-500' : 'text-red-500'} sm:w-5 sm:h-5`} />
           </div>
         </div>
-        <div className="bg-white p-3 sm:p-6 rounded-lg shadow">
+
+        {/* Transactions Card */}
+        <div className="modern-stat-card group">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500">
-                {mostrarExcluidos ? 'Transações Excluídas' : 'Transações'}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="stat-icon-container bg-gradient-to-br from-purple-500 to-violet-600">
+                  <Target size={18} className="text-white" />
+                </div>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                  {mostrarExcluidos ? 'Transações Excluídas' : 'Transações'}
+                </p>
+              </div>
+              <p className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
+                {estatisticas.transacoes}
               </p>
-              <p className="text-lg sm:text-2xl font-bold text-blue-500">{estatisticas.transacoes}</p>
             </div>
-            <Target size={18} className="text-blue-500 sm:w-6 sm:h-6" />
           </div>
         </div>
       </div>
