@@ -1,21 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useUnitFilter } from '../../contexts/UnitFilterContext';
 import { Menu, LogOut, User, Settings, X, ChevronDown, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { fetchNotifications, markNotificationAsRead } from '../../services/notificationsService';
 
 const Header = ({ sidebarOpen, setSidebarOpen }) => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const { selectedUnit, availableUnits } = useUnitFilter();
   const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const dropdownRef = useRef(null);
-  const userMenuRef = useRef(null);
+
   const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.lida).length;
@@ -34,23 +27,8 @@ const Header = ({ sidebarOpen, setSidebarOpen }) => {
     setShowUserMenu(false);
   };
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        // Mock notifications for now
-        setNotifications([]);
-      } catch (error) {
-        console.error('Erro ao buscar notificações:', error);
-      }
-    };
-
-    if (user?.uid) {
-      fetchNotifications();
-    }
-  }, [user]);
-
   const handleMarkAsRead = async (id) => {
-    await markNotificationAsRead(id);
+    // await markNotificationAsRead(id); // Função não disponível no momento
     setNotifications(notifications => notifications.map(n => n.id === id ? { ...n, lida: true } : n));
   };
 

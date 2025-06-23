@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   User, 
-  Mail, 
-  MapPin, 
-  Phone, 
-  Edit3, 
   Save, 
   X, 
   Eye, 
   EyeOff, 
-  Lock,
   Shield,
   Edit2,
   Key

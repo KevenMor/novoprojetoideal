@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 
 const UnitFilterContext = createContext();
@@ -12,15 +12,15 @@ export function UnitFilterProvider({ children }) {
   const [selectedUnit, setSelectedUnit] = useState('all'); // 'all' ou nome da unidade específica
   const [availableUnits, setAvailableUnits] = useState([]);
 
-  // Lista de todas as unidades disponíveis no sistema
-  const allSystemUnits = [
+  // Usar useMemo para allSystemUnits para evitar re-renders
+  const allSystemUnits = useMemo(() => [
     'Julio de Mesquita',
     'Aparecidinha',
     'Vila Helena',
     'Vila Haro',
     'Progresso',
     'Coop'
-  ];
+  ], []);
 
   // Atualizar unidades disponíveis quando o perfil do usuário mudar
   useEffect(() => {
@@ -48,7 +48,7 @@ export function UnitFilterProvider({ children }) {
     if (availableUnits.length > 0 && !selectedUnit) {
       setSelectedUnit(availableUnits[0]);
     }
-  }, [availableUnits, selectedUnit, allSystemUnits]);
+  }, [availableUnits, selectedUnit]);
 
   // Função para verificar se deve mostrar dados da unidade
   const shouldShowUnitData = (unidade) => {

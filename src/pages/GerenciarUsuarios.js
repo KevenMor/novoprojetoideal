@@ -3,28 +3,23 @@ import {
   Plus, 
   Edit3, 
   Trash2, 
-  X, 
   Eye, 
   EyeOff, 
-  User, 
   Lock, 
-  AlertTriangle, 
-  CheckCircle, 
   Users
 } from 'lucide-react';
 import { collection, getDocs, updateDoc, doc, deleteDoc, setDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
-import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { 
   getPermissionsByProfile,
   hasPermission,
   PERMISSIONS
 } from '../utils/permissions';
+import { adminService } from '../services/adminService';
 import PermissionSelector from '../components/PermissionSelector';
 import toast from 'react-hot-toast';
-import axios from 'axios';
 
 export default function GerenciarUsuarios() {
   const { user } = useAuth();
@@ -209,9 +204,7 @@ export default function GerenciarUsuarios() {
         }
         
         // Salvar dados do admin atual
-        const adminEmail = user.email;
-        const adminUid = user.uid;
-        console.log('💾 Admin atual:', adminEmail, '(UID:', adminUid, ')');
+        console.log('💾 Admin atual:', user.email, '(UID:', user.uid, ')');
         
         let newUserCredential = null;
         let tentativas = 0;
@@ -238,8 +231,8 @@ export default function GerenciarUsuarios() {
             ativo: formData.ativo,
             criadoEm: new Date(),
             updatedAt: new Date(),
-            criadoPor: adminUid,
-            criadoPorEmail: adminEmail,
+            criadoPor: user.uid,
+            criadoPorEmail: user.email,
             versao: '1.0'
           };
           
@@ -402,9 +395,6 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
     }
 
     // Não permitir que o usuário delete a si mesmo
-    const adminEmail = user.email;
-    const adminUid = user.uid;
-
     if (!window.confirm('Tem certeza que deseja excluir este usuário?')) {
       return;
     }

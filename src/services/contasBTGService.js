@@ -8,11 +8,8 @@ import {
   doc,
   updateDoc,
   getDoc,
-  orderBy,
   deleteDoc,
-  serverTimestamp,
-  limit,
-  startAfter
+  serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 

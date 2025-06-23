@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { NavLink, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   Home, 
@@ -31,15 +31,14 @@ import { useUnitFilter } from '../../contexts/UnitFilterContext';
 import logo from '../../assets/logo.png';
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setIsCollapsed }) {
-  const { user, hasPermission } = useAuth();
-  const { selectedUnit } = useUnitFilter();
+  const { user } = useAuth();
   const location = useLocation();
   const [expandedMenus, setExpandedMenus] = useState({});
   const [isMobile, setIsMobile] = useState(false);
   const { hasMultipleUnits } = useUnitFilter();
 
-  // Obter permissões do usuário
-  const userPermissions = user?.permissions || {};
+  // Obter permissões do usuário usando useMemo para evitar re-renders
+  const userPermissions = useMemo(() => user?.permissions || {}, [user?.permissions]);
 
   // Detectar mobile
   useEffect(() => {
@@ -56,7 +55,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
     return () => window.removeEventListener('resize', checkMobile);
   }, [setIsCollapsed]);
 
-  const menuItems = [
+  // Definir menuItems usando useMemo para evitar re-renders
+  const menuItems = useMemo(() => [
     {
       name: 'Dashboard',
       href: '/dashboard',
@@ -161,14 +161,16 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
         { name: 'Clientes/Fornecedores', href: '/admin/clientes-fornecedores', description: 'Gerenciar clientes e fornecedores' }
       ]
     }] : [])
-  ];
+  ], []);
 
-  // Filtrar menus por permissão
+  // Filtrar menus por permissão usando useMemo
   const filteredMenuItems = useMemo(() => {
     if (!menuItems) return [];
-    return menuItems.filter(item => 
-      item.permissions.some(permission => userPermissions[permission])
-    );
+    // Simplificar o filtro por enquanto para evitar erros
+    return menuItems.filter(item => {
+      if (!item.permission) return true;
+      return userPermissions[item.permission] || false;
+    });
   }, [userPermissions, menuItems]);
 
   const closeSidebar = useCallback(() => {

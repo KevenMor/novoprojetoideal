@@ -2,18 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { 
-  Plus, 
-  Edit3, 
   Trash2, 
-  TrendingUp, 
-  TrendingDown, 
   DollarSign, 
-  AlertCircle,
-  Building2,
   RefreshCw,
   FileText,
-  Calendar,
-  Eye,
   X,
   ChevronDown,
   CheckCircle,

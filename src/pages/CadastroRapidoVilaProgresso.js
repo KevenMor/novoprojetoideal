@@ -86,7 +86,6 @@ const funcionariosVilaProgresso = [
 
 const CadastroRapidoVilaProgresso = () => {
   const { loading } = useAuth();
-  const [internalLoading, setLoading] = useState(false);
   const [resultados, setResultados] = useState([]);
   const [processado, setProcessado] = useState(false);
 
@@ -109,7 +108,6 @@ const CadastroRapidoVilaProgresso = () => {
   };
 
   const cadastrarFuncionarios = async () => {
-    setLoading(true);
     setResultados([]);
     
     const novosResultados = [];
@@ -179,8 +177,7 @@ const CadastroRapidoVilaProgresso = () => {
     }
 
     setResultados(novosResultados);
-    setProcessado(true);
-    setLoading(false);
+          setProcessado(true);
 
     // Logs com resumo
     if (sucessos > 0) {

@@ -10,7 +10,6 @@ import UnitSelector from '../components/UnitSelector';
 // import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
 const RegistrarCobrancas = () => {
-  const { user } = useAuth();
   const { selectedUnit } = useUnitFilter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({

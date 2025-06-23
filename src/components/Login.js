@@ -11,7 +11,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login, user, loading: authLoading } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {

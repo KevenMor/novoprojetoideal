@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, DollarSign, Calendar, FileText, CreditCard, Tag, Save, AlertCircle } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { X, DollarSign, Calendar, FileText, CreditCard, Tag } from 'lucide-react';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import toast from 'react-hot-toast';
 import { lancamentosService } from '../services/lancamentosService';

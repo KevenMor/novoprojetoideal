@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 // import UnitSelector from '../components/UnitSelector'; // Não usado atualmente
@@ -158,45 +158,8 @@ export default function Extratos() {
     }));
   }, [selectedUnit, competenciaAtual]);
 
-  // Carregar dados automaticamente quando filtros estão prontos
-  useEffect(() => {
-    console.log('🔄 useEffect - Verificando se deve carregar extratos...');
-    console.log('📋 Filtros atuais:', filtros);
-    console.log('🏢 Unidade selecionada:', selectedUnit);
-    console.log('🏢 Unidades disponíveis:', availableUnits);
-    
-    if (filtros.dataInicial && filtros.dataFinal && availableUnits.length > 0) {
-      console.log('✅ Condições atendidas, carregando extratos...');
-      carregarExtratos();
-    } else {
-      console.log('⚠️ Condições não atendidas:', {
-        temDataInicial: !!filtros.dataInicial,
-        temDataFinal: !!filtros.dataFinal,
-        temUnidades: availableUnits.length > 0
-      });
-    }
-  }, [filtros.dataInicial, filtros.dataFinal, availableUnits]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Aplicar filtros automaticamente quando a unidade é alterada
-  useEffect(() => {
-    console.log('🔄 Unidade alterada, limpando estado anterior...');
-    
-    // LIMPAR ESTADO ANTERIOR para evitar que dados "grudem"
-    setExtratos([]);
-    setEstatisticas({
-      receitas: 0,
-      despesas: 0,
-      saldo: 0,
-      transacoes: 0
-    });
-    
-    if (filtros.dataInicial && filtros.dataFinal && filtros.unidade) {
-      console.log('✅ Recarregando extratos para nova unidade:', filtros.unidade);
-      carregarExtratos();
-    }
-  }, [filtros.unidade]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const carregarExtratos = async () => {
+  // Usar useCallback para carregarExtratos
+  const carregarExtratos = useCallback(async () => {
     setLoading(true);
     try {
       console.log('🔄 Carregando extratos...');
@@ -253,7 +216,26 @@ export default function Extratos() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedUnit, user?.uid]);
+
+  // Aplicar filtros automaticamente quando a unidade é alterada
+  useEffect(() => {
+    console.log('🔄 Unidade alterada, limpando estado anterior...');
+    
+    // LIMPAR ESTADO ANTERIOR para evitar que dados "grudem"
+    setExtratos([]);
+    setEstatisticas({
+      receitas: 0,
+      despesas: 0,
+      saldo: 0,
+      transacoes: 0
+    });
+    
+    if (filtros.dataInicial && filtros.dataFinal && filtros.unidade) {
+      console.log('✅ Recarregando extratos para nova unidade:', filtros.unidade);
+      carregarExtratos();
+    }
+  }, [filtros.unidade]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const exportarCSV = async () => {
     try {

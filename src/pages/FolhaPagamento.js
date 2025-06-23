@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
-import { Edit2, Plus, Search, Trash2, Calendar } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { funcionariosService } from '../services/funcionariosService';
-import { lancamentosService } from '../services/lancamentosService';
+import { Edit2, Trash2, Plus, X, Save, Calendar, Search } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const unidadesDisponiveis = [
   "Vila Helena",
@@ -38,9 +37,6 @@ const formatDocumento = (documento = '') => {
     .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
 };
 
-// Manter compatibilidade com código existente
-const formatCPF = formatDocumento;
-
 const formatToBRLString = (value) => {
   const number = Number(value);
   if (value === null || value === undefined || isNaN(number)) {
@@ -65,7 +61,7 @@ const formatCurrencyForInput = (value) => {
 };
 
 const FolhaPagamento = () => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const { selectedUnit } = useUnitFilter();
   const navigate = useNavigate();
   const [funcionarios, setFuncionarios] = useState([]);
@@ -88,21 +84,21 @@ const FolhaPagamento = () => {
   const [tipoLote, setTipoLote] = useState('salario');
   const [enviandoLote, setEnviandoLote] = useState(false);
 
-  const carregarFuncionarios = useCallback(async () => {
+  const carregarFuncionarios = async () => {
     if (!selectedUnit) return;
     
     try {
       setLoading(true);
       console.log('🔄 Carregando funcionários para unidade:', selectedUnit);
       
-             if (!user) {
-         toast.error('Usuário não autenticado');
-         return;
-       }
+      if (!user) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
 
-       const funcionariosData = await funcionariosService.listarFuncionarios(selectedUnit, {
-         perfil: user
-       });
+      const funcionariosData = await funcionariosService.listarFuncionarios(selectedUnit, {
+        perfil: user
+      });
       
       const dadosFormatados = funcionariosData.map(f => ({
         ...f,
@@ -118,7 +114,7 @@ const FolhaPagamento = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedUnit, user]);
+  };
 
   useEffect(() => {
     carregarFuncionarios();

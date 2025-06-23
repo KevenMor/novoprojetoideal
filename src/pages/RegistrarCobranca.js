@@ -2,16 +2,12 @@ import React, { useState } from 'react';
 import { 
   collection, 
   addDoc, 
-  doc, 
-  updateDoc, 
-  deleteDoc,
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit3, Trash2, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 export default function RegistrarCobranca() {
   const { availableUnits } = useUnitFilter();

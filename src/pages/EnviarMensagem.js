@@ -11,7 +11,6 @@ const EnviarMensagem = () => {
   const { loading } = useAuth();
   const { selectedUnit, availableUnits } = useUnitFilter();
   
-  const [internalLoading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nomeCompleto: '',
     whatsapp: '',
@@ -63,7 +62,6 @@ const EnviarMensagem = () => {
       validation.errors.forEach(error => toast.error(error));
       return;
     }
-    setLoading(true);
     try {
       let result;
       if (["Boas-vindas", "Comercial", "Chamar Cliente"].includes(messageData.tipoMensagem)) {
@@ -85,7 +83,6 @@ const EnviarMensagem = () => {
       const webhookResponse = error?.response?.data || { success: false, message: error.message || 'Erro desconhecido' };
       await messagesService.saveMessageHistory(messageData, webhookResponse);
       toast.error('Erro inesperado. Verifique sua conexão e tente novamente.');
-      setLoading(false);
     }
   };
 

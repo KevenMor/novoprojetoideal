@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getQuickMessages, addQuickMessage, updateQuickMessage, deleteQuickMessage } from '../services/quickMessagesService';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { Plus, Edit3, Trash2, X, Save, FileText } from 'lucide-react';
+import { Plus, Edit3, Trash2, X } from 'lucide-react';
 
 const DEFAULT_MESSAGES = [
   {
