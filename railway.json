@@ -1,10 +1,1 @@
-{
-  "services": [
-    {
-      "name": "backend",
-      "sourceDir": "server",
-      "startCommand": "node server.js",
-      "healthcheckPath": "/health"
-    }
-  ]
-} 
+{} 

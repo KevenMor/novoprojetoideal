@@ -25,10 +25,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "start:windows": "set REACT_APP_API_URL=http://localhost:3001 && craco start",
-    "start:prod": "cross-env REACT_APP_API_URL=https://seu-backend.herokuapp.com craco start",
-    "build": "CI=false react-scripts build",
-    "build:dev": "cross-env REACT_APP_API_URL=http://localhost:3001 craco build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "firebase:setup": "echo Por favor, configure o arquivo .env com suas credenciais Firebase",
