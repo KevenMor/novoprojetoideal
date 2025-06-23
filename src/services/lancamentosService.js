@@ -155,10 +155,10 @@ export const lancamentosService = {
     try {
       console.log('📝 Atualizando lançamento:', id, dadosAtualizacao);
       
-      // Verificar se o ID é válido
-      if (!id || typeof id !== 'string') {
-        console.log('📊 ID inválido, possivelmente lançamento de planilha, criando novo registro');
-        return await this.criarLancamento(dadosAtualizacao);
+      // Para lançamentos vindos do BTG ou Sheets que não têm ID no Firebase, não criar duplicata
+      if (!id || typeof id !== 'string' || id.startsWith('btg_') || id.includes('sheets_')) {
+        console.log('📊 Lançamento externo (BTG/Sheets), não pode ser editado no Firebase');
+        throw new Error('Este lançamento não pode ser editado diretamente. É originário de fonte externa.');
       }
       
       // Verificar se o documento existe
@@ -166,23 +166,27 @@ export const lancamentosService = {
       const docSnap = await getDoc(lancamentoRef);
       
       if (!docSnap.exists()) {
-        console.log('📊 Documento não existe, criando novo registro');
-        return await this.criarLancamento(dadosAtualizacao);
+        console.log('❌ Documento não existe no Firebase');
+        throw new Error('Lançamento não encontrado no sistema.');
       }
       
-      // Preparar dados para atualização
+      // Obter dados atuais do documento
+      const dadosAtuais = docSnap.data();
+      
+      // Preparar dados para atualização - mantendo campos existentes e atualizando apenas os necessários
       const dadosParaAtualizar = {
-        descricao: dadosAtualizacao.descricao,
-        valor: parseFloat(dadosAtualizacao.valor) || 0,
-        cliente: dadosAtualizacao.cliente || '',
-        unidade: dadosAtualizacao.unidade,
-        formaPagamento: dadosAtualizacao.formaPagamento || '',
-        status: dadosAtualizacao.status || 'CONFIRMED',
-        tipo: dadosAtualizacao.tipo === 'RECEITA' ? 'RECEITA' : 'DESPESA',
+        descricao: dadosAtualizacao.descricao || dadosAtuais.descricao,
+        valor: parseFloat(dadosAtualizacao.valor) || dadosAtuais.valor || 0,
+        cliente: dadosAtualizacao.cliente || dadosAtuais.cliente || '',
+        unidade: dadosAtualizacao.unidade || dadosAtuais.unidade,
+        formaPagamento: dadosAtualizacao.formaPagamento || dadosAtuais.formaPagamento || '',
+        status: dadosAtualizacao.status || dadosAtuais.status || 'CONFIRMED',
+        // MANTER O TIPO ORIGINAL - não converter
+        tipo: dadosAtuais.tipo, // Manter o tipo original do documento
         dataAtualizacao: Timestamp.now()
       };
       
-      // Tratar data de forma mais robusta
+      // Tratar data de forma mais robusta - manter data original se não especificada
       if (dadosAtualizacao.data) {
         let dataParaConverter;
         
@@ -208,27 +212,22 @@ export const lancamentosService = {
         
         // Validar se a data é válida
         if (isNaN(dataParaConverter.getTime())) {
-          console.warn('Data inválida, usando data atual');
-          dataParaConverter = new Date();
+          console.warn('Data inválida, mantendo data original');
+          // Manter a data original se a nova for inválida
+        } else {
+          dadosParaAtualizar.dataLancamento = Timestamp.fromDate(dataParaConverter);
+          dadosParaAtualizar.data = Timestamp.fromDate(dataParaConverter);
         }
-        
-        dadosParaAtualizar.dataLancamento = Timestamp.fromDate(dataParaConverter);
       }
 
       console.log('📤 Dados finais para atualização:', dadosParaAtualizar);
+      console.log('📤 Tipo mantido:', dadosParaAtualizar.tipo);
       
       await updateDoc(lancamentoRef, dadosParaAtualizar);
       console.log('✅ Lançamento atualizado com sucesso');
       return true;
     } catch (error) {
       console.error('❌ Erro ao atualizar lançamento:', error);
-      
-      // Se for erro de documento não encontrado, tentar criar novo
-      if (error.code === 'not-found') {
-        console.log('📊 Documento não encontrado, criando novo');
-        return await this.criarLancamento(dadosAtualizacao);
-      }
-      
       throw new Error('Erro ao atualizar lançamento: ' + error.message);
     }
   },

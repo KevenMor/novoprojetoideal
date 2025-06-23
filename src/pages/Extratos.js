@@ -269,7 +269,21 @@ export default function Extratos() {
   const getTipoTransacaoText = (extrato) => {
     if (isReceita(extrato)) return 'Receita';
     if (isDespesa(extrato)) return 'Despesa';
-    return 'N/A';
+    
+    // Se for de origem BTG, é sempre despesa
+    if (extrato.origem === 'CONTA_BTG' || extrato.id?.startsWith('btg_')) {
+      return 'Despesa';
+    }
+    
+    // Se for de origem COBRANCA_AUTOMATICA, inferir pelo valor
+    if (extrato.origem === 'COBRANCA_AUTOMATICA') {
+      const valor = parseFloat(extrato.valor || extrato.value || 0);
+      return valor >= 0 ? 'Receita' : 'Despesa';
+    }
+    
+    // Inferir pelo valor como último recurso
+    const valor = parseFloat(extrato.valor || extrato.value || 0);
+    return valor >= 0 ? 'Receita' : 'Despesa';
   };
 
   const getTipoTransacaoColor = (extrato) => {
@@ -464,8 +478,23 @@ export default function Extratos() {
   const editarLancamento = (extrato) => {
     console.log('✏️ Iniciando edição do lançamento:', extrato);
     
-    // Converter tipo CREDIT/DEBIT para RECEITA/DESPESA
-    const tipoConvertido = (extrato.tipo || extrato.type) === 'CREDIT' ? 'RECEITA' : 'DESPESA';
+    // Verificar se é um lançamento externo (BTG ou Sheets)
+    if (!extrato.id || extrato.id.startsWith('btg_') || extrato.origem === 'CONTA_BTG' || extrato.origem === 'SHEETS') {
+      toast.error('Este lançamento não pode ser editado. É originário de fonte externa (BTG/Planilhas).');
+      return;
+    }
+    
+    // Converter tipo CREDIT/DEBIT para RECEITA/DESPESA para exibição no modal
+    let tipoConvertido;
+    if ((extrato.tipo || extrato.type) === 'CREDIT' || (extrato.tipo || extrato.type) === 'RECEITA') {
+      tipoConvertido = 'RECEITA';
+    } else if ((extrato.tipo || extrato.type) === 'DEBIT' || (extrato.tipo || extrato.type) === 'DESPESA') {
+      tipoConvertido = 'DESPESA';
+    } else {
+      // Se for N/A ou outro, inferir pelo valor (se negativo, é despesa)
+      const valor = parseFloat(extrato.valor || extrato.value || 0);
+      tipoConvertido = valor < 0 ? 'DESPESA' : 'RECEITA';
+    }
     
     // Tratar data de forma mais robusta
     let dataFormatada = '';
@@ -502,16 +531,22 @@ export default function Extratos() {
       dataFormatada = new Date().toISOString().split('T')[0];
     }
     
+    // Definir forma de pagamento padrão para lançamentos BTG
+    let formaPagamentoPadrao = extrato.formaPagamento || '';
+    if (extrato.origem === 'CONTA_BTG' || extrato.id?.startsWith('btg_')) {
+      formaPagamentoPadrao = 'BANCO_BTG';
+    }
+    
     // Preparar dados para edição
     const lancamentoFormatado = {
-      id: extrato.id || null,
+      id: extrato.id,
       tipo: tipoConvertido,
-      valor: (extrato.valor || extrato.value || 0).toString(),
+      valor: Math.abs(parseFloat(extrato.valor || extrato.value || 0)).toString(), // Sempre positivo para o form
       data: dataFormatada,
       descricao: extrato.descricao || extrato.description || '',
       cliente: extrato.cliente || '',
       unidade: extrato.unidade || selectedUnit,
-      formaPagamento: extrato.formaPagamento || '',
+      formaPagamento: formaPagamentoPadrao,
       status: extrato.status || 'CONFIRMED',
       origem: extrato.origem || 'MANUAL',
       fonte: extrato.fonte || 'firebase'

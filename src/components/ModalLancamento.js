@@ -95,6 +95,7 @@ export default function ModalLancamento({
     { value: 'CARTAO_DEBITO', label: 'Cartão de Débito' },
     { value: 'TRANSFERENCIA', label: 'Transferência' },
     { value: 'BOLETO', label: 'Boleto' },
+    { value: 'BANCO_BTG', label: 'Banco BTG' },
     { value: 'OUTROS', label: 'Outros' }
   ];
   const formasPagamento = formasApi.length ? formasApi.map(f=>({value:f.id,label:f.nome})) : formasPagamentoPadrao;
