@@ -15,7 +15,9 @@ import {
   ChevronsRight,
   Target,
   Database,
-  BarChart3
+  BarChart3,
+  Filter,
+  Search
 } from 'lucide-react';
 import { extratosService } from '../services/extratosService';
 import { lancamentosService } from '../services/lancamentosService';
@@ -62,7 +64,10 @@ export default function Extratos() {
     dataInicial: '',
     dataFinal: '',
     unidade: selectedUnit || '',
-    tipo: ''
+    tipo: '',
+    formaPagamento: '',
+    categoria: '',
+    buscarTexto: ''
   });
   const [estatisticas, setEstatisticas] = useState({
     receitas: 0,
@@ -86,11 +91,45 @@ export default function Extratos() {
   const [novoStatus, setNovoStatus] = useState('');
   const [novaUnidade, setNovaUnidade] = useState('');
 
+  // Estados para filtros avançados
+  const [formasPagamento, setFormasPagamento] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [filtrosAvancados, setFiltrosAvancados] = useState(false);
+
   const tiposTransacao = [
     { value: '', label: 'Todos os tipos' },
     { value: 'CREDIT', label: 'Receitas' },
     { value: 'DEBIT', label: 'Despesas' },
     { value: 'AGUARDANDO', label: 'Aguardando Pagamento' }
+  ];
+
+  const formasPagamentoPadrao = [
+    { value: '', label: 'Todas as formas' },
+    { value: 'DINHEIRO', label: 'Dinheiro' },
+    { value: 'PIX', label: 'PIX' },
+    { value: 'CARTAO_CREDITO', label: 'Cartão de Crédito' },
+    { value: 'CARTAO_DEBITO', label: 'Cartão de Débito' },
+    { value: 'TRANSFERENCIA', label: 'Transferência' },
+    { value: 'BOLETO', label: 'Boleto' },
+    { value: 'BANCO_BTG', label: 'Banco BTG' },
+    { value: 'OUTROS', label: 'Outros' }
+  ];
+
+  const categoriasPadrao = [
+    { value: '', label: 'Todas as categorias' },
+    // Receitas
+    { value: 'MENSALIDADE', label: 'Mensalidade' },
+    { value: 'MATRICULA', label: 'Matrícula' },
+    { value: 'AULA_EXTRA', label: 'Aula Extra' },
+    { value: 'EXAME', label: 'Exame' },
+    // Despesas
+    { value: 'COMBUSTIVEL', label: 'Combustível' },
+    { value: 'MANUTENCAO', label: 'Manutenção' },
+    { value: 'SALARIO', label: 'Salário' },
+    { value: 'ALUGUEL', label: 'Aluguel' },
+    { value: 'CONTA', label: 'Contas (Luz, Água, etc.)' },
+    { value: 'CONTA_BTG', label: 'Conta BTG' },
+    { value: 'OUTROS', label: 'Outros' }
   ];
 
   // Função para navegar entre competências
@@ -191,11 +230,38 @@ export default function Extratos() {
       
       console.log(`📊 [EXTRATOS] ${extratosCarregados.length} extratos carregados para ${filtrosCompletos.unidade || 'todas as unidades'}`);
 
-      // Filtra os excluídos, a menos que "mostrarExcluidos" seja verdadeiro
-      const extratosFiltrados = extratosCarregados.filter(extrato => {
+      // Aplicar filtros avançados
+      let extratosFiltrados = extratosCarregados.filter(extrato => {
         const status = String(extrato.status || '').toLowerCase();
-        return mostrarExcluidos ? true : (status !== 'excluido' && status !== 'deleted');
+        const statusFiltro = mostrarExcluidos ? true : (status !== 'excluido' && status !== 'deleted');
+        
+        if (!statusFiltro) return false;
+        
+        // Filtro por forma de pagamento
+        if (filtros.formaPagamento && extrato.formaPagamento !== filtros.formaPagamento) {
+          return false;
+        }
+        
+        // Filtro por categoria
+        if (filtros.categoria && extrato.categoria !== filtros.categoria) {
+          return false;
+        }
+        
+        // Filtro por busca de texto (descrição, cliente)
+        if (filtros.buscarTexto) {
+          const textoMinusculo = filtros.buscarTexto.toLowerCase();
+          const descricao = (extrato.descricao || extrato.description || '').toLowerCase();
+          const cliente = (extrato.cliente || '').toLowerCase();
+          
+          if (!descricao.includes(textoMinusculo) && !cliente.includes(textoMinusculo)) {
+            return false;
+          }
+        }
+        
+        return true;
       });
+      
+      console.log(`🔍 [FILTROS] ${extratosFiltrados.length} extratos após filtros avançados`);
       
       // Atualizar estado
       setExtratos(extratosFiltrados);
@@ -227,6 +293,13 @@ export default function Extratos() {
       carregarExtratos();
     }
   }, [filtros.unidade]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Aplicar filtros avançados automaticamente
+  useEffect(() => {
+    if (extratos.length > 0) {
+      carregarExtratos();
+    }
+  }, [filtros.formaPagamento, filtros.categoria, filtros.buscarTexto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const exportarCSV = async () => {
     try {
@@ -789,36 +862,121 @@ export default function Extratos() {
           </div>
 
           {/* Filtros e Ações */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <button 
-              onClick={carregarExtratos}
-              className="btn-mobile btn-mobile-secondary bg-gray-600 text-white hover:bg-gray-700 flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span className="hide-mobile">Atualizar</span>
-            </button>
-            <button
-              onClick={toggleMostrarExcluidos}
-              className={`btn-mobile flex items-center gap-2 ${
-                mostrarExcluidos
-                  ? 'bg-red-500 text-white hover:bg-red-600'
-                  : 'btn-mobile-secondary border'
-              }`}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="hide-mobile">{mostrarExcluidos ? 'Ocultar' : 'Mostrar'} Excluídos</span>
-            </button>
-            <select 
-              value={filtros.tipo} 
-              onChange={(e) => handleFiltroChange('tipo', e.target.value)}
-              className="form-input-mobile text-mobile-sm"
-            >
-              {tiposTransacao.map((tipo) => (
-                <option key={tipo.value} value={tipo.value}>
-                  {tipo.label}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-3">
+            {/* Filtros básicos */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button 
+                onClick={carregarExtratos}
+                className="btn-mobile btn-mobile-secondary bg-gray-600 text-white hover:bg-gray-700 flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span className="hide-mobile">Atualizar</span>
+              </button>
+              <button
+                onClick={toggleMostrarExcluidos}
+                className={`btn-mobile flex items-center gap-2 ${
+                  mostrarExcluidos
+                    ? 'bg-red-500 text-white hover:bg-red-600'
+                    : 'btn-mobile-secondary border'
+                }`}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hide-mobile">{mostrarExcluidos ? 'Ocultar' : 'Mostrar'} Excluídos</span>
+              </button>
+              <select 
+                value={filtros.tipo} 
+                onChange={(e) => handleFiltroChange('tipo', e.target.value)}
+                className="form-input-mobile text-mobile-sm"
+              >
+                {tiposTransacao.map((tipo) => (
+                  <option key={tipo.value} value={tipo.value}>
+                    {tipo.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => setFiltrosAvancados(!filtrosAvancados)}
+                className="btn-mobile btn-mobile-secondary flex items-center gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                <span className="hide-mobile">Filtros Avançados</span>
+              </button>
+            </div>
+
+            {/* Filtros avançados */}
+            {filtrosAvancados && (
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Busca por texto */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Buscar por nome/descrição
+                    </label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={filtros.buscarTexto}
+                        onChange={(e) => handleFiltroChange('buscarTexto', e.target.value)}
+                        placeholder="Digite para buscar..."
+                        className="form-input-mobile text-mobile-sm pl-10 w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Forma de pagamento */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Forma de Pagamento
+                    </label>
+                    <select 
+                      value={filtros.formaPagamento} 
+                      onChange={(e) => handleFiltroChange('formaPagamento', e.target.value)}
+                      className="form-input-mobile text-mobile-sm w-full"
+                    >
+                      {formasPagamentoPadrao.map((forma) => (
+                        <option key={forma.value} value={forma.value}>
+                          {forma.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Categoria */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Categoria
+                    </label>
+                    <select 
+                      value={filtros.categoria} 
+                      onChange={(e) => handleFiltroChange('categoria', e.target.value)}
+                      className="form-input-mobile text-mobile-sm w-full"
+                    >
+                      {categoriasPadrao.map((categoria) => (
+                        <option key={categoria.value} value={categoria.value}>
+                          {categoria.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Botão limpar filtros */}
+                <div className="mt-3 flex justify-end">
+                  <button
+                    onClick={() => setFiltros({
+                      ...filtros,
+                      formaPagamento: '',
+                      categoria: '',
+                      buscarTexto: ''
+                    })}
+                    className="btn-mobile btn-mobile-secondary text-sm"
+                  >
+                    Limpar Filtros
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -916,6 +1074,8 @@ export default function Extratos() {
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pagamento</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidade</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
@@ -942,6 +1102,12 @@ export default function Extratos() {
                             {formatCurrency(extrato.valor || extrato.value)}
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-500">{getTipoTransacaoText(extrato)}</td>
+                          <td className="px-4 py-2 text-xs text-gray-500">
+                            {extrato.formaPagamento || '-'}
+                          </td>
+                          <td className="px-4 py-2 text-xs text-gray-500">
+                            {extrato.categoria || '-'}
+                          </td>
                           <td className="px-4 py-2">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(extrato)}`}>
                               {getStatusText(extrato)}
@@ -1002,6 +1168,21 @@ export default function Extratos() {
                                 {getTipoTransacaoText(extrato)}
                               </span>
                             </div>
+                            
+                            {/* Informações adicionais para mobile */}
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-2">
+                              {extrato.formaPagamento && (
+                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                  {extrato.formaPagamento}
+                                </span>
+                              )}
+                              {extrato.categoria && (
+                                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                                  {extrato.categoria}
+                                </span>
+                              )}
+                            </div>
+                            
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-2">
                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(extrato)}`}>
