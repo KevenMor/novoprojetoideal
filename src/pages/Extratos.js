@@ -1000,14 +1000,14 @@ export default function Extratos() {
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <div className="stat-icon-container bg-gradient-to-br from-emerald-500 to-green-600">
+                <div className="stat-icon-container" style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                   <TrendingUp size={18} className="text-white" />
                 </div>
                 <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
                   {mostrarExcluidos ? 'Receitas Excluídas' : 'Receitas'}
                 </p>
               </div>
-              <p className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+              <p className="text-2xl lg:text-3xl font-bold" style={{background: 'linear-gradient(to right, #10b981, #059669)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>
                 {formatCurrency(estatisticas.receitas)}
               </p>
             </div>
@@ -1019,14 +1019,14 @@ export default function Extratos() {
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <div className="stat-icon-container bg-gradient-to-br from-red-500 to-rose-600">
+                <div className="stat-icon-container" style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
                   <TrendingDown size={18} className="text-white" />
                 </div>
                 <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
                   {mostrarExcluidos ? 'Despesas Excluídas' : 'Despesas'}
                 </p>
               </div>
-              <p className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
+              <p className="text-2xl lg:text-3xl font-bold" style={{background: 'linear-gradient(to right, #ef4444, #dc2626)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>
                 {formatCurrency(estatisticas.despesas)}
               </p>
             </div>
@@ -1038,22 +1038,25 @@ export default function Extratos() {
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <div className={`stat-icon-container ${
-                  estatisticas.saldo >= 0 
-                    ? 'bg-gradient-to-br from-blue-500 to-indigo-600' 
-                    : 'bg-gradient-to-br from-orange-500 to-red-600'
-                }`}>
+                <div className="stat-icon-container" style={{
+                  background: estatisticas.saldo >= 0 
+                    ? 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)' 
+                    : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                }}>
                   <BarChart3 size={18} className="text-white" />
                 </div>
                 <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
                   {mostrarExcluidos ? 'Saldo Excluído' : 'Saldo'}
                 </p>
               </div>
-              <p className={`text-2xl lg:text-3xl font-bold ${
-                estatisticas.saldo >= 0 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent' 
-                  : 'bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent'
-              }`}>
+              <p className="text-2xl lg:text-3xl font-bold" style={{
+                background: estatisticas.saldo >= 0 
+                  ? 'linear-gradient(to right, #1e40af, #1e3a8a)' 
+                  : 'linear-gradient(to right, #f59e0b, #d97706)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
                 {formatCurrency(estatisticas.saldo)}
               </p>
             </div>
@@ -1065,14 +1068,14 @@ export default function Extratos() {
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <div className="stat-icon-container bg-gradient-to-br from-purple-500 to-violet-600">
+                <div className="stat-icon-container" style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
                   <Target size={18} className="text-white" />
                 </div>
                 <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
                   {mostrarExcluidos ? 'Transações Excluídas' : 'Transações'}
                 </p>
               </div>
-              <p className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
+              <p className="text-2xl lg:text-3xl font-bold" style={{background: 'linear-gradient(to right, #f59e0b, #d97706)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>
                 {estatisticas.transacoes}
               </p>
             </div>

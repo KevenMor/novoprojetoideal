@@ -625,11 +625,29 @@ textarea:focus {
   box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05);
 }
 
-/* ===== MODERN SAAS COMPONENTS ===== */
+/* ===== AUTO ESCOLA IDEAL DESIGN SYSTEM ===== */
+
+/* Paleta de Cores Baseada no Logo */
+:root {
+  /* Cores Primárias - Auto Escola Ideal */
+  --ideal-gold: #f59e0b;
+  --ideal-gold-light: #fbbf24;
+  --ideal-gold-dark: #d97706;
+  --ideal-blue: #1e40af;
+  --ideal-blue-light: #3b82f6;
+  --ideal-blue-dark: #1e3a8a;
+  --ideal-green: #059669;
+  --ideal-green-light: #10b981;
+  --ideal-green-dark: #047857;
+  --ideal-orange: #ea580c;
+  --ideal-orange-light: #f97316;
+  --ideal-red: #dc2626;
+  --ideal-red-light: #ef4444;
+}
 
 /* Modern Filter Panel */
 .modern-filter-panel {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--ideal-gold) 0%, var(--ideal-orange) 100%);
   background-size: 200% 200%;
   animation: gradientShift 10s ease infinite;
   @apply rounded-2xl shadow-2xl border border-white border-opacity-20 backdrop-blur-md;
@@ -675,8 +693,8 @@ textarea:focus {
 
 .modern-input:focus {
   background: rgba(255, 255, 255, 1);
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  border-color: var(--ideal-gold);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
 }
 
 .dark .modern-input {
@@ -686,7 +704,7 @@ textarea:focus {
 
 .dark .modern-input:focus {
   background: rgba(55, 65, 81, 1);
-  border-color: #818cf8;
+  border-color: var(--ideal-gold-light);
 }
 
 /* Modern Select */
@@ -704,8 +722,8 @@ textarea:focus {
 
 .modern-select:focus {
   background-color: rgba(255, 255, 255, 1);
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  border-color: var(--ideal-gold);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
 }
 
 .dark .modern-select {
@@ -716,7 +734,7 @@ textarea:focus {
 
 .dark .modern-select:focus {
   background: rgba(55, 65, 81, 1);
-  border-color: #818cf8;
+  border-color: var(--ideal-gold-light);
 }
 
 /* Modern Search Input */
@@ -732,8 +750,8 @@ textarea:focus {
 
 .modern-search-input:focus {
   background: rgba(255, 255, 255, 1);
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  border-color: var(--ideal-gold);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
 }
 
 .modern-search-input::placeholder {
@@ -754,7 +772,7 @@ textarea:focus {
 }
 
 .group:focus-within .modern-search-icon {
-  @apply text-blue-500;
+  color: var(--ideal-gold);
   transform: translateY(-50%) scale(1.1);
 }
 
@@ -765,7 +783,7 @@ textarea:focus {
 
 .dark .modern-search-input:focus {
   background: rgba(55, 65, 81, 1);
-  border-color: #818cf8;
+  border-color: var(--ideal-gold-light);
 }
 
 /* Modern Buttons */
@@ -774,8 +792,9 @@ textarea:focus {
 }
 
 .modern-btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  @apply text-white shadow-lg hover:shadow-xl focus:ring-blue-500/30;
+  background: linear-gradient(135deg, var(--ideal-blue) 0%, var(--ideal-blue-dark) 100%);
+  @apply text-white shadow-lg hover:shadow-xl;
+  box-shadow: 0 4px 14px 0 rgba(30, 64, 175, 0.3);
 }
 
 .modern-btn-primary::before {
@@ -807,19 +826,22 @@ textarea:focus {
 }
 
 .modern-btn-clear {
-  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-  @apply text-orange-800 shadow-md hover:shadow-lg focus:ring-orange-500/30;
+  background: linear-gradient(135deg, var(--ideal-orange-light) 0%, var(--ideal-orange) 100%);
+  @apply text-white shadow-md hover:shadow-lg;
+  box-shadow: 0 4px 14px 0 rgba(234, 88, 12, 0.3);
 }
 
 /* Filter Toggle Button */
 .filter-toggle-btn {
-  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-  @apply text-gray-700 font-semibold shadow-lg hover:shadow-xl transform transition-all duration-300 hover:scale-[1.05] rounded-xl border-0;
+  background: linear-gradient(135deg, var(--ideal-gold-light) 0%, var(--ideal-gold) 100%);
+  @apply text-white font-semibold shadow-lg hover:shadow-xl transform transition-all duration-300 hover:scale-[1.05] rounded-xl border-0;
+  box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.3);
 }
 
 .filter-toggle-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--ideal-gold-dark) 0%, var(--ideal-orange) 100%);
   @apply text-white;
+  box-shadow: 0 6px 20px 0 rgba(217, 119, 6, 0.4);
 }
 
 /* Modern Label */
@@ -860,8 +882,9 @@ textarea:focus {
 
 /* Page Header Modernization */
 .modern-page-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--ideal-blue) 0%, var(--ideal-blue-dark) 100%);
   @apply rounded-2xl shadow-2xl text-white p-8 mb-8;
+  box-shadow: 0 20px 40px -12px rgba(30, 64, 175, 0.3);
 }
 
 /* Responsive improvements */
