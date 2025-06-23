@@ -22,6 +22,11 @@ O erro `ERROR: invalid key-value pair "= REACT_APP_API_URL=https://sistema-ideal
 - Variáveis de ambiente configuradas via interface web
 - Evita problemas de encoding e processamento automático
 
+### 5. **Correção do erro ESLint "react-app"**
+- ESLint desabilitado durante o build: `DISABLE_ESLINT_PLUGIN=true`
+- Arquivos `.eslintrc.*` adicionados ao `.railwayignore`
+- Configuração ESLint mantida no `package.json` para desenvolvimento
+
 ## Arquivos Criados/Modificados
 
 ### `.railwayignore`
@@ -32,6 +37,11 @@ O erro `ERROR: invalid key-value pair "= REACT_APP_API_URL=https://sistema-ideal
 
 # Arquivos de desenvolvimento
 env.example
+
+# Arquivos ESLint problemáticos
+.eslintrc.js
+.eslintrc.json
+.eslintrc.yml
 ```
 
 ### `nixpacks.toml`
@@ -40,10 +50,10 @@ env.example
 nixPkgs = ["nodejs_18", "npm-9_x"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm install"]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = ["DISABLE_ESLINT_PLUGIN=true npm run build"]
 
 [start]
 cmd = "npx serve -s build -l $PORT"
@@ -78,15 +88,15 @@ PORT=3000
 ## Processo de Build Atualizado
 
 ```
-╔════════ Nixpacks v1.38.0 ═══════╗
-║ setup      │ nodejs_18, npm-9_x ║
-║─────────────────────────────────║
-║ install    │ npm ci             ║
-║─────────────────────────────────║
-║ build      │ npm run build      ║
-║─────────────────────────────────║
-║ start      │ serve -s build     ║
-╚═════════════════════════════════╝
+╔════════ Nixpacks v1.38.0 ═══════════════════════╗
+║ setup      │ nodejs_18, npm-9_x                 ║
+║─────────────────────────────────────────────────║
+║ install    │ npm install                        ║
+║─────────────────────────────────────────────────║
+║ build      │ DISABLE_ESLINT_PLUGIN=true build   ║
+║─────────────────────────────────────────────────║
+║ start      │ serve -s build                     ║
+╚═════════════════════════════════════════════════╝
 ```
 
 ## Estrutura do Projeto
@@ -115,7 +125,17 @@ SISTEMA AUTOESCOLA IDEAL/
 2. ✅ Certifique-se de que não há arquivos `.env` no repositório  
 3. ✅ Verifique se o `nixpacks.toml` está presente
 4. ✅ Confirme que o `.railwayignore` está funcionando
-5. Verifique os logs de build no Railway para erros específicos
+5. ✅ ESLint desabilitado durante o build para evitar erros de configuração
+6. Verifique os logs de build no Railway para erros específicos
+
+### Erros Comuns e Soluções:
+
+**Erro ESLint "Failed to load config 'react-app'":**
+- ✅ **Solução**: ESLint desabilitado com `DISABLE_ESLINT_PLUGIN=true`
+- ✅ **Implementado**: Arquivos `.eslintrc.*` ignorados no `.railwayignore`
+
+**Erro "npm ci" falha:**
+- ✅ **Solução**: Mudado para `npm install` no `nixpacks.toml`
 
 ### Se a API não conectar:
 1. Confirme que o backend está rodando
