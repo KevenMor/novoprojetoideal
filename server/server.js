@@ -13,9 +13,13 @@ const { AuditService } = require('./services/auditService');
 // Importar controladores
 const MessagesController = require('./controllers/messagesController');
 const BTGAccountsController = require('./controllers/btgAccountsController');
+const CategoriasController = require('./controllers/categoriasController');
+const ContasController = require('./controllers/contasController');
+const FormasPagamentoController = require('./controllers/formasPagamentoController');
+const ClientesFornecedoresController = require('./controllers/clientesFornecedoresController');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Middlewares de segurança
 app.use(helmet({
@@ -414,6 +418,22 @@ app.get('/api/audit/stats', authMiddleware, adminMiddleware, async (req, res) =>
     });
   }
 });
+
+// ============= CATEGORIAS =============
+app.post('/api/categorias', authMiddleware, adminMiddleware, CategoriasController.createCategoria);
+app.get('/api/categorias', authMiddleware, CategoriasController.listCategorias);
+
+// ============= CONTAS =============
+app.post('/api/contas', authMiddleware, adminMiddleware, ContasController.createConta);
+app.get('/api/contas', authMiddleware, ContasController.listContas);
+
+// ============= FORMAS DE PAGAMENTO =============
+app.post('/api/formas-pagamento', authMiddleware, adminMiddleware, FormasPagamentoController.createFormaPagamento);
+app.get('/api/formas-pagamento', authMiddleware, FormasPagamentoController.listFormasPagamento);
+
+// ============= CLIENTES/FORNECEDORES =============
+app.post('/api/clientes-fornecedores', authMiddleware, adminMiddleware, ClientesFornecedoresController.createClienteFornecedor);
+app.get('/api/clientes-fornecedores', authMiddleware, ClientesFornecedoresController.listClientesFornecedores);
 
 // =================== MIDDLEWARE DE ERRO ===================
 app.use((err, req, res, next) => {
