@@ -722,7 +722,6 @@ textarea:focus {
 /* Modern Search Input */
 .modern-search-container {
   position: relative;
-  @apply group;
 }
 
 .modern-search-input {
@@ -751,7 +750,12 @@ textarea:focus {
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  @apply text-gray-400 transition-all duration-300 group-focus-within:text-blue-500 group-focus-within:scale-110;
+  @apply text-gray-400 transition-all duration-300;
+}
+
+.group:focus-within .modern-search-icon {
+  @apply text-blue-500;
+  transform: translateY(-50%) scale(1.1);
 }
 
 .dark .modern-search-input {

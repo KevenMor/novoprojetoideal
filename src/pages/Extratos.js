@@ -924,8 +924,8 @@ export default function Extratos() {
                   <label className="modern-label">
                     🔍 Busca Inteligente
                   </label>
-                  <div className="modern-search-container">
-                    <Search className="modern-search-icon h-5 w-5" />
+                                        <div className="modern-search-container group">
+                        <Search className="modern-search-icon h-5 w-5" />
                     <input
                       type="text"
                       value={filtros.buscarTexto}
