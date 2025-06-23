@@ -14,7 +14,14 @@ import {
   FileText,
   Calendar,
   Eye,
-  X
+  X,
+  ChevronDown,
+  CheckCircle,
+  CreditCard,
+  Filter,
+  Clock,
+  QrCode,
+  Edit
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { contasBTGService } from '../services/contasBTGService';

@@ -86,6 +86,7 @@ const funcionariosVilaProgresso = [
 
 const CadastroRapidoVilaProgresso = () => {
   const { loading } = useAuth();
+  const [internalLoading, setLoading] = useState(false);
   const [resultados, setResultados] = useState([]);
   const [processado, setProcessado] = useState(false);
 

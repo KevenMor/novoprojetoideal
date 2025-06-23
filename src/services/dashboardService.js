@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, limit } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { asaasService } from './asaasService';
 import { extratosService } from './extratosService';

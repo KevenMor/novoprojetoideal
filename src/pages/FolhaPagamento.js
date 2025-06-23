@@ -49,11 +49,27 @@ const formatToBRLString = (value) => {
   return number.toFixed(2).replace('.', ',');
 };
 
+const formatCurrencyForInput = (value) => {
+  if (!value) return '';
+  
+  // Se já é um número, formata
+  if (typeof value === 'number') {
+    return value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+  
+  // Se é string, retorna como está (já formatada)
+  return value;
+};
+
 const FolhaPagamento = () => {
   const { user, loading } = useAuth();
   const { selectedUnit } = useUnitFilter();
   const navigate = useNavigate();
   const [funcionarios, setFuncionarios] = useState([]);
+  const [internalLoading, setLoading] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
   const [funcionarioParaEditar, setFuncionarioParaEditar] = useState(null);
   const [busca, setBusca] = useState('');
@@ -454,7 +470,7 @@ const FolhaPagamento = () => {
         </div>
       </div>
 
-      {loading ? (
+      {internalLoading ? (
         <div className="bg-white p-6 rounded-lg shadow text-center">
           <p className="text-gray-500">Carregando...</p>
         </div>
@@ -733,4 +749,6 @@ const FolhaPagamento = () => {
       )}
     </div>
   );
-} 
+};
+
+export default FolhaPagamento;

@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, MapPin, Phone, Edit3, Save, X, Eye, EyeOff, Lock } from 'lucide-react';
+import { 
+  User, 
+  Mail, 
+  MapPin, 
+  Phone, 
+  Edit3, 
+  Save, 
+  X, 
+  Eye, 
+  EyeOff, 
+  Lock,
+  Shield,
+  Edit2,
+  Key
+} from 'lucide-react';
 import { updateDoc, doc } from 'firebase/firestore';
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { db, auth } from '../firebase/config';

@@ -11,6 +11,7 @@ const EnviarMensagem = () => {
   const { loading } = useAuth();
   const { selectedUnit, availableUnits } = useUnitFilter();
   
+  const [internalLoading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nomeCompleto: '',
     whatsapp: '',

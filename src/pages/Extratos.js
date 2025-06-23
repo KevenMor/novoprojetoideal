@@ -21,7 +21,10 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Target,
+  Database,
+  BarChart3
 } from 'lucide-react';
 import { extratosService } from '../services/extratosService';
 import { lancamentosService } from '../services/lancamentosService';

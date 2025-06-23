@@ -32,10 +32,14 @@ import logo from '../../assets/logo.png';
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setIsCollapsed }) {
   const { user, hasPermission } = useAuth();
+  const { selectedUnit } = useUnitFilter();
   const location = useLocation();
   const [expandedMenus, setExpandedMenus] = useState({});
   const [isMobile, setIsMobile] = useState(false);
   const { hasMultipleUnits } = useUnitFilter();
+
+  // Obter permissões do usuário
+  const userPermissions = user?.permissions || {};
 
   // Detectar mobile
   useEffect(() => {
