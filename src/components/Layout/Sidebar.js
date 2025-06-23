@@ -151,10 +151,13 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
   // Filtrar menus por permissão usando useMemo
   const filteredMenuItems = useMemo(() => {
     if (!menuItems) return [];
-    // Simplificar o filtro por enquanto para evitar erros
     return menuItems.filter(item => {
+      // Dashboard sempre deve aparecer
+      if (item.name === 'Dashboard') return true;
+      // Se não tem permissão definida, mostrar
       if (!item.permission) return true;
-      return user?.permissions[item.permission] || false;
+      // Verificar permissão
+      return user?.permissions?.[item.permission] || false;
     });
   }, [user?.permissions, menuItems]);
 

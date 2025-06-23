@@ -457,7 +457,8 @@ export default function Extratos() {
   }, [mostrarExcluidos]);
 
   const isLancamentoManual = (extrato) => {
-    return extrato && extrato.origem === 'manual';
+    // Permitir edição de todos os lançamentos (não apenas os manuais)
+    return extrato && extrato.status !== 'DELETED';
   };
 
   const editarLancamento = (extrato) => {
