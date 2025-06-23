@@ -1,5 +1,4 @@
-[providers]
-node = "18"
+providers = ["node"]
 
 [variables]
 NIXPACKS_NODE_VERSION = "18"
@@ -12,10 +11,10 @@ GENERATE_SOURCEMAP = "false"
 nixPkgs = ["nodejs_18", "npm-9_x"]
 
 [phases.install]
-cmds = ["npm install"]
+cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["npm ci", "npm run build"]
+cmds = ["npm run build"]
 
 [start]
 cmd = "npm start" 
