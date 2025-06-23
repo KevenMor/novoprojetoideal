@@ -19,4 +19,9 @@ logs/
 
 # Arquivos de sistema
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Arquivos ESLint problemáticos
+.eslintrc.js
+.eslintrc.json
+.eslintrc.yml 
