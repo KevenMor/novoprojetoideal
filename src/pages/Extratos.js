@@ -467,12 +467,47 @@ export default function Extratos() {
     // Converter tipo CREDIT/DEBIT para RECEITA/DESPESA
     const tipoConvertido = (extrato.tipo || extrato.type) === 'CREDIT' ? 'RECEITA' : 'DESPESA';
     
+    // Tratar data de forma mais robusta
+    let dataFormatada = '';
+    if (extrato.data) {
+      if (extrato.data?.toDate) {
+        // Se for um Timestamp do Firebase
+        dataFormatada = extrato.data.toDate().toISOString().split('T')[0];
+      } else if (extrato.data instanceof Date) {
+        // Se for um objeto Date
+        dataFormatada = extrato.data.toISOString().split('T')[0];
+      } else if (typeof extrato.data === 'string') {
+        // Se for string, tentar converter
+        const dataObj = new Date(extrato.data);
+        if (!isNaN(dataObj.getTime())) {
+          dataFormatada = dataObj.toISOString().split('T')[0];
+        } else {
+          dataFormatada = new Date().toISOString().split('T')[0];
+        }
+      }
+    } else if (extrato.date) {
+      // Mesmo tratamento para extrato.date
+      if (typeof extrato.date === 'string') {
+        const dataObj = new Date(extrato.date);
+        if (!isNaN(dataObj.getTime())) {
+          dataFormatada = dataObj.toISOString().split('T')[0];
+        } else {
+          dataFormatada = new Date().toISOString().split('T')[0];
+        }
+      }
+    }
+    
+    // Se não conseguiu formatar a data, usar data atual
+    if (!dataFormatada) {
+      dataFormatada = new Date().toISOString().split('T')[0];
+    }
+    
     // Preparar dados para edição
     const lancamentoFormatado = {
-      id: extrato.id,
+      id: extrato.id || null,
       tipo: tipoConvertido,
-      valor: extrato.valor || extrato.value || 0,
-      data: extrato.data || extrato.date,
+      valor: (extrato.valor || extrato.value || 0).toString(),
+      data: dataFormatada,
       descricao: extrato.descricao || extrato.description || '',
       cliente: extrato.cliente || '',
       unidade: extrato.unidade || selectedUnit,

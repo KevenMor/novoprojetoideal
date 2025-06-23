@@ -155,39 +155,80 @@ export const lancamentosService = {
     try {
       console.log('📝 Atualizando lançamento:', id, dadosAtualizacao);
       
-      // Converter tipo RECEITA/DESPESA para CREDIT/DEBIT
-      const tipoConvertido = dadosAtualizacao.tipo === 'RECEITA' ? 'CREDIT' : 'DEBIT';
-      
-      // Se o lançamento não tem ID, significa que é um lançamento da planilha
-      if (!id) {
-        console.log('📊 Lançamento da planilha, criando novo registro no Firebase');
-        return await this.criarLancamento({
-          ...dadosAtualizacao,
-          tipo: tipoConvertido,
-          origem: 'SHEETS'
-        });
+      // Verificar se o ID é válido
+      if (!id || typeof id !== 'string') {
+        console.log('📊 ID inválido, possivelmente lançamento de planilha, criando novo registro');
+        return await this.criarLancamento(dadosAtualizacao);
       }
-
+      
+      // Verificar se o documento existe
       const lancamentoRef = doc(db, COLECAO_LANCAMENTOS, id);
+      const docSnap = await getDoc(lancamentoRef);
+      
+      if (!docSnap.exists()) {
+        console.log('📊 Documento não existe, criando novo registro');
+        return await this.criarLancamento(dadosAtualizacao);
+      }
+      
+      // Preparar dados para atualização
       const dadosParaAtualizar = {
-        ...dadosAtualizacao,
-        tipo: tipoConvertido,
+        descricao: dadosAtualizacao.descricao,
+        valor: parseFloat(dadosAtualizacao.valor) || 0,
+        cliente: dadosAtualizacao.cliente || '',
+        unidade: dadosAtualizacao.unidade,
+        formaPagamento: dadosAtualizacao.formaPagamento || '',
+        status: dadosAtualizacao.status || 'CONFIRMED',
+        tipo: dadosAtualizacao.tipo === 'RECEITA' ? 'RECEITA' : 'DESPESA',
         dataAtualizacao: Timestamp.now()
       };
       
-      // Se a data foi alterada, converter para Timestamp
+      // Tratar data de forma mais robusta
       if (dadosAtualizacao.data) {
+        let dataParaConverter;
+        
         if (dadosAtualizacao.data instanceof Date) {
-          dadosParaAtualizar.dataLancamento = Timestamp.fromDate(dadosAtualizacao.data);
+          dataParaConverter = dadosAtualizacao.data;
         } else if (typeof dadosAtualizacao.data === 'string') {
-          dadosParaAtualizar.dataLancamento = Timestamp.fromDate(new Date(dadosAtualizacao.data));
+          // Limpar timestamp inválido e usar formato correto
+          const dataString = dadosAtualizacao.data.replace(/[@]/g, '');
+          if (dataString.includes('-')) {
+            dataParaConverter = new Date(dataString);
+          } else {
+            // Se for um timestamp numérico
+            const timestamp = parseFloat(dataString);
+            if (!isNaN(timestamp)) {
+              dataParaConverter = new Date(timestamp);
+            } else {
+              dataParaConverter = new Date();
+            }
+          }
+        } else {
+          dataParaConverter = new Date();
         }
+        
+        // Validar se a data é válida
+        if (isNaN(dataParaConverter.getTime())) {
+          console.warn('Data inválida, usando data atual');
+          dataParaConverter = new Date();
+        }
+        
+        dadosParaAtualizar.dataLancamento = Timestamp.fromDate(dataParaConverter);
       }
 
+      console.log('📤 Dados finais para atualização:', dadosParaAtualizar);
+      
       await updateDoc(lancamentoRef, dadosParaAtualizar);
+      console.log('✅ Lançamento atualizado com sucesso');
       return true;
     } catch (error) {
       console.error('❌ Erro ao atualizar lançamento:', error);
+      
+      // Se for erro de documento não encontrado, tentar criar novo
+      if (error.code === 'not-found') {
+        console.log('📊 Documento não encontrado, criando novo');
+        return await this.criarLancamento(dadosAtualizacao);
+      }
+      
       throw new Error('Erro ao atualizar lançamento: ' + error.message);
     }
   },
