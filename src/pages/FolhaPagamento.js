@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { funcionariosService } from '../services/funcionariosService';
-import { Edit2, Trash2, Plus, X, Save, Calendar, Search } from 'lucide-react';
+import { Edit2, Trash2, Plus, Calendar, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -84,7 +84,7 @@ const FolhaPagamento = () => {
   const [tipoLote, setTipoLote] = useState('salario');
   const [enviandoLote, setEnviandoLote] = useState(false);
 
-  const carregarFuncionarios = async () => {
+  const carregarFuncionarios = useCallback(async () => {
     if (!selectedUnit) return;
     
     try {
@@ -114,7 +114,7 @@ const FolhaPagamento = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedUnit, user]);
 
   useEffect(() => {
     carregarFuncionarios();

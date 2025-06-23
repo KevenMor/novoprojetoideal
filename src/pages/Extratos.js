@@ -158,7 +158,7 @@ export default function Extratos() {
     }));
   }, [selectedUnit, competenciaAtual]);
 
-  // Usar useCallback para carregarExtratos
+  // Usar useCallback para carregarExtratos com dependências corretas
   const carregarExtratos = useCallback(async () => {
     setLoading(true);
     try {
@@ -216,7 +216,7 @@ export default function Extratos() {
     } finally {
       setLoading(false);
     }
-  }, [selectedUnit, user?.uid]);
+  }, [selectedUnit, availableUnits, filtros, isAdmin, mostrarExcluidos, user]);
 
   // Aplicar filtros automaticamente quando a unidade é alterada
   useEffect(() => {

@@ -17,7 +17,6 @@ import {
   hasPermission,
   PERMISSIONS
 } from '../utils/permissions';
-import { adminService } from '../services/adminService';
 import PermissionSelector from '../components/PermissionSelector';
 import toast from 'react-hot-toast';
 

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { Receipt, CreditCard, Plus } from 'lucide-react';
 import InputMask from 'react-input-mask';

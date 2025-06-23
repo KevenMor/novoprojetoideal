@@ -48,7 +48,7 @@ export function UnitFilterProvider({ children }) {
     if (availableUnits.length > 0 && !selectedUnit) {
       setSelectedUnit(availableUnits[0]);
     }
-  }, [availableUnits, selectedUnit]);
+  }, [availableUnits, selectedUnit, allSystemUnits]);
 
   // Função para verificar se deve mostrar dados da unidade
   const shouldShowUnitData = (unidade) => {

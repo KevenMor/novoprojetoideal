@@ -1,29 +1,17 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { NavLink, useLocation, Link } from 'react-router-dom';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   Home, 
   MessageSquare, 
   Users, 
-  DollarSign, 
   BarChart3, 
   Settings,
   ChevronRight,
   ChevronLeft,
   X,
   Building2,
-  Calculator,
-  Zap,
-  UserPlus,
-  Receipt,
-  Clock,
-  TrendingUp,
-  Shield,
-  Database,
-  BookOpen,
-  Layers,
-  Target,
-  Activity
+  Receipt
 } from 'lucide-react';
 import { PERMISSIONS } from '../../utils/permissions';
 import UnitSelector from '../UnitSelector';
@@ -36,9 +24,6 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
   const [expandedMenus, setExpandedMenus] = useState({});
   const [isMobile, setIsMobile] = useState(false);
   const { hasMultipleUnits } = useUnitFilter();
-
-  // Obter permissões do usuário usando useMemo para evitar re-renders
-  const userPermissions = useMemo(() => user?.permissions || {}, [user?.permissions]);
 
   // Detectar mobile
   useEffect(() => {
@@ -161,7 +146,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
         { name: 'Clientes/Fornecedores', href: '/admin/clientes-fornecedores', description: 'Gerenciar clientes e fornecedores' }
       ]
     }] : [])
-  ], []);
+  ], [user?.perfil]);
 
   // Filtrar menus por permissão usando useMemo
   const filteredMenuItems = useMemo(() => {
@@ -169,9 +154,9 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
     // Simplificar o filtro por enquanto para evitar erros
     return menuItems.filter(item => {
       if (!item.permission) return true;
-      return userPermissions[item.permission] || false;
+      return user?.permissions[item.permission] || false;
     });
-  }, [userPermissions, menuItems]);
+  }, [user?.permissions, menuItems]);
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
