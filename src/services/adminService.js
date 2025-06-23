@@ -1,8 +1,18 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+function resolveBaseUrl() {
+  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
+  // Se não estiver em localhost, usa mesma origem + /api
+  if (typeof window !== 'undefined' && window.location && window.location.hostname !== 'localhost') {
+    return `${window.location.origin}/api`;
+  }
+  // Desenvolvimento local
+  return 'http://localhost:3001/api';
+}
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api'
+  baseURL: resolveBaseUrl()
 });
 
 function handleError(error, context) {
