@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import toast from 'react-hot-toast';
 import { lancamentosService } from '../services/lancamentosService';
+import { adminService } from '../services/adminService';
 
 export default function ModalLancamento({ 
   isOpen, 
@@ -52,6 +53,23 @@ export default function ModalLancamento({
     };
   });
 
+  const [categoriasApi, setCategoriasApi] = useState([]);
+  const [formasApi, setFormasApi] = useState([]);
+
+  useEffect(() => {
+    // Carregar listas da API
+    (async () => {
+      try {
+        const cat = await adminService.listarCategorias();
+        setCategoriasApi(cat);
+        const formas = await adminService.listarFormasPagamento();
+        setFormasApi(formas);
+      } catch (err) {
+        console.warn('Falha ao carregar categorias ou formas', err);
+      }
+    })();
+  }, []);
+
   const categorias = {
     RECEITA: [
       { value: 'MENSALIDADE', label: 'Mensalidade' },
@@ -71,7 +89,7 @@ export default function ModalLancamento({
     ]
   };
 
-  const formasPagamento = [
+  const formasPagamentoPadrao = [
     { value: 'DINHEIRO', label: 'Dinheiro' },
     { value: 'PIX', label: 'PIX' },
     { value: 'CARTAO_CREDITO', label: 'Cartão de Crédito' },
@@ -80,6 +98,7 @@ export default function ModalLancamento({
     { value: 'BOLETO', label: 'Boleto' },
     { value: 'OUTROS', label: 'Outros' }
   ];
+  const formasPagamento = formasApi.length ? formasApi.map(f=>({value:f.id,label:f.nome})) : formasPagamentoPadrao;
 
   const statusOptions = [
     { value: 'CONFIRMED', label: 'Confirmado' },
@@ -319,6 +338,29 @@ export default function ModalLancamento({
               {statusOptions.map((status) => (
                 <option key={status.value} value={status.value}>{status.label}</option>
               ))}
+            </select>
+          </div>
+
+          {/* Categoria */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Tag className="w-4 h-4 inline mr-1" />
+              Categoria *
+            </label>
+            <select
+              value={formData.categoria}
+              onChange={(e)=>handleInputChange('categoria', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="">Selecione a categoria</option>
+              {categoriasApi.length
+                ? categoriasApi.filter(c=>!c.categoriaMaeId).map((cat)=>(
+                    <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                  ))
+                : categoriasUsar.map(cat=>(
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  ))}
             </select>
           </div>
 

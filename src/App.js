@@ -25,6 +25,9 @@ import Configuracoes from './pages/Configuracoes';
 import CadastroRapidoFuncionarios from './pages/CadastroRapidoFuncionarios';
 import CadastroRapidoVilaProgresso from './pages/CadastroRapidoVilaProgresso';
 import CategoriasAdmin from './pages/CategoriasAdmin';
+import ContasAdmin from './pages/ContasAdmin';
+import FormasPagamentoAdmin from './pages/FormasPagamentoAdmin';
+import ClientesFornecedoresAdmin from './pages/ClientesFornecedoresAdmin';
 
 function App() {
   return (
@@ -77,6 +80,9 @@ function App() {
                   <Route path="cadastro-rapido-funcionarios" element={<CadastroRapidoFuncionarios />} />
                   <Route path="cadastro-rapido-vila-progresso" element={<CadastroRapidoVilaProgresso />} />
                   <Route path="admin/categorias" element={<CategoriasAdmin />} />
+                  <Route path="admin/contas" element={<ContasAdmin />} />
+                  <Route path="admin/formas-pagamento" element={<FormasPagamentoAdmin />} />
+                  <Route path="admin/clientes-fornecedores" element={<ClientesFornecedoresAdmin />} />
                 </Route>
 
                 {/* Rota padrão */}
