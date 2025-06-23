@@ -841,23 +841,27 @@ export default function Extratos() {
 
       {/* Modern Page Header */}
       <div className="modern-page-header mb-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-          {/* Page Title & Navigation */}
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col items-center justify-center space-y-4">
+          {/* Page Title */}
+          <h1 className="text-3xl sm:text-4xl font-bold text-white text-center">
+            Extratos Financeiros
+          </h1>
+          
+          {/* Centered Navigation */}
+          <div className="flex items-center space-x-6">
             <button 
               onClick={() => navegarCompetencia('anterior')} 
               className="modern-btn modern-btn-secondary p-3 hover:scale-110 transition-all duration-200"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <div className="text-center">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">
-                Extratos Financeiros
-              </h1>
-              <p className="text-blue-100 text-lg font-medium">
+            
+            <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-2xl px-8 py-4 border border-white border-opacity-30">
+              <p className="text-white text-xl sm:text-2xl font-bold text-center min-w-[200px]">
                 {formatarMes(competenciaAtual.mes, competenciaAtual.ano)}
               </p>
             </div>
+            
             <button 
               onClick={() => navegarCompetencia('proxima')} 
               className="modern-btn modern-btn-secondary p-3 hover:scale-110 transition-all duration-200"
@@ -1049,14 +1053,9 @@ export default function Extratos() {
                   {mostrarExcluidos ? 'Saldo Excluído' : 'Saldo'}
                 </p>
               </div>
-              <p className="text-2xl lg:text-3xl font-bold" style={{
-                background: estatisticas.saldo >= 0 
-                  ? 'linear-gradient(to right, #1e40af, #1e3a8a)' 
-                  : 'linear-gradient(to right, #f59e0b, #d97706)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}>
+              <p className={`text-2xl lg:text-3xl font-bold ${
+                estatisticas.saldo >= 0 ? 'text-blue-600' : 'text-amber-500'
+              }`}>
                 {formatCurrency(estatisticas.saldo)}
               </p>
             </div>
