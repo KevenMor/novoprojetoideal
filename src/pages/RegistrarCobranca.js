@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, getDocs, query, orderBy } from 'firebase/firestore';
+import React, { useState } from 'react';
+import { 
+  collection, 
+  addDoc, 
+  doc, 
+  updateDoc, 
+  deleteDoc
+} from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, CheckCircle, X, DollarSign, User, FileText } from 'lucide-react';
+import { Plus, Edit3, Trash2, Save, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function RegistrarCobranca() {
   const { availableUnits } = useUnitFilter();

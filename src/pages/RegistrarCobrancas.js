@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { Receipt, CreditCard, Plus } from 'lucide-react';
 import InputMask from 'react-input-mask';
@@ -8,8 +9,9 @@ import UnitSelector from '../components/UnitSelector';
 // import { db } from '../firebase/config';
 // import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
-export default function RegistrarCobrancas() {
-  const { selectedUnit, availableUnits, getSelectedUnitDisplay, hasMultipleUnits } = useUnitFilter();
+const RegistrarCobrancas = () => {
+  const { user } = useAuth();
+  const { selectedUnit } = useUnitFilter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     unidade: '',
@@ -23,8 +25,6 @@ export default function RegistrarCobrancas() {
     parcelas: 1,
     dataVencimento: ''
   });
-
-
 
   const servicos = [
     '1º CNH A',
@@ -181,7 +181,7 @@ export default function RegistrarCobrancas() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Seletor de Unidade */}
-          {hasMultipleUnits() && (
+          {selectedUnit !== 'all' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Unidade *</label>
               <UnitSelector />
@@ -329,3 +329,5 @@ export default function RegistrarCobrancas() {
     </div>
   );
 }
+
+export default RegistrarCobrancas;

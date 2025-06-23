@@ -10,7 +10,9 @@ import {
   getDoc,
   orderBy,
   deleteDoc,
-  serverTimestamp
+  serverTimestamp,
+  limit,
+  startAfter
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
@@ -123,7 +125,6 @@ export const contasBTGService = {
           emailCriador = '',
           favorecido = '',
           cpfCnpjFavorecido = '',
-          ...resto
         } = data;
 
         // Converter timestamps para datas

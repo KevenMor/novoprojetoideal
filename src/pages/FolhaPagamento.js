@@ -6,7 +6,6 @@ import { Edit2, Plus, Search, Trash2, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { funcionariosService } from '../services/funcionariosService';
 import { lancamentosService } from '../services/lancamentosService';
-import { auth } from '../firebase/config';
 
 const unidadesDisponiveis = [
   "Vila Helena",
@@ -50,12 +49,11 @@ const formatToBRLString = (value) => {
   return number.toFixed(2).replace('.', ',');
 };
 
-export default function FolhaPagamento() {
-  const { isAdmin, user } = useAuth();
+const FolhaPagamento = () => {
+  const { user, loading } = useAuth();
   const { selectedUnit } = useUnitFilter();
   const navigate = useNavigate();
   const [funcionarios, setFuncionarios] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
   const [funcionarioParaEditar, setFuncionarioParaEditar] = useState(null);
   const [busca, setBusca] = useState('');
@@ -68,15 +66,6 @@ export default function FolhaPagamento() {
     salario: '',
     tipoPix: '',
     chavePix: ''
-  });
-
-  const [modalPagamentoAberto, setModalPagamentoAberto] = useState(false);
-  const [funcionarioParaPagamento, setFuncionarioParaPagamento] = useState(null);
-  const [formPagamento, setFormPagamento] = useState({
-    adiantamento: '',
-    dataAdiantamento: '',
-    salario: '',
-    dataSalario: ''
   });
 
   const [modalLoteAberto, setModalLoteAberto] = useState(false);
@@ -363,107 +352,6 @@ export default function FolhaPagamento() {
     (funcionario.cpf && funcionario.cpf.includes(busca)) ||
     (funcionario.cnpj && funcionario.cnpj.includes(busca))
   );
-
-  const handleAbrirModalPagamento = (funcionario) => {
-    setFuncionarioParaPagamento(funcionario);
-    setFormPagamento({
-      adiantamento: (funcionario.salario * 0.4).toFixed(2), // 40% do salário como padrão
-      dataAdiantamento: '', 
-      salario: funcionario.salario.toFixed(2),
-      dataSalario: ''
-    });
-    setModalPagamentoAberto(true);
-  };
-
-  const handleFecharModalPagamento = () => {
-    setFuncionarioParaPagamento(null);
-    setModalPagamentoAberto(false);
-    setFormPagamento({
-      adiantamento: '',
-      dataAdiantamento: '',
-      salario: '',
-      dataSalario: ''
-    });
-  };
-
-  const handlePagamentoChange = (e) => {
-    const { name, value } = e.target;
-    
-    if (name === 'adiantamento' || name === 'salario') {
-      // Remove tudo que não é número
-      let numericValue = value.replace(/[^\d]/g, '');
-      
-      // Converte para reais com duas casas decimais
-      if (numericValue) {
-        const reais = (parseInt(numericValue) / 100).toFixed(2);
-        setFormPagamento(prev => ({
-          ...prev,
-          [name]: reais
-        }));
-      } else {
-        setFormPagamento(prev => ({
-          ...prev,
-          [name]: ''
-        }));
-      }
-    } else {
-      setFormPagamento(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
-
-  const handleSubmitPagamento = async (e) => {
-    e.preventDefault();
-    try {
-      if (!funcionarioParaPagamento) {
-        throw new Error('Funcionário não selecionado');
-      }
-
-      // Validar datas
-      if (!formPagamento.dataAdiantamento && !formPagamento.dataSalario) {
-        throw new Error('Pelo menos uma data de pagamento deve ser informada');
-      }
-
-      // Validar valores
-      if (formPagamento.dataAdiantamento && !formPagamento.adiantamento) {
-        throw new Error('Valor do adiantamento deve ser informado');
-      }
-      if (formPagamento.dataSalario && !formPagamento.salario) {
-        throw new Error('Valor do salário deve ser informado');
-      }
-
-      const dados = {
-        adiantamento: formPagamento.adiantamento ? parseFloat(formPagamento.adiantamento) : null,
-        dataAdiantamento: formPagamento.dataAdiantamento ? new Date(formPagamento.dataAdiantamento) : null,
-        salario: formPagamento.salario ? parseFloat(formPagamento.salario) : null,
-        dataSalario: formPagamento.dataSalario ? new Date(formPagamento.dataSalario) : null
-      };
-
-      await lancamentosService.programarPagamentos(funcionarioParaPagamento, dados);
-      toast.success('Pagamentos programados com sucesso!');
-      handleFecharModalPagamento();
-    } catch (error) {
-      console.error('Erro ao programar pagamentos:', error);
-      toast.error('Erro ao programar pagamentos: ' + error.message);
-    }
-  };
-
-  const formatCurrencyForInput = (value) => {
-    if (!value) return '';
-    
-    // Se já é um número, formata
-    if (typeof value === 'number') {
-      return value.toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-    }
-    
-    // Se é string, retorna como está (já formatada)
-    return value;
-  };
 
   const handleAbrirModalLote = () => {
     setModalLoteAberto(true);

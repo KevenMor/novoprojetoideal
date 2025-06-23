@@ -1,12 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Edit, Trash2, Search, Eye, EyeOff, Key, Mail, Shield, ChevronDown, ChevronUp } from 'lucide-react';
+import { 
+  Plus, 
+  Edit3, 
+  Trash2, 
+  X, 
+  Eye, 
+  EyeOff, 
+  User, 
+  Lock, 
+  AlertTriangle, 
+  CheckCircle, 
+  Users
+} from 'lucide-react';
 import { collection, getDocs, updateDoc, doc, deleteDoc, setDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
+import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { 
-  PERMISSION_GROUPS, 
-  PERMISSION_DESCRIPTIONS, 
   getPermissionsByProfile,
   hasPermission,
   PERMISSIONS
@@ -630,14 +641,14 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                         className="text-blue-600 hover:text-blue-900"
                         title="Editar usuário"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit3 className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => enviarEmailRedefinicaoSenha(usuario.email)}
                         className="text-green-600 hover:text-green-900"
                         title="Enviar email para redefinir senha"
                       >
-                        <Mail className="h-4 w-4" />
+                        <Lock className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(usuario.id)}
@@ -706,14 +717,14 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                       className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation"
                       title="Editar usuário"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit3 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => enviarEmailRedefinicaoSenha(usuario.email)}
                       className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors touch-manipulation"
                       title="Enviar email para redefinir senha"
                     >
-                      <Mail className="h-4 w-4" />
+                      <Lock className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(usuario.id)}
@@ -827,7 +838,7 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           <label htmlFor="alterarSenha" className="flex items-center text-sm font-medium text-gray-700">
-                            <Key className="h-4 w-4 mr-1" />
+                            <Lock className="h-4 w-4 mr-1" />
                             Alterar senha do usuário
                           </label>
                         </div>
@@ -850,7 +861,7 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                                     }}
                                     className="text-blue-600 focus:ring-blue-500"
                                   />
-                                  <Mail className="h-4 w-4 text-blue-600" />
+                                  <Lock className="h-4 w-4 text-blue-600" />
                                   <span className="text-sm text-gray-700">Enviar email de redefinição</span>
                                 </label>
                                 <label className="flex items-center space-x-2">
@@ -862,7 +873,7 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                                     onChange={(e) => setTipoAlteracaoSenha(e.target.value)}
                                     className="text-blue-600 focus:ring-blue-500"
                                   />
-                                  <Key className="h-4 w-4 text-blue-600" />
+                                  <Lock className="h-4 w-4 text-blue-600" />
                                   <span className="text-sm text-gray-700">Definir nova senha manualmente</span>
                                 </label>
                               </div>
@@ -896,7 +907,7 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                             <div className="p-3 bg-blue-50 rounded-lg">
                               {tipoAlteracaoSenha === 'email' ? (
                                 <div className="flex items-start space-x-2">
-                                  <Mail className="h-4 w-4 text-blue-600 mt-0.5" />
+                                  <Lock className="h-4 w-4 text-blue-600 mt-0.5" />
                                   <div className="text-xs text-blue-700">
                                     <p className="font-medium">Email de redefinição</p>
                                     <p>O usuário receberá um email com link para redefinir a senha. Método mais seguro e recomendado.</p>
@@ -904,7 +915,7 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                                 </div>
                               ) : (
                                 <div className="flex items-start space-x-2">
-                                  <Key className="h-4 w-4 text-amber-600 mt-0.5" />
+                                  <Lock className="h-4 w-4 text-amber-600 mt-0.5" />
                                   <div className="text-xs text-amber-700">
                                     <p className="font-medium">Alteração manual</p>
                                     <p>⚠️ Funcionalidade limitada. Requer configuração adicional do Firebase Admin SDK para funcionar completamente.</p>

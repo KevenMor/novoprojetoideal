@@ -1,34 +1,7 @@
 import { db } from '../firebase/config';
-import { collection, getDocs, query, where, orderBy, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { googleSheetsService } from './googleSheetsService';
 import { SHEETS_CONFIG } from '../config/sheetsConfig';
-
-// Função auxiliar para normalizar data (retorna string no formato YYYY-MM-DD)
-const normalizarData = (data) => {
-  if (!data) return null;
-  
-  let dataObj;
-  if (data instanceof Date) {
-    dataObj = data;
-  } else if (typeof data === 'string') {
-    if (data.includes('T')) {
-      // Formato ISO
-      dataObj = new Date(data);
-    } else if (data.includes('/')) {
-      // Formato dd/mm/yyyy
-      const [dia, mes, ano] = data.split('/');
-      dataObj = new Date(ano, mes - 1, dia);
-    } else {
-      // Formato yyyy-mm-dd
-      dataObj = new Date(data);
-    }
-  }
-  
-  if (!dataObj || isNaN(dataObj.getTime())) return null;
-  
-  // Retorna data no formato YYYY-MM-DD
-  return dataObj.toISOString().split('T')[0];
-};
 
 async function buscarLancamentosFirebase(filtros) {
   try {

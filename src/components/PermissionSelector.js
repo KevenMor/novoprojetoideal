@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Shield, Lock, Users, Eye, Check, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Shield, Lock, Users, Check, X } from 'lucide-react';
 import { PERMISSION_GROUPS, PERMISSION_DESCRIPTIONS, DEFAULT_PROFILES } from '../utils/permissions';
 
 export default function PermissionSelector({ 

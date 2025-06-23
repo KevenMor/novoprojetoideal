@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getQuickMessages, addQuickMessage, updateQuickMessage, deleteQuickMessage } from '../services/quickMessagesService';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { Navigate } from 'react-router-dom';
-import { Plus, X, Pencil } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Save, FileText } from 'lucide-react';
 
 const DEFAULT_MESSAGES = [
   {
@@ -162,10 +161,10 @@ export default function GerenciarModelosMensagem() {
               </div>
               <div className="flex gap-2 md:gap-4 items-center mt-4 md:mt-0">
                 <button title="Editar" className="text-blue-600 hover:bg-blue-100 rounded-full p-2 transition" onClick={() => openMsgModal('edit', msg)}>
-                  <Pencil className="w-5 h-5" />
+                  <Edit3 className="w-5 h-5" />
                 </button>
                 <button title="Excluir" className="text-red-600 hover:bg-red-100 rounded-full p-2 transition" onClick={() => handleMsgDelete(msg.id)}>
-                  <X className="w-5 h-5" />
+                  <Trash2 className="w-5 h-5" />
                 </button>
               </div>
             </div>

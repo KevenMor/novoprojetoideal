@@ -44,6 +44,12 @@ export function UnitFilterProvider({ children }) {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (availableUnits.length > 0 && !selectedUnit) {
+      setSelectedUnit(availableUnits[0]);
+    }
+  }, [availableUnits, selectedUnit, allSystemUnits]);
+
   // Função para verificar se deve mostrar dados da unidade
   const shouldShowUnitData = (unidade) => {
     // Se o usuário é admin e selecionou 'all', mostrar todas as unidades

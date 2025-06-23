@@ -49,9 +49,8 @@ const funcionariosVilaHelena = [
   }
 ];
 
-export default function CadastroRapidoFuncionarios() {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+const CadastroRapidoFuncionarios = () => {
+  const { loading } = useAuth();
   const [resultados, setResultados] = useState([]);
   const [processado, setProcessado] = useState(false);
 
@@ -74,7 +73,6 @@ export default function CadastroRapidoFuncionarios() {
   };
 
   const cadastrarFuncionarios = async () => {
-    setLoading(true);
     setResultados([]);
     
     const novosResultados = [];
@@ -145,7 +143,6 @@ export default function CadastroRapidoFuncionarios() {
 
     setResultados(novosResultados);
     setProcessado(true);
-    setLoading(false);
 
     // Toast com resumo
     if (sucessos > 0) {
@@ -298,4 +295,6 @@ export default function CadastroRapidoFuncionarios() {
       </div>
     </div>
   );
-} 
+}
+
+export default CadastroRapidoFuncionarios; 

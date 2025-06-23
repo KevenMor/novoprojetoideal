@@ -4,16 +4,26 @@ import { useAuth } from '../../contexts/AuthContext';
 import { 
   Home, 
   MessageSquare, 
-  CreditCard, 
-  Receipt, 
-  BarChart3, 
   Users, 
-  X,
-  ChevronRight,
+  DollarSign, 
+  BarChart3, 
   Settings,
+  ChevronRight,
   ChevronLeft,
-  FileText,
-  Building2
+  X,
+  Building2,
+  Calculator,
+  Zap,
+  UserPlus,
+  Receipt,
+  Clock,
+  TrendingUp,
+  Shield,
+  Database,
+  BookOpen,
+  Layers,
+  Target,
+  Activity
 } from 'lucide-react';
 import { PERMISSIONS } from '../../utils/permissions';
 import UnitSelector from '../UnitSelector';
@@ -151,16 +161,11 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
 
   // Filtrar menus por permissão
   const filteredMenuItems = useMemo(() => {
-    if (!user || typeof hasPermission !== 'function') {
-      return [];
-    }
-    return menuItems.filter(item => {
-      if (!item.permission) {
-        return true;
-      }
-      return hasPermission(item.permission);
-    });
-  }, [user, hasPermission]);
+    if (!menuItems) return [];
+    return menuItems.filter(item => 
+      item.permissions.some(permission => userPermissions[permission])
+    );
+  }, [userPermissions, menuItems]);
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);

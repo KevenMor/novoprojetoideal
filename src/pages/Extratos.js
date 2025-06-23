@@ -1,9 +1,28 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 // import UnitSelector from '../components/UnitSelector'; // Não usado atualmente
 import ModalLancamento from '../components/ModalLancamento';
-import { Filter, Download, RefreshCw, Database, BarChart3, TrendingUp, TrendingDown, FileSpreadsheet, Target, CheckCircle, Trash2, Clock, X, Edit3, Calendar, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { 
+  Eye, 
+  FileText, 
+  AlertCircle, 
+  CheckCircle, 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown, 
+  PlusCircle, 
+  MinusCircle, 
+  Building2, 
+  Search,
+  RefreshCw,
+  Edit3,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
+} from 'lucide-react';
 import { extratosService } from '../services/extratosService';
 import { lancamentosService } from '../services/lancamentosService';
 import { formatCurrency, formatDate } from '../services/asaasService';
@@ -31,8 +50,7 @@ export default function Extratos() {
     availableUnits, 
     changeSelectedUnit, 
     // getSelectedUnitDisplay, // Não usado atualmente
-    hasMultipleUnits,
-    shouldShowUnitData
+    hasMultipleUnits
   } = useUnitFilter();
   
   const shouldShowUnitSelector = hasMultipleUnits();
@@ -600,6 +618,10 @@ export default function Extratos() {
   // Log para debug do status de admin
   console.log('👤 Status do usuário:', { isAdmin, user });
 
+  useEffect(() => {
+    carregarExtratos();
+  }, [carregarExtratos]);
+
   return (
     <div className="page-container-xl space-y-6 sm:space-y-8">
       {/* Cabeçalho com título e botões de ação */}
@@ -630,7 +652,7 @@ export default function Extratos() {
             onClick={exportarCSV}
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 sm:py-2 rounded-lg flex items-center justify-center gap-2 text-sm sm:text-base transition-colors touch-manipulation"
           >
-            <FileSpreadsheet size={16} />
+            <FileText size={16} />
             <span className="sm:hidden">Exportar</span>
             <span className="hidden sm:inline">Exportar</span>
           </button>
@@ -643,7 +665,7 @@ export default function Extratos() {
                 className="btn-mobile btn-mobile-primary bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
               >
                 <span className="hide-mobile">Ações em Lote</span> ({selecionados.length})
-                <ChevronDown size={16} />
+                <ChevronsRight size={16} />
               </button>
               {showBatchActions && (
                 <div className="modal-mobile-content absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border">

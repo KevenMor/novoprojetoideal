@@ -7,16 +7,10 @@ import { messagesService } from '../services/messagesService';
 import { useAuth } from '../contexts/AuthContext';
 import { getQuickMessages } from '../services/quickMessagesService';
 
-export default function EnviarMensagem() {
-  const { 
-    selectedUnit, 
-    availableUnits,
-    getSelectedUnitDisplay,
-    hasMultipleUnits
-  } = useUnitFilter();
-  const { user } = useAuth();
+const EnviarMensagem = () => {
+  const { loading } = useAuth();
+  const { selectedUnit, availableUnits } = useUnitFilter();
   
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nomeCompleto: '',
     whatsapp: '',
@@ -111,7 +105,7 @@ export default function EnviarMensagem() {
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Campo de seleção de unidade para usuários com múltiplas unidades */}
-          {hasMultipleUnits() && (
+          {selectedUnit !== 'all' && (
             <div className="bg-gray-50 rounded-lg p-6 mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 {/* <Building2 className="w-5 h-5 mr-2 text-blue-600" /> */}
@@ -245,4 +239,6 @@ export default function EnviarMensagem() {
       </div>
     </div>
   );
-} 
+}
+
+export default EnviarMensagem; 

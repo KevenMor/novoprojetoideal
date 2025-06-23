@@ -1,37 +1,9 @@
 import { SHEETS_CONFIG } from '../config/sheetsConfig';
-import { db } from '../firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
 
 // Mapeamento de unidades para IDs das planilhas
 const UNIDADES_PLANILHAS = SHEETS_CONFIG.UNIDADES_PLANILHAS;
-const RANGES = SHEETS_CONFIG.RANGES;
 
-// Função auxiliar para normalizar data (retorna string no formato YYYY-MM-DD)
-const normalizarData = (data) => {
-  if (!data) return null;
-  
-  let dataObj;
-  if (data instanceof Date) {
-    dataObj = data;
-  } else if (typeof data === 'string') {
-    if (data.includes('T')) {
-      // Formato ISO
-      dataObj = new Date(data);
-    } else if (data.includes('/')) {
-      // Formato dd/mm/yyyy
-      const [dia, mes, ano] = data.split('/');
-      dataObj = new Date(ano, mes - 1, dia);
-    } else {
-      // Formato yyyy-mm-dd
-      dataObj = new Date(data);
-    }
-  }
-  
-  if (!dataObj || isNaN(dataObj.getTime())) return null;
-  
-  // Retorna data no formato YYYY-MM-DD
-  return dataObj.toISOString().split('T')[0];
-};
+
 
 export const googleSheetsService = {
   // Buscar dados de uma planilha específica

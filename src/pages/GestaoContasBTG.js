@@ -2,20 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { 
-  Search, 
-  Download, 
-  Filter, 
-  CheckCircle, 
-  Clock, 
-  X, 
+  Plus, 
+  Edit3, 
   Trash2, 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  AlertCircle,
+  Building2,
   RefreshCw,
-  Edit,
   FileText,
-  QrCode,
-  DollarSign,
-  ChevronDown,
-  CreditCard
+  Calendar,
+  Eye,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { contasBTGService } from '../services/contasBTGService';

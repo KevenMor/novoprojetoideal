@@ -84,9 +84,8 @@ const funcionariosVilaProgresso = [
   }
 ];
 
-export default function CadastroRapidoVilaProgresso() {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+const CadastroRapidoVilaProgresso = () => {
+  const { loading } = useAuth();
   const [resultados, setResultados] = useState([]);
   const [processado, setProcessado] = useState(false);
 
@@ -333,4 +332,6 @@ export default function CadastroRapidoVilaProgresso() {
       </div>
     </div>
   );
-} 
+}
+
+export default CadastroRapidoVilaProgresso; 

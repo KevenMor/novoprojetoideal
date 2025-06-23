@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, DollarSign, Calendar, FileText, CreditCard, Tag } from 'lucide-react';
+import { X, DollarSign, Calendar, FileText, CreditCard, Tag, Save, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import toast from 'react-hot-toast';
@@ -188,10 +188,6 @@ export default function ModalLancamento({
 
   const tipoCategoria = tipo === 'RECEITA' ? 'RECEITA' : 'DESPESA';
   const categoriasUsar = categorias[tipoCategoria];
-
-  const tituloModal = modoEdicao 
-    ? (tipo === 'RECEITA' ? 'Editar Receita' : 'Editar Despesa')
-    : (tipo === 'RECEITA' ? 'Cadastrar Receita' : 'Cadastrar Despesa');
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

@@ -47,16 +47,6 @@ function traduzirStatusAsaas(status) {
   return mapa[status] || status || "Aguardando";
 }
 
-// Função utilitária para obter data/hora no fuso de Brasília
-function getDataHoraBrasil() {
-  const now = new Date();
-  // Ajusta para UTC-3 (Brasília)
-  const brasilOffset = -3 * 60; // minutos
-  const localOffset = now.getTimezoneOffset();
-  const diff = brasilOffset - localOffset;
-  return new Date(now.getTime() + diff * 60000);
-}
-
 // Função robusta para garantir que o histórico NUNCA seja perdido
 // SOLUÇÃO DEFINITIVA: Transação atômica para histórico 100% confiável
 async function adicionarAcaoComTransacao(cobrancaId, novaAcao, dadosParaAtualizar = {}) {

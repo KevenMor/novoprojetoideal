@@ -18,17 +18,10 @@ import {
 } from 'lucide-react';
 import { dashboardService } from '../services/dashboardService';
 import toast from 'react-hot-toast';
-import UnitSelector from '../components/UnitSelector';
 
-export default function Dashboard() {
-  const { user, loading: authLoading } = useAuth();
-  const { 
-    selectedUnit, 
-    availableUnits, 
-    getSelectedUnitDisplay,
-    isViewingAll,
-    hasMultipleUnits
-  } = useUnitFilter();
+const Dashboard = () => {
+  const { user } = useAuth();
+  const { selectedUnit, availableUnits } = useUnitFilter();
   const navigate = useNavigate();
   
   // Estados de carregamento
@@ -61,7 +54,7 @@ export default function Dashboard() {
       console.log('🔄 Carregando dados do dashboard para:', selectedUnit, mesParaFiltro ? `(${mesParaFiltro})` : '(todos os meses)');
       
       // Buscar dados baseado na unidade selecionada
-      const unidadesParaFiltrar = isViewingAll ? availableUnits : [selectedUnit];
+      const unidadesParaFiltrar = availableUnits;
       
       // DEBUG: Comparar cálculos
       console.log('🔍 [DEBUG DASHBOARD] Unidades para filtrar:', unidadesParaFiltrar);
@@ -103,7 +96,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [selectedUnit, availableUnits, isViewingAll, selectedMonth, showAllTime]);
+  }, [selectedUnit, availableUnits, selectedMonth, showAllTime]);
 
   // Carregar dados do dashboard
   useEffect(() => {
@@ -111,14 +104,6 @@ export default function Dashboard() {
       carregarDadosDashboard();
     }
   }, [user, carregarDadosDashboard, availableUnits]);
-
-  // Redirecionamento ao login
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login', { replace: true });
-      return;
-    }
-  }, [user, authLoading, navigate]);
 
   // Função para gerar opções de meses
   const generateMonthOptions = () => {
@@ -250,7 +235,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
             <p className="text-gray-600 text-lg">
-              {isViewingAll ? 'Visão geral de todas as unidades' : `Unidade: ${selectedUnit}`}
+              Unidade: {selectedUnit}
             </p>
           </div>
           
@@ -488,3 +473,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+export default Dashboard;
