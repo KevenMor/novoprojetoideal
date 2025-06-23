@@ -29,11 +29,28 @@ app.use(helmet({
 app.use(compression());
 
 // CORS configurado para o frontend
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://app.autoescolaidealsorocaba.com.br',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Permitir requisições sem origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS bloqueado para origin:', origin);
+      callback(new Error('Não permitido pelo CORS'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // Para suportar browsers legados
 }));
 
 // Rate limiting
@@ -422,6 +439,10 @@ app.get('/api/audit/stats', authMiddleware, adminMiddleware, async (req, res) =>
 // ============= CATEGORIAS =============
 app.post('/api/categorias', authMiddleware, adminMiddleware, CategoriasController.createCategoria);
 app.get('/api/categorias', authMiddleware, CategoriasController.listCategorias);
+
+// Rotas sem prefixo /api para compatibilidade
+app.post('/categorias', authMiddleware, adminMiddleware, CategoriasController.createCategoria);
+app.get('/categorias', authMiddleware, CategoriasController.listCategorias);
 
 // ============= CONTAS =============
 app.post('/api/contas', authMiddleware, adminMiddleware, ContasController.createConta);
