@@ -1,26 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
-// import UnitSelector from '../components/UnitSelector'; // Não usado atualmente
 import ModalLancamento from '../components/ModalLancamento';
 import { 
-  Eye, 
   FileText, 
-  AlertCircle, 
   CheckCircle, 
-  DollarSign, 
   TrendingUp, 
   TrendingDown, 
-  PlusCircle, 
-  MinusCircle, 
-  Building2, 
-  Search,
   RefreshCw,
   Edit3,
   Trash2,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
   ChevronsRight,
   Target,
   Database,
@@ -605,6 +596,7 @@ export default function Extratos() {
 
   useEffect(() => {
     carregarExtratos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carregarExtratos]);
 
   return (
