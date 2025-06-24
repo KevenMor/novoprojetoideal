@@ -1,10 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader, NotFoundException } from "@zxing/browser";
 import { X } from "lucide-react";
+import ScanBarcodeZXing from "./ScanBarcodeZXing";
+import ScanBarcodeQuagga from "./ScanBarcodeQuagga";
 
 export default function ScanBarcode({ onResult, onClose }) {
   const videoRef = useRef(null);
   const [error, setError] = useState(null);
+  const [fallback, setFallback] = useState(false);
+  const [erro, setErro] = useState(null);
 
   useEffect(() => {
     let reader = new BrowserMultiFormatReader();
@@ -50,37 +54,23 @@ export default function ScanBarcode({ onResult, onClose }) {
     };
   }, [onResult, onClose]);
 
+  if (fallback) {
+    return (
+      <ScanBarcodeQuagga
+        onResult={onResult}
+        onClose={onClose}
+      />
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90">
-      <div className="absolute top-0 right-0 p-4">
-        <button
-          onClick={onClose}
-          className="rounded-full bg-white/10 hover:bg-white/20 p-2"
-          aria-label="Fechar leitor"
-        >
-          <X className="w-7 h-7 text-white" />
-        </button>
-      </div>
-      <div className="flex-1 flex flex-col items-center justify-center w-full">
-        <video
-          ref={videoRef}
-          className="rounded-lg border-4 border-blue-600 shadow-lg w-[90vw] max-w-md aspect-video object-cover"
-          autoPlay
-          muted
-          playsInline
-        />
-        <div className="mt-4 text-center">
-          <p className="text-white text-lg font-semibold">
-            Aponte a câmera para o código de barras
-          </p>
-          <p className="text-blue-200 text-sm mt-1">
-            Alinhe o código horizontalmente na área destacada
-          </p>
-          {error && (
-            <p className="text-red-400 mt-2">{error}</p>
-          )}
-        </div>
-      </div>
-    </div>
+    <ScanBarcodeZXing
+      onResult={onResult}
+      onClose={onClose}
+      onError={() => {
+        setErro("Não foi possível ler com ZXing, tentando fallback...");
+        setFallback(true);
+      }}
+    />
   );
 } 

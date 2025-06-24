@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { FileText, Smartphone, Camera } from 'lucide-react';
 import UnitSelector from '../components/UnitSelector';
 import BarcodeScanner from '../components/BarcodeScanner';
+import ScanBarcode from "../components/ScanBarcode";
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();
@@ -16,6 +17,7 @@ const CadastrarContasBTG = () => {
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [codigoBarras, setCodigoBarras] = useState('');
 
   // Estados para cada formulário
   const [boletoData, setBoletoData] = useState({
@@ -551,6 +553,32 @@ const CadastrarContasBTG = () => {
         onScan={handleBarcodeScan}
         onError={(error) => toast.error(error)}
       />
+
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={codigoBarras}
+          onChange={e => setCodigoBarras(e.target.value)}
+          placeholder="Código de Barras do Boleto"
+          className="input"
+        />
+        <button
+          type="button"
+          onClick={() => setShowScanner(true)}
+          className="btn btn-primary"
+        >
+          <span role="img" aria-label="Ler código de barras">📷</span>
+        </button>
+      </div>
+      {showScanner && (
+        <ScanBarcode
+          onResult={code => {
+            setCodigoBarras(code);
+            setShowScanner(false);
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </div>
   );
 };
