@@ -23,55 +23,26 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
         target: scannerRef.current,
         constraints: {
           facingMode: 'environment',
-          width: { min: 800 },
-          height: { min: 600 },
-          aspectRatio: { min: 1, max: 2 },
-          focusMode: 'continuous'
+          width: { min: 640 },
+          height: { min: 480 }
         },
         area: {
-          top: '20%',
+          top: '25%',
           right: '10%',
           left: '10%',
-          bottom: '20%'
+          bottom: '25%'
         }
-      },
-      locator: {
-        patchSize: "medium",
-        halfSample: true
       },
       decoder: {
         readers: [
-          'code_128_reader',
           'i2of5_reader',
-          'ean_reader',
-          'ean_8_reader',
-          'code_39_reader',
-          'code_93_reader',
-          'codabar_reader'
-        ],
-        multiple: false,
-        debug: {
-          drawBoundingBox: true,
-          showFrequency: true,
-          drawScanline: true,
-          showPattern: true
-        },
-        // Aumentar a tolerância para melhorar a detecção
-        readers: [{
-          format: "i2of5_reader",
-          config: {
-            normalizeBarSpaceWidth: true
-          }
-        }, {
-          format: "code_128_reader",
-          config: {
-            normalizeBarSpaceWidth: true
-          }
-        }]
+          'code_128_reader',
+          'code_39_reader'
+        ]
       },
       locate: true,
-      frequency: 5,
-      numOfWorkers: navigator.hardwareConcurrency || 4,
+      numOfWorkers: 2,
+      frequency: 10,
     }, (err) => {
       if (err) {
         setError('Erro ao inicializar câmera: ' + err.message);
@@ -80,34 +51,9 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
       Quagga.start();
     });
 
-    Quagga.onProcessed(function(result) {
-      const drawingCtx = Quagga.canvas.ctx.overlay;
-      const drawingCanvas = Quagga.canvas.dom.overlay;
-
-      if (result) {
-        if (result.boxes) {
-          drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
-          result.boxes.filter(function(box) {
-            return box !== result.box;
-          }).forEach(function(box) {
-            Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, { color: "green", lineWidth: 2 });
-          });
-        }
-
-        if (result.box) {
-          Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, { color: "#00F", lineWidth: 2 });
-        }
-
-        if (result.codeResult && result.codeResult.code) {
-          Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, { color: 'red', lineWidth: 3 });
-        }
-      }
-    });
-
     Quagga.onDetected(onDetected);
 
     return () => {
-      Quagga.offProcessed();
       Quagga.offDetected(onDetected);
       Quagga.stop();
     };
@@ -125,28 +71,13 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
     reader.onload = function(ev) {
       Quagga.decodeSingle({
         src: ev.target.result,
-        numOfWorkers: 4,
-        locate: true,
-        inputStream: {
-          size: 1200  // Aumentar tamanho para melhor resolução
-        },
+        numOfWorkers: 2,
         decoder: {
           readers: [
-            'code_128_reader',
             'i2of5_reader',
-            'ean_reader',
-            'ean_8_reader',
-            'code_39_reader',
-            'code_93_reader',
-            'codabar_reader'
-          ],
-          debug: {
-            drawBoundingBox: true,
-            showFrequency: true,
-            drawScanline: true,
-            showPattern: true
-          },
-          multiple: false
+            'code_128_reader',
+            'code_39_reader'
+          ]
         }
       }, function(result) {
         if (result && result.codeResult && result.codeResult.code) {
@@ -284,8 +215,22 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
 
           {/* Scanner Container */}
           {mode === 'camera' && (
-            <div className="relative flex items-center justify-center" style={{ minHeight: 280 }}>
-              <div ref={scannerRef} style={{ width: '100%', height: 280, position: 'relative', overflow: 'hidden', borderRadius: 16, border: '3px solid #2563eb', boxShadow: '0 0 0 4px rgba(37,99,235,0.15)', filter: 'contrast(1.2)' }} />
+            <div className="relative flex items-center justify-center" style={{ minHeight: 240 }}>
+              <div ref={scannerRef} style={{ width: '100%', height: 240, position: 'relative', overflow: 'hidden', borderRadius: 16, border: '3px solid #2563eb', boxShadow: '0 0 0 4px rgba(37,99,235,0.15)' }} />
+              {/* Quadro azul de alinhamento */}
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                width: '80%',
+                height: '60px',
+                transform: 'translate(-50%, -50%)',
+                border: '3px solid #2563eb',
+                borderRadius: '12px',
+                boxSizing: 'border-box',
+                pointerEvents: 'none',
+                zIndex: 10
+              }} />
             </div>
           )}
           {mode === 'image' && (

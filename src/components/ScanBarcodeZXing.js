@@ -6,8 +6,6 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
   const videoRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [scannedResults, setScannedResults] = useState([]);
-  const [lastDetection, setLastDetection] = useState(null);
 
   useEffect(() => {
     console.log("ScanBarcodeZXing montado");
@@ -17,21 +15,15 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
     try {
       console.log("Inicializando ZXing...");
       const hints = new Map();
-      // Configurar para reconhecer múltiplos formatos de códigos de barras
+      // Configurar para reconhecer códigos de barras comuns
       hints.set(DecodeHintType.POSSIBLE_FORMATS, [
         BarcodeFormat.ITF,
         BarcodeFormat.CODE_128,
-        BarcodeFormat.CODE_39,
-        BarcodeFormat.EAN_13,
-        BarcodeFormat.QR_CODE
+        BarcodeFormat.CODE_39
       ]);
       hints.set(DecodeHintType.TRY_HARDER, true);
-      hints.set(DecodeHintType.ASSUME_CODE_39_CHECK_DIGIT, true);
-      hints.set(DecodeHintType.PURE_BARCODE, false);
-      hints.set(DecodeHintType.RETURN_CODABAR_START_END, true);
 
-      // Reduzir o timeout para leituras mais rápidas
-      reader = new BrowserMultiFormatReader(hints, 300);
+      reader = new BrowserMultiFormatReader(hints, 500);
       console.log("ZXing inicializado");
 
       reader.listVideoInputDevices()
@@ -65,28 +57,12 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
                   
                   // Verificar se o código tem o comprimento correto
                   if (code.length >= 44 && code.length <= 48) {
-                    // Adicionar ao array de resultados para verificação
-                    setScannedResults(prev => {
-                      const newResults = [...prev, code];
-                      
-                      // Se temos pelo menos 2 leituras iguais, confirmamos o código
-                      if (newResults.length >= 2) {
-                        const lastTwo = newResults.slice(-2);
-                        if (lastTwo[0] === lastTwo[1]) {
-                          console.log("Código confirmado:", code);
-                          // Enviar o código para o componente pai
-                          onResult(code);
-                          reader.reset();
-                          onClose();
-                        }
-                      }
-                      
-                      // Manter apenas os últimos 3 resultados
-                      return newResults.slice(-3);
-                    });
-                    
-                    // Atualizar o timestamp da última detecção
-                    setLastDetection(Date.now());
+                    console.log("Código válido detectado:", code);
+                    onResult(code);
+                    reader.reset();
+                    onClose();
+                  } else {
+                    console.log("Código com comprimento inválido:", code.length);
                   }
                 }
                 
@@ -179,14 +155,6 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="border-2 border-blue-500 w-4/5 h-32 rounded-lg"></div>
         </div>
-        
-        {lastDetection && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-            <div className="bg-green-500/80 text-white text-sm px-3 py-1 rounded-full">
-              Código detectado! Confirmando...
-            </div>
-          </div>
-        )}
       </div>
       
       <div className="p-4 flex flex-col gap-2">
