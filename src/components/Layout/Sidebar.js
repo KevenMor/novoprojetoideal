@@ -126,7 +126,9 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
           description: 'Cadastros auxiliares',
           submenu: [
             { name: 'Categorias', href: '/extratos/cadastros/categorias', description: 'Gerenciar categorias' },
-            { name: 'Formas de Pagamento', href: '/extratos/cadastros/formas-pagamento', description: 'Gerenciar formas de pagamento' }
+            { name: 'Formas de Pagamento', href: '/extratos/cadastros/formas-pagamento', description: 'Gerenciar formas de pagamento' },
+            { name: 'Contas', href: '/admin/contas', description: 'Gerenciar contas bancárias/cartões' },
+            { name: 'Clientes/Fornecedores', href: '/admin/clientes-fornecedores', description: 'Gerenciar clientes e fornecedores' }
           ]
         }
       ]
@@ -144,18 +146,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
       icon: Users,
       permission: PERMISSIONS.USERS_VIEW,
       description: 'Gerenciar usuários do sistema'
-    },
-    ...(user?.perfil === 'admin' ? [{
-      name: 'Administração',
-      icon: Settings,
-      description: 'Cadastros do sistema',
-      submenu: [
-        { name: 'Categorias', href: '/admin/categorias', description: 'Gerenciar categorias' },
-        { name: 'Contas', href: '/admin/contas', description: 'Gerenciar contas bancárias/cartões' },
-        { name: 'Formas de Pagamento', href: '/admin/formas-pagamento', description: 'Gerenciar formas de pagamento' },
-        { name: 'Clientes/Fornecedores', href: '/admin/clientes-fornecedores', description: 'Gerenciar clientes e fornecedores' }
-      ]
-    }] : [])
+    }
   ], [user?.perfil]);
 
   // Filtrar menus por permissão usando useMemo
@@ -288,6 +279,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                         onClick={() => toggleSubmenu(item.name)}
                         className={`
                           group flex items-center w-full px-4 py-2 my-1 rounded-full transition touch-target
+                          font-medium text-base
                           ${hasActiveSubmenu
                             ? 'bg-blue-100 text-blue-700 font-semibold shadow-sm'
                             : 'text-gray-700 hover:bg-blue-50'}
@@ -295,7 +287,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                       >
                         <div className="flex items-center space-x-3">
                           <Icon className={`w-5 h-5 flex-shrink-0 mr-2 ${hasActiveSubmenu ? 'text-blue-600' : 'text-gray-400'}`} />
-                          <span className="text-sm font-medium">{item.name}</span>
+                          <span className="text-base font-medium">{item.name}</span>
                         </div>
                         <ChevronRight className={`
                           h-4 w-4 ml-2 transition-transform duration-200
@@ -315,7 +307,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                                 <div key={subItem.name} className="space-y-1">
                                   <button
                                     onClick={() => toggleSubmenu(item.name + '-' + subItem.name)}
-                                    className={`flex items-center w-full px-2 py-1 rounded transition text-sm
+                                    className={`flex items-center w-full px-2 py-1 rounded transition text-base font-semibold
                                       ${hasActiveSubSubmenu ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
                                   >
                                     <span>{subItem.name}</span>
@@ -328,8 +320,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                                           key={subSub.name}
                                           to={subSub.href}
                                           onClick={closeSidebar}
-                                          className={`block p-2 rounded-lg text-mobile-sm transition-all duration-200 touch-target
-                                            ${location.pathname === subSub.href ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                                          className={`block p-2 rounded-lg text-mobile-sm transition-all duration-200 touch-target text-base
+                                            ${location.pathname === subSub.href ? 'bg-blue-600 text-white font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
                                         >
                                           {subSub.name}
                                         </NavLink>
@@ -345,8 +337,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                                 key={subItem.name}
                                 to={subItem.href}
                                 onClick={closeSidebar}
-                                className={`block p-2 rounded-lg text-mobile-sm transition-all duration-200 touch-target
-                                  ${location.pathname === subItem.href ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                                className={`block p-2 rounded-lg text-mobile-sm transition-all duration-200 touch-target text-base
+                                  ${location.pathname === subItem.href ? 'bg-blue-600 text-white font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
                               >
                                 {subItem.name}
                               </NavLink>
@@ -368,7 +360,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                     onClick={closeSidebar}
                     className={`
                       group flex items-center w-full px-4 py-2 my-1
-                      rounded-full transition touch-target
+                      rounded-full transition touch-target font-medium text-base
                       ${isActive
                         ? 'bg-blue-100 text-blue-700 font-semibold shadow-sm'
                         : 'text-gray-700 hover:bg-blue-50'}
@@ -378,7 +370,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                   >
                     <Icon className={`w-5 h-5 flex-shrink-0 mr-2 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
                     {!isCollapsed && (
-                      <span className="text-sm font-medium">{item.name}</span>
+                      <span className="text-base font-medium">{item.name}</span>
                     )}
                   </NavLink>
                 );
