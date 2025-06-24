@@ -28,6 +28,8 @@ import CategoriasAdmin from './pages/CategoriasAdmin';
 import ContasAdmin from './pages/ContasAdmin';
 import FormasPagamentoAdmin from './pages/FormasPagamentoAdmin';
 import ClientesFornecedoresAdmin from './pages/ClientesFornecedoresAdmin';
+import CadastrosCategorias from './pages/CadastrosCategorias';
+import CadastrosFormasPagamento from './pages/CadastrosFormasPagamento';
 
 function App() {
   return (
@@ -67,6 +69,8 @@ function App() {
                   <Route path="cadastrar-contas-btg" element={<CadastrarContasBTG />} />
                   <Route path="gestao-contas-btg" element={<GestaoContasBTG />} />
                   <Route path="extratos" element={<Extratos />} />
+                  <Route path="extratos/cadastros/categorias" element={<CadastrosCategorias />} />
+                  <Route path="extratos/cadastros/formas-pagamento" element={<CadastrosFormasPagamento />} />
                   <Route path="enviar-mensagem" element={<EnviarMensagem />} />
                   <Route path="gerenciar-modelos-mensagem" element={<GerenciarModelosMensagem />} />
                   <Route path="historico-mensagens" element={<HistoricoMensagens />} />

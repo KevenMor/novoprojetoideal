@@ -119,7 +119,17 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
       href: '/extratos',
       icon: BarChart3,
       permission: PERMISSIONS.EXTRACTS_VIEW,
-      description: 'Relatórios financeiros'
+      description: 'Relatórios financeiros',
+      submenu: [
+        {
+          name: 'Cadastros',
+          description: 'Cadastros auxiliares',
+          submenu: [
+            { name: 'Categorias', href: '/extratos/cadastros/categorias', description: 'Gerenciar categorias' },
+            { name: 'Formas de Pagamento', href: '/extratos/cadastros/formas-pagamento', description: 'Gerenciar formas de pagamento' }
+          ]
+        }
+      ]
     },
     {
       name: 'Configuração Sheets',

@@ -43,6 +43,17 @@ export const adminService = {
     }
   },
 
+  async excluirCategoria(id) {
+    try {
+      await api.delete(`/categorias/${id}`);
+      toast.success('Categoria excluída!');
+      return true;
+    } catch (err) {
+      handleError(err, 'Excluir Categoria');
+      throw err;
+    }
+  },
+
   // ----- Contas -----
   async listarContas() {
     try {
@@ -79,7 +90,18 @@ export const adminService = {
       toast.success('Forma de pagamento criada!');
       return res.data;
     } catch (err) {
-      handleError(err, 'Criar Forma');
+      handleError(err, 'Criar Forma de Pagamento');
+    }
+  },
+
+  async excluirFormaPagamento(id) {
+    try {
+      await api.delete(`/formas-pagamento/${id}`);
+      toast.success('Forma de pagamento excluída!');
+      return true;
+    } catch (err) {
+      handleError(err, 'Excluir Forma de Pagamento');
+      throw err;
     }
   },
 

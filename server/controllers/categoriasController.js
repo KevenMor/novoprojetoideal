@@ -35,4 +35,16 @@ exports.listCategorias = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Erro ao listar categorias', details: err.message });
   }
+};
+
+// Deletar categoria
+exports.deleteCategoria = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'ID não informado' });
+    await db.collection('categorias').doc(id).delete();
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao excluir categoria', details: err.message });
+  }
 }; 

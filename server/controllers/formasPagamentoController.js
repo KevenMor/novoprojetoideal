@@ -30,4 +30,16 @@ exports.listFormasPagamento = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Erro ao listar formas de pagamento', details: err.message });
   }
+};
+
+// Deletar forma de pagamento
+exports.deleteFormaPagamento = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'ID não informado' });
+    await db.collection('formas_pagamento').doc(id).delete();
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao excluir forma de pagamento', details: err.message });
+  }
 }; 

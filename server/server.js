@@ -439,10 +439,12 @@ app.get('/api/audit/stats', authMiddleware, adminMiddleware, async (req, res) =>
 // ============= CATEGORIAS =============
 app.post('/api/categorias', authMiddleware, adminMiddleware, CategoriasController.createCategoria);
 app.get('/api/categorias', authMiddleware, CategoriasController.listCategorias);
+app.delete('/api/categorias/:id', authMiddleware, adminMiddleware, CategoriasController.deleteCategoria);
 
 // Rotas sem prefixo /api para compatibilidade
 app.post('/categorias', authMiddleware, adminMiddleware, CategoriasController.createCategoria);
 app.get('/categorias', authMiddleware, CategoriasController.listCategorias);
+app.delete('/categorias/:id', authMiddleware, adminMiddleware, CategoriasController.deleteCategoria);
 
 // ============= CONTAS =============
 app.post('/api/contas', authMiddleware, adminMiddleware, ContasController.createConta);
@@ -451,6 +453,12 @@ app.get('/api/contas', authMiddleware, ContasController.listContas);
 // ============= FORMAS DE PAGAMENTO =============
 app.post('/api/formas-pagamento', authMiddleware, adminMiddleware, FormasPagamentoController.createFormaPagamento);
 app.get('/api/formas-pagamento', authMiddleware, FormasPagamentoController.listFormasPagamento);
+app.delete('/api/formas-pagamento/:id', authMiddleware, adminMiddleware, FormasPagamentoController.deleteFormaPagamento);
+
+// Rotas sem prefixo /api para compatibilidade
+app.post('/formas-pagamento', authMiddleware, adminMiddleware, FormasPagamentoController.createFormaPagamento);
+app.get('/formas-pagamento', authMiddleware, FormasPagamentoController.listFormasPagamento);
+app.delete('/formas-pagamento/:id', authMiddleware, adminMiddleware, FormasPagamentoController.deleteFormaPagamento);
 
 // ============= CLIENTES/FORNECEDORES =============
 app.post('/api/clientes-fornecedores', authMiddleware, adminMiddleware, ClientesFornecedoresController.createClienteFornecedor);
