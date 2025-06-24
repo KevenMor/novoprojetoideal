@@ -6,6 +6,7 @@ import { lancamentosService } from '../services/lancamentosService';
 import toast from 'react-hot-toast';
 import { FileText, Smartphone, Camera } from 'lucide-react';
 import UnitSelector from '../components/UnitSelector';
+import BarcodeScanner from '../components/BarcodeScanner';
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();
@@ -13,6 +14,7 @@ const CadastrarContasBTG = () => {
 
   const [tipo, setTipo] = useState('pix');
   const [loading, setLoading] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   // Estados para cada formulário
   const [boletoData, setBoletoData] = useState({
@@ -64,6 +66,21 @@ const CadastrarContasBTG = () => {
         setPixData(prev => ({ ...prev, [name]: value }));
       }
     }
+  };
+
+  // Função para processar código de barras lido
+  const handleBarcodeScan = (scannedCode) => {
+    setBoletoData(prev => ({ ...prev, linhaDigitavel: scannedCode }));
+    toast.success('Código de barras lido com sucesso!');
+  };
+
+  // Função para abrir o scanner
+  const openScanner = () => {
+    if (!isMobile) {
+      toast.error('Leitura de código de barras disponível apenas em dispositivos móveis.');
+      return;
+    }
+    setShowScanner(true);
   };
 
   // Função para formatar valor monetário em tempo real
@@ -201,7 +218,6 @@ const CadastrarContasBTG = () => {
     }
   };
 
-
   return (
     <div className="page-container-xl">
       <div className="w-full bg-white p-4 sm:p-8 rounded-lg shadow-md">
@@ -253,7 +269,7 @@ const CadastrarContasBTG = () => {
                   <button
                     type="button"
                     className="absolute right-2 top-8 flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg text-xs font-medium shadow transition"
-                    onClick={() => alert('Leitura de código de barras via câmera será implementada!')}
+                    onClick={openScanner}
                   >
                     <Camera className="w-4 h-4" /> Ler código de barras
                   </button>
@@ -478,6 +494,14 @@ const CadastrarContasBTG = () => {
           </div>
         </form>
       </div>
+
+      {/* Modal do Scanner de Código de Barras */}
+      <BarcodeScanner
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScan={handleBarcodeScan}
+        onError={(error) => toast.error(error)}
+      />
     </div>
   );
 };

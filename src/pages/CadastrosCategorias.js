@@ -18,7 +18,7 @@ export default function CadastrosCategorias() {
       const lista = await adminService.listarCategorias();
       setCategorias(lista);
     } catch (err) {
-      setErro('Erro ao carregar categorias');
+      setErro('Erro ao carregar categorias. Verifique sua conexão ou tente novamente.');
     }
     setLoading(false);
   };
@@ -29,8 +29,12 @@ export default function CadastrosCategorias() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!nome.trim()) return;
+    if (!nome.trim()) {
+      setErro('O nome da categoria é obrigatório.');
+      return;
+    }
     setAdicionando(true);
+    setErro('');
     try {
       await adminService.criarCategoria({ nome: nome.trim(), descricao: descricao.trim() });
       setNome('');
@@ -38,7 +42,7 @@ export default function CadastrosCategorias() {
       toast.success('Categoria criada!');
       carregar();
     } catch (err) {
-      setErro('Erro ao criar categoria');
+      setErro('Erro ao criar categoria. Verifique os dados e tente novamente.');
     }
     setAdicionando(false);
   };
@@ -46,12 +50,13 @@ export default function CadastrosCategorias() {
   const handleExcluir = async (id) => {
     if (!window.confirm('Tem certeza que deseja excluir esta categoria?')) return;
     setLoading(true);
+    setErro('');
     try {
       await adminService.excluirCategoria(id);
       toast.success('Categoria excluída!');
       carregar();
     } catch (err) {
-      setErro('Erro ao excluir categoria');
+      setErro('Erro ao excluir categoria. Tente novamente.');
     }
     setLoading(false);
   };
