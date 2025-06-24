@@ -3,8 +3,8 @@ import {
   BrowserMultiFormatReader,
   BarcodeFormat,
   DecodeHintType,
-  NotFoundException,
 } from "@zxing/browser";
+import { NotFoundException } from "@zxing/library";
 
 export default function ScanBarcodeZXing({ onResult, onClose }) {
   const videoRef = useRef(null);
