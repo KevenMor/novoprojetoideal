@@ -6,7 +6,7 @@ import {
 } from "@zxing/browser";
 import { NotFoundException } from "@zxing/library";
 
-export default function ScanBarcodeZXing({ onResult, onClose }) {
+export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -31,15 +31,18 @@ export default function ScanBarcodeZXing({ onResult, onClose }) {
             onClose();
           }
           if (err && !(err instanceof NotFoundException)) {
-            // TODO: Exibir erro amigável
             console.error(err);
+            onError && onError(err);
           }
         }
       );
+    }).catch(error => {
+      console.error(error);
+      onError && onError(error);
     });
 
     return () => reader.reset();
-  }, [onResult, onClose]);
+  }, [onResult, onClose, onError]);
 
   return (
     <div className="fixed inset-0 bg-black/90 flex flex-col z-50">
