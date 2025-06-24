@@ -41,7 +41,7 @@ class BTGAccountsController {
 
         if (!validators.isValidBoletoLine(linhaDigitavel)) {
           return res.status(400).json({
-            error: 'Linha digitável deve ter 44 dígitos'
+            error: 'Linha digitável deve ter entre 44 e 48 dígitos'
           });
         }
 

@@ -270,8 +270,9 @@ export const contasBTGService = {
     
     // Validações específicas por tipo
     if (dados.tipo === 'boleto') {
-      if (!dados.linhaDigitavel || dados.linhaDigitavel.replace(/\D/g, '').length !== 44) {
-        erros.push('Linha digitável deve ter exatamente 44 dígitos');
+      const linhaDigitavelLength = dados.linhaDigitavel?.replace(/\D/g, '').length || 0;
+      if (!dados.linhaDigitavel || (linhaDigitavelLength !== 44 && linhaDigitavelLength !== 46 && linhaDigitavelLength !== 47 && linhaDigitavelLength !== 48)) {
+        erros.push('Linha digitável deve ter entre 44 e 48 dígitos');
       }
     }
     

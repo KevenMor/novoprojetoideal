@@ -70,7 +70,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
       }, function(result) {
         if (result && result.codeResult && result.codeResult.code) {
           const code = result.codeResult.code.replace(/\D/g, '');
-          if (code.length === 44) {
+          if (code.length >= 44 && code.length <= 48) {
             setSuccess('Código de barras lido com sucesso!');
             setStatus('Código válido!');
             setTimeout(() => {
@@ -78,7 +78,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
               onClose();
             }, 1000);
           } else {
-            setError('Código inválido. A linha digitável deve ter 44 números.');
+            setError('Código inválido. A linha digitável deve ter entre 44 e 48 números.');
             setStatus('Aguardando código de barras...');
             setTimeout(() => setError(''), 3000);
           }
@@ -95,7 +95,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
     if (data && data.codeResult && data.codeResult.code) {
       const code = data.codeResult.code.replace(/\D/g, '');
       setStatus('Código detectado! Validando...');
-      if (code.length === 44) {
+      if (code.length >= 44 && code.length <= 48) {
         setSuccess('Código de barras lido com sucesso!');
         setStatus('Código válido!');
         setTimeout(() => {
@@ -103,7 +103,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
           onClose();
         }, 1000);
       } else {
-        setError('Código inválido. A linha digitável deve ter 44 números.');
+        setError('Código inválido. A linha digitável deve ter entre 44 e 48 números.');
         setStatus('Aguardando código de barras...');
         setTimeout(() => setError(''), 3000);
       }
@@ -166,7 +166,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
               Aponte a câmera para o <b>código de barras do boleto</b> e alinhe horizontalmente dentro da área destacada.
             </p>
             <p className="text-xs text-gray-500 mb-2">
-              A linha digitável deve conter <b>44 números</b>.
+              A linha digitável deve conter <b>entre 44 e 48 números</b>.
             </p>
             <p className="text-xs text-blue-700 mb-2">
               Dica: Evite sombras e aproxime até o código ficar nítido.

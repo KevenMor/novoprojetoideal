@@ -100,7 +100,7 @@ const validators = {
 
   isValidBoletoLine: (line) => {
     const cleanLine = line.replace(/\D/g, '');
-    return cleanLine.length === 44;
+    return cleanLine.length >= 44 && cleanLine.length <= 48;
   }
 };
 

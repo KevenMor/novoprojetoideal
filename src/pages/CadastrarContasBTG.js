@@ -83,7 +83,7 @@ const CadastrarContasBTG = () => {
     if (formType === 'boleto') {
       if (name === 'linhaDigitavel') {
         const numericValue = value.replace(/\D/g, ''); // Permite apenas números
-        if (numericValue.length <= 44) {
+        if (numericValue.length <= 48) {
           setBoletoData(prev => ({ ...prev, [name]: numericValue }));
         }
       } else if (name === 'valor') {
@@ -176,8 +176,8 @@ const CadastrarContasBTG = () => {
     let dadosParaSalvar;
     if (tipo === 'boleto') {
       // Validação da linha digitável
-      if (boletoData.linhaDigitavel && boletoData.linhaDigitavel.length !== 44) {
-        toast.error('A linha digitável do boleto deve conter 44 números.');
+      if (boletoData.linhaDigitavel && boletoData.linhaDigitavel.length !== 44 && boletoData.linhaDigitavel.length !== 46 && boletoData.linhaDigitavel.length !== 47 && boletoData.linhaDigitavel.length !== 48) {
+        toast.error('A linha digitável do boleto deve conter 44, 46, 47 ou 48 números.');
         setLoading(false);
         return;
       }
@@ -306,11 +306,11 @@ const CadastrarContasBTG = () => {
                   name="linhaDigitavel" 
                   value={boletoData.linhaDigitavel} 
                   onChange={(e) => handleChange(e, 'boleto')} 
-                  placeholder="Digite os 44 números da linha digitável" 
+                  placeholder="Digite os números da linha digitável (44 a 48 dígitos)" 
                   className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
-                  maxLength="44"
+                  maxLength="48"
                 />
-                <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/44 números</p>
+                <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/48 números</p>
                 {isMobileDevice && (
                   <button
                     type="button"
