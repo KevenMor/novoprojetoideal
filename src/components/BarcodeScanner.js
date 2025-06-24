@@ -1,90 +1,81 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
+import React, { useEffect, useRef, useState } from 'react';
+import Quagga from 'quagga';
 import { X, Camera, AlertCircle, CheckCircle } from 'lucide-react';
 
-const BarcodeScanner = ({ isOpen, onClose, onScan, onError }) => {
-  const [scanning, setScanning] = useState(false);
+const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
+  const scannerRef = useRef(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [status, setStatus] = useState('Aguardando código de barras...');
-  const scannerRef = useRef(null);
-  const html5QrcodeScannerRef = useRef(null);
 
   useEffect(() => {
-    if (isOpen && !scanning) {
-      startScanner();
-    }
-    return () => {
-      if (html5QrcodeScannerRef.current) {
-        html5QrcodeScannerRef.current.clear();
-      }
-    };
-  }, [isOpen]);
-
-  const startScanner = () => {
     if (!isOpen) return;
-    setScanning(true);
     setError('');
     setSuccess('');
     setStatus('Aguardando código de barras...');
-    try {
-      // Tentar forçar câmera traseira
-      const config = {
-        fps: 10,
-        qrbox: { width: 320, height: 70 }, // Retangular para código de barras
-        aspectRatio: 4.5,
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-        videoConstraints: {
-          facingMode: { ideal: 'environment' }
-        }
-      };
-      html5QrcodeScannerRef.current = new Html5QrcodeScanner(
-        'reader',
-        config,
-        false
-      );
-      html5QrcodeScannerRef.current.render(
-        (decodedText, decodedResult) => {
-          setStatus('Código detectado! Validando...');
-          const numericCode = decodedText.replace(/\D/g, '');
-          if (numericCode.length === 44) {
-            setSuccess('Código de barras lido com sucesso!');
-            setStatus('Código válido!');
-            setTimeout(() => {
-              onScan(numericCode);
-              onClose();
-            }, 1000);
-          } else {
-            setError('Código inválido. A linha digitável deve ter 44 números.');
-            setStatus('Aguardando código de barras...');
-            setTimeout(() => setError(''), 3000);
-          }
+
+    Quagga.init({
+      inputStream: {
+        type: 'LiveStream',
+        target: scannerRef.current,
+        constraints: {
+          facingMode: 'environment',
         },
-        (errorMessage) => {
-          setStatus('Aguardando código de barras...');
-          if (!errorMessage.includes('No MultiFormat Readers were able to detect')) {
-            setError('Erro ao ler código: ' + errorMessage);
-          }
+        area: { // área retangular central
+          top: '40%',    // top offset
+          right: '10%',  // right offset
+          left: '10%',   // left offset
+          bottom: '40%'  // bottom offset
         }
-      );
-    } catch (err) {
-      setError('Erro ao inicializar câmera: ' + err.message);
-      setScanning(false);
-    }
-  };
+      },
+      decoder: {
+        readers: [
+          'code_128_reader',
+          'ean_reader',
+          'ean_8_reader',
+          'code_39_reader',
+          'codabar_reader',
+          'upc_reader',
+          'upc_e_reader',
+          'i2of5_reader'
+        ]
+      },
+      locate: true,
+      numOfWorkers: 2,
+    }, (err) => {
+      if (err) {
+        setError('Erro ao inicializar câmera: ' + err.message);
+        return;
+      }
+      Quagga.start();
+    });
 
-  const stopScanner = () => {
-    if (html5QrcodeScannerRef.current) {
-      html5QrcodeScannerRef.current.clear();
-      html5QrcodeScannerRef.current = null;
-    }
-    setScanning(false);
-  };
+    Quagga.onDetected(onDetected);
 
-  const handleClose = () => {
-    stopScanner();
-    onClose();
+    return () => {
+      Quagga.offDetected(onDetected);
+      Quagga.stop();
+    };
+    // eslint-disable-next-line
+  }, [isOpen]);
+
+  const onDetected = (data) => {
+    if (data && data.codeResult && data.codeResult.code) {
+      const code = data.codeResult.code.replace(/\D/g, '');
+      setStatus('Código detectado! Validando...');
+      if (code.length === 44) {
+        setSuccess('Código de barras lido com sucesso!');
+        setStatus('Código válido!');
+        setTimeout(() => {
+          onScan(code);
+          onClose();
+        }, 1000);
+      } else {
+        setError('Código inválido. A linha digitável deve ter 44 números.');
+        setStatus('Aguardando código de barras...');
+        setTimeout(() => setError(''), 3000);
+      }
+    }
   };
 
   if (!isOpen) return null;
@@ -99,7 +90,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onError }) => {
             <h3 className="text-lg font-semibold text-gray-900">Leitor de Código de Barras</h3>
           </div>
           <button
-            onClick={handleClose}
+            onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition"
           >
             <X className="w-5 h-5 text-gray-500" />
@@ -138,19 +129,8 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onError }) => {
           </div>
 
           {/* Scanner Container */}
-          <div className="relative flex items-center justify-center" style={{ minHeight: 120 }}>
-            <div id="reader" className="w-full" style={{ minHeight: 120 }}></div>
-            {/* Overlay para destacar área de leitura */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div style={{
-                width: 320,
-                height: 70,
-                border: '3px solid #2563eb',
-                borderRadius: 16,
-                boxShadow: '0 0 0 4px rgba(37,99,235,0.15)',
-                background: 'rgba(255,255,255,0.03)'
-              }} className="animate-pulse"></div>
-            </div>
+          <div className="relative flex items-center justify-center" style={{ minHeight: 240 }}>
+            <div ref={scannerRef} style={{ width: '100%', height: 240, position: 'relative', overflow: 'hidden', borderRadius: 16, border: '3px solid #2563eb', boxShadow: '0 0 0 4px rgba(37,99,235,0.15)' }} />
           </div>
 
           {/* Instructions */}
@@ -169,7 +149,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onError }) => {
         {/* Footer */}
         <div className="p-4 border-t bg-gray-50">
           <button
-            onClick={handleClose}
+            onClick={onClose}
             className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-medium transition"
           >
             Fechar
