@@ -6,6 +6,8 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
   const videoRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [scannedResults, setScannedResults] = useState([]);
+  const [lastDetection, setLastDetection] = useState(null);
 
   useEffect(() => {
     console.log("ScanBarcodeZXing montado");
@@ -15,10 +17,21 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
     try {
       console.log("Inicializando ZXing...");
       const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.ITF]);
+      // Configurar para reconhecer múltiplos formatos de códigos de barras
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.ITF,
+        BarcodeFormat.CODE_128,
+        BarcodeFormat.CODE_39,
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.QR_CODE
+      ]);
       hints.set(DecodeHintType.TRY_HARDER, true);
+      hints.set(DecodeHintType.ASSUME_CODE_39_CHECK_DIGIT, true);
+      hints.set(DecodeHintType.PURE_BARCODE, false);
+      hints.set(DecodeHintType.RETURN_CODABAR_START_END, true);
 
-      reader = new BrowserMultiFormatReader(hints, 500);
+      // Reduzir o timeout para leituras mais rápidas
+      reader = new BrowserMultiFormatReader(hints, 300);
       console.log("ZXing inicializado");
 
       reader.listVideoInputDevices()
@@ -34,6 +47,7 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
             return;
           }
 
+          // Tentar usar câmera traseira primeiro
           const deviceId =
             devices.find((d) => /back|traseira|rear/i.test(d.label))?.deviceId ||
             devices[0]?.deviceId;
@@ -46,11 +60,36 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
               videoRef.current,
               (res, err) => {
                 if (res) {
-                  console.log("Código lido:", res.getText());
-                  onResult(res.getText().replace(/\D/g, ""));
-                  reader.reset();
-                  onClose();
+                  const code = res.getText().replace(/\D/g, "");
+                  console.log("Código lido:", code, "Comprimento:", code.length);
+                  
+                  // Verificar se o código tem o comprimento correto
+                  if (code.length >= 44 && code.length <= 48) {
+                    // Adicionar ao array de resultados para verificação
+                    setScannedResults(prev => {
+                      const newResults = [...prev, code];
+                      
+                      // Se temos pelo menos 2 leituras iguais, confirmamos o código
+                      if (newResults.length >= 2) {
+                        const lastTwo = newResults.slice(-2);
+                        if (lastTwo[0] === lastTwo[1]) {
+                          console.log("Código confirmado:", code);
+                          // Enviar o código para o componente pai
+                          onResult(code);
+                          reader.reset();
+                          onClose();
+                        }
+                      }
+                      
+                      // Manter apenas os últimos 3 resultados
+                      return newResults.slice(-3);
+                    });
+                    
+                    // Atualizar o timestamp da última detecção
+                    setLastDetection(Date.now());
+                  }
                 }
+                
                 if (err && !(err instanceof NotFoundException)) {
                   console.error("Erro na leitura:", err);
                   setErrorMsg(`Erro: ${err.message || "Desconhecido"}`);
@@ -93,6 +132,20 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
     };
   }, [onResult, onClose, onError]);
 
+  // Função para entrada manual do código
+  const handleManualInput = () => {
+    const code = prompt("Digite o código de barras manualmente (somente números):");
+    if (code) {
+      const cleanCode = code.replace(/\D/g, "");
+      if (cleanCode.length >= 44 && cleanCode.length <= 48) {
+        onResult(cleanCode);
+        onClose();
+      } else {
+        alert(`Código inválido. O código deve ter entre 44 e 48 números. (Digitado: ${cleanCode.length})`);
+      }
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/95 flex flex-col z-[9999]">
       <div className="p-4 text-white text-center">
@@ -126,14 +179,31 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="border-2 border-blue-500 w-4/5 h-32 rounded-lg"></div>
         </div>
+        
+        {lastDetection && (
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+            <div className="bg-green-500/80 text-white text-sm px-3 py-1 rounded-full">
+              Código detectado! Confirmando...
+            </div>
+          </div>
+        )}
       </div>
       
-      <button
-        onClick={onClose}
-        className="text-white text-lg py-4 font-medium bg-primary"
-      >
-        Cancelar
-      </button>
+      <div className="p-4 flex flex-col gap-2">
+        <button
+          onClick={handleManualInput}
+          className="bg-blue-600 text-white py-3 px-4 rounded-lg font-medium"
+        >
+          Digitar código manualmente
+        </button>
+        
+        <button
+          onClick={onClose}
+          className="text-white text-lg py-4 font-medium bg-primary"
+        >
+          Cancelar
+        </button>
+      </div>
     </div>
   );
 } 
