@@ -116,11 +116,11 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
     },
     {
       name: 'Extratos',
-      href: '/extratos',
       icon: BarChart3,
       permission: PERMISSIONS.EXTRACTS_VIEW,
       description: 'Relatórios financeiros',
       submenu: [
+        { name: 'Ver Extrato', href: '/extratos', description: 'Visualizar extrato financeiro' },
         {
           name: 'Cadastros',
           description: 'Cadastros auxiliares',
@@ -271,15 +271,19 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
             <div className="space-y-1 px-3">
               {filteredMenuItems.map((item, index) => {
                 const Icon = item.icon;
-                
                 // Se tem submenu
                 if (item.submenu && !isCollapsed) {
                   const isExpanded = isSubmenuExpanded(item.name);
-                  const hasActiveSubmenu = item.submenu.some(subItem => location.pathname === subItem.href);
-                  
+                  // Verifica se algum submenu ou subsubmenu está ativo
+                  const hasActiveSubmenu = item.submenu.some(subItem => {
+                    if (subItem.href && location.pathname === subItem.href) return true;
+                    if (subItem.submenu) {
+                      return subItem.submenu.some(subSub => location.pathname === subSub.href);
+                    }
+                    return false;
+                  });
                   return (
                     <div key={item.name} className="space-y-1">
-                      {/* Menu principal com submenu */}
                       <button
                         onClick={() => toggleSubmenu(item.name)}
                         className={`
@@ -299,25 +303,50 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                           ${hasActiveSubmenu ? 'text-blue-600' : 'text-gray-400'}
                         `} />
                       </button>
-                      
                       {/* Submenu items */}
                       {isExpanded && (
                         <div className="ml-8 space-y-1">
                           {item.submenu.map((subItem) => {
-                            const isActive = location.pathname === subItem.href;
-                            
+                            // Se subItem tem submenu (sub-submenu)
+                            if (subItem.submenu) {
+                              const isSubExpanded = isSubmenuExpanded(item.name + '-' + subItem.name);
+                              const hasActiveSubSubmenu = subItem.submenu.some(subSub => location.pathname === subSub.href);
+                              return (
+                                <div key={subItem.name} className="space-y-1">
+                                  <button
+                                    onClick={() => toggleSubmenu(item.name + '-' + subItem.name)}
+                                    className={`flex items-center w-full px-2 py-1 rounded transition text-sm
+                                      ${hasActiveSubSubmenu ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                                  >
+                                    <span>{subItem.name}</span>
+                                    <ChevronRight className={`h-3 w-3 ml-1 transition-transform duration-200 ${isSubExpanded ? 'rotate-90' : ''}`} />
+                                  </button>
+                                  {isSubExpanded && (
+                                    <div className="ml-6 space-y-1">
+                                      {subItem.submenu.map(subSub => (
+                                        <NavLink
+                                          key={subSub.name}
+                                          to={subSub.href}
+                                          onClick={closeSidebar}
+                                          className={`block p-2 rounded-lg text-mobile-sm transition-all duration-200 touch-target
+                                            ${location.pathname === subSub.href ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                                        >
+                                          {subSub.name}
+                                        </NavLink>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                            // Submenu normal
                             return (
                               <NavLink
                                 key={subItem.name}
                                 to={subItem.href}
                                 onClick={closeSidebar}
-                                className={`
-                                  block p-2 rounded-lg text-mobile-sm transition-all duration-200 touch-target
-                                  ${isActive 
-                                    ? 'bg-blue-600 text-white' 
-                                    : 'text-gray-600 hover:bg-gray-100'
-                                  }
-                                `}
+                                className={`block p-2 rounded-lg text-mobile-sm transition-all duration-200 touch-target
+                                  ${location.pathname === subItem.href ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
                               >
                                 {subItem.name}
                               </NavLink>
