@@ -4,7 +4,7 @@ import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { contasBTGService } from '../services/contasBTGService';
 import { lancamentosService } from '../services/lancamentosService';
 import toast from 'react-hot-toast';
-import { FileText, Smartphone } from 'lucide-react';
+import { FileText, Smartphone, Camera } from 'lucide-react';
 import UnitSelector from '../components/UnitSelector';
 
 const CadastrarContasBTG = () => {
@@ -35,6 +35,9 @@ const CadastrarContasBTG = () => {
     categoria: 'CONTA_BTG',
     formaPagamentoBaixa: 'PIX'
   });
+
+  // Detectar se está em mobile
+  const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
 
   const handleChange = (e, formType) => {
     const { name, value } = e.target;
@@ -235,7 +238,7 @@ const CadastrarContasBTG = () => {
           {/* FORMULÁRIO BOLETO */}
           {tipo === 'boleto' && (
             <div className="space-y-4 sm:space-y-6">
-              <div className="form-group">
+              <div className="form-group relative">
                 <label className="block text-gray-700 text-sm font-semibold mb-2">Linha Digitável *</label>
                 <input 
                   name="linhaDigitavel" 
@@ -246,6 +249,15 @@ const CadastrarContasBTG = () => {
                   maxLength="44"
                 />
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/44 números</p>
+                {isMobile && (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-8 flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg text-xs font-medium shadow transition"
+                    onClick={() => alert('Leitura de código de barras via câmera será implementada!')}
+                  >
+                    <Camera className="w-4 h-4" /> Ler código de barras
+                  </button>
+                )}
               </div>
               
               <div className="form-group relative">
