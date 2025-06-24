@@ -1,10 +1,6 @@
 import { useEffect, useRef } from "react";
-import {
-  BrowserMultiFormatReader,
-  BarcodeFormat,
-  DecodeHintType,
-} from "@zxing/browser";
-import { NotFoundException } from "@zxing/library";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType, NotFoundException } from "@zxing/library";
 
 export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
   const videoRef = useRef(null);
