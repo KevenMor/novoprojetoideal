@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { contasBTGService } from '../services/contasBTGService';
@@ -15,6 +15,7 @@ const CadastrarContasBTG = () => {
   const [tipo, setTipo] = useState('pix');
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
 
   // Estados para cada formulário
   const [boletoData, setBoletoData] = useState({
@@ -38,8 +39,41 @@ const CadastrarContasBTG = () => {
     formaPagamentoBaixa: 'PIX'
   });
 
-  // Detectar se está em mobile
-  const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+  // Detectar se está em mobile - Melhorada para detectar mais dispositivos
+  const isMobile = () => {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
+    const isMobileDevice = mobileRegex.test(userAgent);
+    const isSmallScreen = window.innerWidth <= 768;
+    
+    console.log('🔍 Debug Mobile Detection:', {
+      userAgent: userAgent,
+      isMobileDevice: isMobileDevice,
+      isSmallScreen: isSmallScreen,
+      windowWidth: window.innerWidth,
+      finalResult: isMobileDevice || isSmallScreen
+    });
+    
+    return isMobileDevice || isSmallScreen;
+  };
+
+  // Verificar mobile quando o componente carrega
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = isMobile();
+      setIsMobileDevice(mobile);
+      console.log('📱 Mobile status atualizado:', mobile);
+    };
+
+    checkMobile();
+    
+    // Verificar novamente quando a janela é redimensionada
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
 
   const handleChange = (e, formType) => {
     const { name, value } = e.target;
@@ -76,10 +110,20 @@ const CadastrarContasBTG = () => {
 
   // Função para abrir o scanner
   const openScanner = () => {
-    if (!isMobile) {
+    console.log('📱 Tentando abrir scanner...');
+    console.log('📱 Mobile detectado:', isMobileDevice);
+    
+    if (!isMobileDevice) {
       toast.error('Leitura de código de barras disponível apenas em dispositivos móveis.');
       return;
     }
+    
+    // Verificar se o navegador suporta getUserMedia (câmera)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast.error('Seu navegador não suporta acesso à câmera.');
+      return;
+    }
+    
     setShowScanner(true);
   };
 
@@ -265,14 +309,19 @@ const CadastrarContasBTG = () => {
                   maxLength="44"
                 />
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/44 números</p>
-                {isMobile && (
+                {isMobileDevice && (
                   <button
                     type="button"
-                    className="absolute right-2 top-8 flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg text-xs font-medium shadow transition"
+                    className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-medium shadow-lg transition flex items-center justify-center gap-2"
                     onClick={openScanner}
                   >
-                    <Camera className="w-4 h-4" /> Ler código de barras
+                    <Camera className="w-5 h-5" /> Ler código de barras via câmera
                   </button>
+                )}
+                {!isMobileDevice && (
+                  <p className="text-xs text-gray-400 mt-1 italic">
+                    💡 Dica: Acesse em um dispositivo móvel para usar a leitura de código de barras
+                  </p>
                 )}
               </div>
               
