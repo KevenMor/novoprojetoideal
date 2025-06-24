@@ -20,6 +20,8 @@ const CadastrarContasBTG = () => {
     valor: '',
     vencimento: '',
     descricao: '',
+    categoria: 'CONTA_BTG',
+    formaPagamentoBaixa: 'DINHEIRO'
   });
 
   const [pixData, setPixData] = useState({
@@ -30,6 +32,8 @@ const CadastrarContasBTG = () => {
     valor: '',
     vencimento: '',
     descricao: '',
+    categoria: 'CONTA_BTG',
+    formaPagamentoBaixa: 'PIX'
   });
 
   const handleChange = (e, formType) => {
@@ -148,11 +152,14 @@ const CadastrarContasBTG = () => {
         data: contaData.vencimento, // Formato AAAA-MM-DD
         unidade: selectedUnit,
         tipo: 'DESPESA',
-        categoria: 'CONTA_BTG',
-        formaPagamento: tipo.toUpperCase(),
+        categoria: contaData.categoria, // Usar categoria selecionada
+        formaPagamento: contaData.formaPagamentoBaixa, // Usar forma de pagamento da baixa
         status: 'AGUARDANDO',
         contaBTGId: contaCriada.id, // Link para a conta BTG
         criadoPor: user.email, // Adicionando quem criou o lançamento
+        // Campos para quando der baixa
+        tipoConta: tipo.toUpperCase(), // BOLETO ou PIX (registro original)
+        formaPagamentoOriginal: tipo.toUpperCase(), // Manter referência original
       };
 
       await lancamentosService.criarLancamento(lancamentoData);
@@ -161,9 +168,26 @@ const CadastrarContasBTG = () => {
       
       // Limpar formulário
       if (tipo === 'boleto') {
-        setBoletoData({ linhaDigitavel: '', valor: '', vencimento: '', descricao: '' });
+        setBoletoData({ 
+          linhaDigitavel: '', 
+          valor: '', 
+          vencimento: '', 
+          descricao: '', 
+          categoria: 'CONTA_BTG', 
+          formaPagamentoBaixa: 'DINHEIRO' 
+        });
       } else {
-        setPixData({ tipoChave: 'celular', chavePix: '', favorecido: '', cpfCnpjFavorecido: '', valor: '', vencimento: '', descricao: '' });
+        setPixData({ 
+          tipoChave: 'celular', 
+          chavePix: '', 
+          favorecido: '', 
+          cpfCnpjFavorecido: '', 
+          valor: '', 
+          vencimento: '', 
+          descricao: '', 
+          categoria: 'CONTA_BTG', 
+          formaPagamentoBaixa: 'PIX' 
+        });
       }
 
     } catch (error) {
@@ -257,6 +281,44 @@ const CadastrarContasBTG = () => {
                   className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
                 />
               </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="form-group">
+                  <label className="block text-gray-700 text-sm font-semibold mb-2">Categoria *</label>
+                  <select 
+                    name="categoria" 
+                    value={boletoData.categoria} 
+                    onChange={(e) => handleChange(e, 'boleto')} 
+                    className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                  >
+                    <option value="CONTA_BTG">Conta BTG</option>
+                    <option value="COMBUSTIVEL">Combustível</option>
+                    <option value="MANUTENCAO">Manutenção</option>
+                    <option value="SALARIO">Salário</option>
+                    <option value="ALUGUEL">Aluguel</option>
+                    <option value="CONTA">Contas (Luz, Água, etc.)</option>
+                    <option value="OUTROS">Outros</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label className="block text-gray-700 text-sm font-semibold mb-2">Forma de Pagamento da Baixa *</label>
+                  <select 
+                    name="formaPagamentoBaixa" 
+                    value={boletoData.formaPagamentoBaixa} 
+                    onChange={(e) => handleChange(e, 'boleto')} 
+                    className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                  >
+                    <option value="DINHEIRO">Dinheiro</option>
+                    <option value="PIX">PIX</option>
+                    <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+                    <option value="CARTAO_DEBITO">Cartão de Débito</option>
+                    <option value="TRANSFERENCIA">Transferência</option>
+                    <option value="BOLETO">Boleto</option>
+                    <option value="BANCO_BTG">Banco BTG</option>
+                  </select>
+                </div>
+              </div>
             </div>
           )}
 
@@ -344,6 +406,44 @@ const CadastrarContasBTG = () => {
                   placeholder="Ex: Pagamento fornecedor, Serviços, etc." 
                   className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
                 />
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="form-group">
+                  <label className="block text-gray-700 text-sm font-semibold mb-2">Categoria *</label>
+                  <select 
+                    name="categoria" 
+                    value={pixData.categoria} 
+                    onChange={(e) => handleChange(e, 'pix')} 
+                    className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                  >
+                    <option value="CONTA_BTG">Conta BTG</option>
+                    <option value="COMBUSTIVEL">Combustível</option>
+                    <option value="MANUTENCAO">Manutenção</option>
+                    <option value="SALARIO">Salário</option>
+                    <option value="ALUGUEL">Aluguel</option>
+                    <option value="CONTA">Contas (Luz, Água, etc.)</option>
+                    <option value="OUTROS">Outros</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label className="block text-gray-700 text-sm font-semibold mb-2">Forma de Pagamento da Baixa *</label>
+                  <select 
+                    name="formaPagamentoBaixa" 
+                    value={pixData.formaPagamentoBaixa} 
+                    onChange={(e) => handleChange(e, 'pix')} 
+                    className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                  >
+                    <option value="DINHEIRO">Dinheiro</option>
+                    <option value="PIX">PIX</option>
+                    <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+                    <option value="CARTAO_DEBITO">Cartão de Débito</option>
+                    <option value="TRANSFERENCIA">Transferência</option>
+                    <option value="BOLETO">Boleto</option>
+                    <option value="BANCO_BTG">Banco BTG</option>
+                  </select>
+                </div>
               </div>
             </div>
           )}

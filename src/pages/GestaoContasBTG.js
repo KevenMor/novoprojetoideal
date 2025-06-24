@@ -1007,6 +1007,43 @@ export default function GestaoContasBTG() {
                 </div>
               </div>
 
+              {/* Categoria e Forma de Pagamento da Baixa */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Categoria</label>
+                  <select
+                    value={contaParaEditar.categoria || 'CONTA_BTG'}
+                    onChange={(e) => setContaParaEditar({ ...contaParaEditar, categoria: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                  >
+                    <option value="CONTA_BTG">Conta BTG</option>
+                    <option value="COMBUSTIVEL">Combustível</option>
+                    <option value="MANUTENCAO">Manutenção</option>
+                    <option value="SALARIO">Salário</option>
+                    <option value="ALUGUEL">Aluguel</option>
+                    <option value="CONTA">Contas (Luz, Água, etc.)</option>
+                    <option value="OUTROS">Outros</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Forma de Pagamento da Baixa</label>
+                  <select
+                    value={contaParaEditar.formaPagamentoBaixa || 'DINHEIRO'}
+                    onChange={(e) => setContaParaEditar({ ...contaParaEditar, formaPagamentoBaixa: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                  >
+                    <option value="DINHEIRO">Dinheiro</option>
+                    <option value="PIX">PIX</option>
+                    <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+                    <option value="CARTAO_DEBITO">Cartão de Débito</option>
+                    <option value="TRANSFERENCIA">Transferência</option>
+                    <option value="BOLETO">Boleto</option>
+                    <option value="BANCO_BTG">Banco BTG</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Campos específicos de tipo */}
               {contaParaEditar.tipo === 'boleto' && (
                 <div className="mt-4">

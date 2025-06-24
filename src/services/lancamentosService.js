@@ -221,10 +221,13 @@ export const lancamentosService = {
         }
       }
 
-      console.log('📤 Dados finais para atualização:', dadosParaAtualizar);
-      console.log('📤 Tipo mantido:', dadosParaAtualizar.tipo);
+      // Remover campos undefined antes de salvar
+      const dadosLimpos = this._removerCamposUndefined(dadosParaAtualizar);
       
-      await updateDoc(lancamentoRef, dadosParaAtualizar);
+      console.log('📤 Dados finais para atualização:', dadosLimpos);
+      console.log('📤 Tipo mantido:', dadosLimpos.tipo);
+      
+      await updateDoc(lancamentoRef, dadosLimpos);
       console.log('✅ Lançamento atualizado com sucesso');
       return true;
     } catch (error) {

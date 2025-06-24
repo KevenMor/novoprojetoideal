@@ -63,6 +63,9 @@ export const contasBTGService = {
         emailCriador: auth.currentUser.email,
         dataCriacao: Timestamp.now(),
         ativo: true,
+        // Novos campos
+        categoria: dadosConta.categoria || 'CONTA_BTG',
+        formaPagamentoBaixa: dadosConta.formaPagamentoBaixa || 'DINHEIRO',
         ...(dadosConta.tipo === 'boleto' && { linhaDigitavel: dadosConta.linhaDigitavel }),
         ...(dadosConta.tipo === 'pix' && { 
             chavePix: dadosConta.chavePix, 
@@ -122,6 +125,8 @@ export const contasBTGService = {
           emailCriador = '',
           favorecido = '',
           cpfCnpjFavorecido = '',
+          categoria = 'CONTA_BTG',
+          formaPagamentoBaixa = 'DINHEIRO',
         } = data;
 
         // Converter timestamps para datas
@@ -154,7 +159,9 @@ export const contasBTGService = {
           tipoChave,
           emailCriador,
           favorecido,
-          cpfCnpjFavorecido
+          cpfCnpjFavorecido,
+          categoria,
+          formaPagamentoBaixa
         };
 
         console.log('✅ Conta convertida:', contaConvertida);
