@@ -559,7 +559,14 @@ export default function Extratos() {
     
     // Aviso especial para admin editando lançamento externo
     if ((extrato.id?.startsWith('btg_') || extrato.origem === 'CONTA_BTG' || extrato.origem === 'SHEETS') && isAdmin) {
-      toast.warning('⚠️ Você está editando um lançamento de fonte externa. As alterações podem ser sobrescritas na próxima sincronização.');
+      toast('⚠️ Você está editando um lançamento de fonte externa. As alterações podem ser sobrescritas na próxima sincronização.', {
+        icon: '⚠️',
+        duration: 4000,
+        style: {
+          background: '#fef3c7',
+          color: '#92400e',
+        }
+      });
     }
     
     // Converter tipo CREDIT/DEBIT para RECEITA/DESPESA para exibição no modal
