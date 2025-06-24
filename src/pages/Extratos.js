@@ -551,10 +551,15 @@ export default function Extratos() {
   const editarLancamento = (extrato) => {
     console.log('✏️ Iniciando edição do lançamento:', extrato);
     
-    // Verificar se é um lançamento externo (BTG ou Sheets)
-    if (!extrato.id || extrato.id.startsWith('btg_') || extrato.origem === 'CONTA_BTG' || extrato.origem === 'SHEETS') {
+    // Verificar se é um lançamento externo (BTG ou Sheets) e se o usuário não é admin
+    if ((!extrato.id || extrato.id.startsWith('btg_') || extrato.origem === 'CONTA_BTG' || extrato.origem === 'SHEETS') && !isAdmin) {
       toast.error('Este lançamento não pode ser editado. É originário de fonte externa (BTG/Planilhas).');
       return;
+    }
+    
+    // Aviso especial para admin editando lançamento externo
+    if ((extrato.id?.startsWith('btg_') || extrato.origem === 'CONTA_BTG' || extrato.origem === 'SHEETS') && isAdmin) {
+      toast.warning('⚠️ Você está editando um lançamento de fonte externa. As alterações podem ser sobrescritas na próxima sincronização.');
     }
     
     // Converter tipo CREDIT/DEBIT para RECEITA/DESPESA para exibição no modal

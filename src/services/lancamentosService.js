@@ -151,12 +151,13 @@ export const lancamentosService = {
   },
 
   // Atualizar um lançamento
-  async atualizarLancamento(id, dadosAtualizacao) {
+  async atualizarLancamento(id, dadosAtualizacao, forcarEdicao = false) {
     try {
-      console.log('📝 Atualizando lançamento:', id, dadosAtualizacao);
+      console.log('📝 Atualizando lançamento:', id, dadosAtualizacao, 'Forçar edição:', forcarEdicao);
       
       // Para lançamentos vindos do BTG ou Sheets que não têm ID no Firebase, não criar duplicata
-      if (!id || typeof id !== 'string' || id.startsWith('btg_') || id.includes('sheets_')) {
+      // Exceto se for forçado (para admins)
+      if ((!id || typeof id !== 'string' || id.startsWith('btg_') || id.includes('sheets_')) && !forcarEdicao) {
         console.log('📊 Lançamento externo (BTG/Sheets), não pode ser editado no Firebase');
         throw new Error('Este lançamento não pode ser editado diretamente. É originário de fonte externa.');
       }

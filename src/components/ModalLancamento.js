@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, DollarSign, Calendar, FileText, CreditCard, Tag } from 'lucide-react';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { lancamentosService } from '../services/lancamentosService';
 import { adminService } from '../services/adminService';
@@ -14,6 +15,7 @@ export default function ModalLancamento({
   modoEdicao = false
 }) {
   const { selectedUnit, availableUnits } = useUnitFilter();
+  const { isAdmin } = useAuth();
   
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(() => {
@@ -167,7 +169,14 @@ export default function ModalLancamento({
       };
 
       if (lancamentoParaEditar) {
-        await lancamentosService.atualizarLancamento(lancamentoParaEditar.id, dadosFormatados);
+        // Se for admin e lançamento de fonte externa, forçar edição
+        const forcarEdicao = isAdmin && (
+          lancamentoParaEditar.id?.startsWith('btg_') || 
+          lancamentoParaEditar.origem === 'CONTA_BTG' || 
+          lancamentoParaEditar.origem === 'SHEETS'
+        );
+        
+        await lancamentosService.atualizarLancamento(lancamentoParaEditar.id, dadosFormatados, forcarEdicao);
         toast.success('Lançamento atualizado com sucesso!');
       } else {
         await lancamentosService.criarLancamento(dadosFormatados);
