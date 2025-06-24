@@ -245,7 +245,21 @@ export const lancamentosService = {
         throw new Error('ID do lançamento não fornecido');
       }
 
+      // Verificar se é um lançamento externo (BTG ou Sheets)
+      if (typeof id === 'string' && (id.startsWith('btg_') || id.includes('sheets_'))) {
+        console.log('📊 Lançamento externo (BTG/Sheets), não pode ser excluído no Firebase');
+        throw new Error('Lançamentos externos (BTG/Planilhas) não podem ser excluídos diretamente.');
+      }
+
       const lancamentoRef = doc(db, COLECAO_LANCAMENTOS, id);
+      
+      // Verificar se o documento existe antes de tentar atualizá-lo
+      const docSnap = await getDoc(lancamentoRef);
+      
+      if (!docSnap.exists()) {
+        console.log('❌ Documento não existe no Firebase');
+        throw new Error('Lançamento não encontrado no sistema.');
+      }
       
       // Marcar como excluído em vez de deletar fisicamente
       await updateDoc(lancamentoRef, {
@@ -253,6 +267,7 @@ export const lancamentosService = {
         dataExclusao: Timestamp.now()
       });
       
+      console.log('✅ Lançamento marcado como excluído');
       return true;
     } catch (error) {
       console.error('❌ Erro ao excluir lançamento:', error);
@@ -268,7 +283,21 @@ export const lancamentosService = {
         throw new Error('ID do lançamento não fornecido');
       }
 
+      // Verificar se é um lançamento externo (BTG ou Sheets)
+      if (typeof id === 'string' && (id.startsWith('btg_') || id.includes('sheets_'))) {
+        console.log('📊 Lançamento externo (BTG/Sheets), não pode ser restaurado no Firebase');
+        throw new Error('Lançamentos externos (BTG/Planilhas) não podem ser restaurados diretamente.');
+      }
+
       const lancamentoRef = doc(db, COLECAO_LANCAMENTOS, id);
+      
+      // Verificar se o documento existe antes de tentar atualizá-lo
+      const docSnap = await getDoc(lancamentoRef);
+      
+      if (!docSnap.exists()) {
+        console.log('❌ Documento não existe no Firebase');
+        throw new Error('Lançamento não encontrado no sistema.');
+      }
       
       // Restaurar para status CONFIRMED
       await updateDoc(lancamentoRef, {
@@ -276,6 +305,7 @@ export const lancamentosService = {
         dataRestauracao: Timestamp.now()
       });
       
+      console.log('✅ Lançamento restaurado com sucesso');
       return true;
     } catch (error) {
       console.error('❌ Erro ao restaurar lançamento:', error);
