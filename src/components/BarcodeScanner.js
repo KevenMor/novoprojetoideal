@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Quagga from '@ericblade/quagga2';
-import { X, Camera, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Camera, AlertCircle, CheckCircle, Upload } from 'lucide-react';
 
 const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
   const scannerRef = useRef(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [status, setStatus] = useState('Aguardando código de barras...');
+  const [mode, setMode] = useState('camera'); // camera | image
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || mode !== 'camera') return;
     setError('');
     setSuccess('');
     setStatus('Aguardando código de barras...');
@@ -21,24 +22,15 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
         constraints: {
           facingMode: 'environment',
         },
-        area: { // área retangular central
-          top: '40%',    // top offset
-          right: '10%',  // right offset
-          left: '10%',   // left offset
-          bottom: '40%'  // bottom offset
+        area: {
+          top: '30%',
+          right: '10%',
+          left: '10%',
+          bottom: '30%'
         }
       },
       decoder: {
-        readers: [
-          'code_128_reader',
-          'ean_reader',
-          'ean_8_reader',
-          'code_39_reader',
-          'codabar_reader',
-          'upc_reader',
-          'upc_e_reader',
-          'i2of5_reader'
-        ]
+        readers: ['code_128_reader', 'i2of5_reader']
       },
       locate: true,
       numOfWorkers: 2,
@@ -57,7 +49,47 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
       Quagga.stop();
     };
     // eslint-disable-next-line
-  }, [isOpen]);
+  }, [isOpen, mode]);
+
+  // Upload de imagem
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setError('');
+    setSuccess('');
+    setStatus('Processando imagem...');
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      Quagga.decodeSingle({
+        src: ev.target.result,
+        numOfWorkers: 0,
+        decoder: {
+          readers: ['code_128_reader', 'i2of5_reader']
+        },
+        locate: true
+      }, function(result) {
+        if (result && result.codeResult && result.codeResult.code) {
+          const code = result.codeResult.code.replace(/\D/g, '');
+          if (code.length === 44) {
+            setSuccess('Código de barras lido com sucesso!');
+            setStatus('Código válido!');
+            setTimeout(() => {
+              onScan(code);
+              onClose();
+            }, 1000);
+          } else {
+            setError('Código inválido. A linha digitável deve ter 44 números.');
+            setStatus('Aguardando código de barras...');
+            setTimeout(() => setError(''), 3000);
+          }
+        } else {
+          setError('Não foi possível ler o código de barras na imagem. Tente outra foto.');
+          setStatus('Aguardando código de barras...');
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const onDetected = (data) => {
     if (data && data.codeResult && data.codeResult.code) {
@@ -97,8 +129,24 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
           </button>
         </div>
 
+        {/* Modo de leitura */}
+        <div className="flex justify-center gap-2 mt-2 mb-2">
+          <button
+            className={`flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium transition ${mode === 'camera' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+            onClick={() => setMode('camera')}
+          >
+            <Camera className="w-4 h-4" /> Câmera
+          </button>
+          <button
+            className={`flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium transition ${mode === 'image' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+            onClick={() => setMode('image')}
+          >
+            <Upload className="w-4 h-4" /> Imagem
+          </button>
+        </div>
+
         {/* Content */}
-        <div className="p-4">
+        <div className="p-4 pt-2">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-600" />
@@ -129,9 +177,17 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
           </div>
 
           {/* Scanner Container */}
-          <div className="relative flex items-center justify-center" style={{ minHeight: 240 }}>
-            <div ref={scannerRef} style={{ width: '100%', height: 240, position: 'relative', overflow: 'hidden', borderRadius: 16, border: '3px solid #2563eb', boxShadow: '0 0 0 4px rgba(37,99,235,0.15)' }} />
-          </div>
+          {mode === 'camera' && (
+            <div className="relative flex items-center justify-center" style={{ minHeight: 240 }}>
+              <div ref={scannerRef} style={{ width: '100%', height: 240, position: 'relative', overflow: 'hidden', borderRadius: 16, border: '3px solid #2563eb', boxShadow: '0 0 0 4px rgba(37,99,235,0.15)', filter: 'contrast(1.5)' }} />
+            </div>
+          )}
+          {mode === 'image' && (
+            <div className="flex flex-col items-center gap-2 py-6">
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="mb-2" />
+              <span className="text-xs text-gray-500">Selecione uma foto nítida do código de barras do boleto</span>
+            </div>
+          )}
 
           {/* Instructions */}
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
@@ -142,6 +198,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
               <li>• Evite reflexos e sombras</li>
               <li>• Mantenha o dispositivo estável</li>
               <li>• Aproxime até o código ficar nítido</li>
+              <li>• Se não conseguir, tente a opção "Imagem"</li>
             </ul>
           </div>
         </div>
