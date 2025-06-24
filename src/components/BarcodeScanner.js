@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Quagga from 'quagga2';
+import Quagga from '@ericblade/quagga2';
 import { X, Camera, AlertCircle, CheckCircle } from 'lucide-react';
 
 const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
