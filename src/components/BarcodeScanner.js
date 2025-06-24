@@ -6,6 +6,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onError }) => {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [status, setStatus] = useState('Aguardando código de barras...');
   const scannerRef = useRef(null);
   const html5QrcodeScannerRef = useRef(null);
 
@@ -13,7 +14,6 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onError }) => {
     if (isOpen && !scanning) {
       startScanner();
     }
-    
     return () => {
       if (html5QrcodeScannerRef.current) {
         html5QrcodeScannerRef.current.clear();
@@ -23,43 +23,46 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onError }) => {
 
   const startScanner = () => {
     if (!isOpen) return;
-
     setScanning(true);
     setError('');
     setSuccess('');
-
+    setStatus('Aguardando código de barras...');
     try {
+      // Tentar forçar câmera traseira
+      const config = {
+        fps: 10,
+        qrbox: { width: 320, height: 70 }, // Retangular para código de barras
+        aspectRatio: 4.5,
+        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+        videoConstraints: {
+          facingMode: { ideal: 'environment' }
+        }
+      };
       html5QrcodeScannerRef.current = new Html5QrcodeScanner(
-        "reader",
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-          supportedScanTypes: [
-            Html5QrcodeScanType.SCAN_TYPE_CAMERA
-          ]
-        },
+        'reader',
+        config,
         false
       );
-
       html5QrcodeScannerRef.current.render(
         (decodedText, decodedResult) => {
-          // Verificar se é um código de barras válido (44 dígitos para linha digitável)
+          setStatus('Código detectado! Validando...');
           const numericCode = decodedText.replace(/\D/g, '');
-          
           if (numericCode.length === 44) {
             setSuccess('Código de barras lido com sucesso!');
+            setStatus('Código válido!');
             setTimeout(() => {
               onScan(numericCode);
               onClose();
             }, 1000);
           } else {
             setError('Código inválido. A linha digitável deve ter 44 números.');
+            setStatus('Aguardando código de barras...');
             setTimeout(() => setError(''), 3000);
           }
         },
         (errorMessage) => {
-          // Ignorar erros de parsing que são normais durante a busca
+          setStatus('Aguardando código de barras...');
           if (!errorMessage.includes('No MultiFormat Readers were able to detect')) {
             setError('Erro ao ler código: ' + errorMessage);
           }
@@ -88,7 +91,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onError }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[95vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
@@ -120,35 +123,45 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onError }) => {
           )}
 
           <div className="text-center mb-4">
-            <p className="text-gray-600 text-sm mb-2">
-              Posicione o código de barras do boleto dentro da área destacada
+            <p className="text-gray-700 text-base font-medium mb-1">
+              Aponte a câmera para o <b>código de barras do boleto</b> e alinhe horizontalmente dentro da área destacada.
             </p>
-            <p className="text-xs text-gray-500">
-              A linha digitável deve conter 44 números
+            <p className="text-xs text-gray-500 mb-2">
+              A linha digitável deve conter <b>44 números</b>.
             </p>
+            <p className="text-xs text-blue-700 mb-2">
+              Dica: Evite sombras e aproxime até o código ficar nítido.
+            </p>
+            <div className="flex items-center justify-center mb-2">
+              <span className="text-xs text-gray-600 bg-gray-100 rounded px-2 py-1 animate-pulse">{status}</span>
+            </div>
           </div>
 
           {/* Scanner Container */}
-          <div className="relative">
-            <div id="reader" className="w-full"></div>
-            {!scanning && (
-              <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-                <div className="text-center">
-                  <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500 text-sm">Inicializando câmera...</p>
-                </div>
-              </div>
-            )}
+          <div className="relative flex items-center justify-center" style={{ minHeight: 120 }}>
+            <div id="reader" className="w-full" style={{ minHeight: 120 }}></div>
+            {/* Overlay para destacar área de leitura */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div style={{
+                width: 320,
+                height: 70,
+                border: '3px solid #2563eb',
+                borderRadius: 16,
+                boxShadow: '0 0 0 4px rgba(37,99,235,0.15)',
+                background: 'rgba(255,255,255,0.03)'
+              }} className="animate-pulse"></div>
+            </div>
           </div>
 
           {/* Instructions */}
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <h4 className="font-medium text-blue-900 text-sm mb-2">Dicas:</h4>
+            <h4 className="font-medium text-blue-900 text-sm mb-2">Dicas para melhor leitura:</h4>
             <ul className="text-xs text-blue-800 space-y-1">
               <li>• Mantenha o código de barras bem iluminado</li>
-              <li>• Posicione a câmera a uma distância de 10-20cm</li>
+              <li>• Alinhe o código horizontalmente dentro da área azul</li>
+              <li>• Evite reflexos e sombras</li>
               <li>• Mantenha o dispositivo estável</li>
-              <li>• Certifique-se de que o código está completo na tela</li>
+              <li>• Aproxime até o código ficar nítido</li>
             </ul>
           </div>
         </div>
