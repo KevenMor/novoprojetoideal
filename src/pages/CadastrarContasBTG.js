@@ -76,6 +76,8 @@ const CadastrarContasBTG = () => {
       const supported = 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices;
       setCameraSupported(supported);
       console.log('📷 Camera support:', supported);
+      console.log('📷 Navigator mediaDevices:', 'mediaDevices' in navigator);
+      console.log('📷 getUserMedia available:', 'getUserMedia' in navigator.mediaDevices);
     };
 
     checkCameraSupport();
@@ -333,6 +335,7 @@ const CadastrarContasBTG = () => {
                       <Camera className="w-4 h-4" />
                     </button>
                   )}
+                  {console.log('🔍 Debug botão câmera:', { cameraSupported, tipo, isMobileDevice })}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/48 números</p>
                 {!cameraSupported && (
