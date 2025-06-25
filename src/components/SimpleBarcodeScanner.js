@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { Camera, X, AlertCircle, CheckCircle, Upload, Wifi, WifiOff } from 'lucide-react';
+import Tesseract from 'tesseract.js';
 
 const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
   const videoRef = useRef(null);
@@ -70,6 +71,29 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
 
     return { supported: true };
   };
+
+  // Função para tentar OCR se ZXing falhar
+  async function tentarOCRImagem(dataUrl, onResult, setError, setStatus) {
+    setStatus('Tentando extrair linha digitável via OCR...');
+    try {
+      const { data: { text } } = await Tesseract.recognize(dataUrl, 'por');
+      // Extrair linha digitável dos números reconhecidos
+      const linha = extrairLinhaDigitavel(text);
+      if ([47, 48].includes(linha.length)) {
+        setStatus('Linha digitável extraída via OCR!');
+        onResult(linha);
+        return true;
+      } else {
+        setError('Não foi possível extrair a linha digitável via OCR. Tente uma foto mais nítida ou digite manualmente.');
+        setStatus('Aguardando nova imagem...');
+        return false;
+      }
+    } catch (err) {
+      setError('Erro ao processar OCR. Tente novamente.');
+      setStatus('Aguardando nova imagem...');
+      return false;
+    }
+  }
 
   // Inicializar scanner
   useEffect(() => {
@@ -231,13 +255,14 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
         if (result) {
           processDetectedCode(result.getText());
         } else {
-          setError('Não foi possível ler o código de barras na imagem. Tente com melhor iluminação e foco.');
-          setStatus('Aguardando nova imagem...');
+          // ZXing não encontrou código, tentar OCR
+          setStatus('ZXing não encontrou código. Tentando OCR...');
+          await tentarOCRImagem(ev.target.result, processDetectedCode, setError, setStatus);
         }
       } catch (err) {
-        console.error('Erro ao processar imagem:', err);
-        setError('Não foi possível processar a imagem. Verifique se há um código de barras visível.');
-        setStatus('Aguardando nova imagem...');
+        // ZXing deu erro, tentar OCR
+        setStatus('ZXing falhou. Tentando OCR...');
+        await tentarOCRImagem(ev.target.result, processDetectedCode, setError, setStatus);
       }
     };
     reader.readAsDataURL(file);
