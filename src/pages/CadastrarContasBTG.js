@@ -6,7 +6,7 @@ import { lancamentosService } from '../services/lancamentosService';
 import toast from 'react-hot-toast';
 import { FileText, Smartphone } from 'lucide-react';
 import UnitSelector from '../components/UnitSelector';
-import BoletoPhotoReader from '../components/BoletoPhotoReader.tsx';
+import ScanBoleto from '../components/ScanBoleto.tsx';
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();
@@ -36,6 +36,8 @@ const CadastrarContasBTG = () => {
     categoria: 'CONTA_BTG',
     formaPagamentoBaixa: 'PIX'
   });
+
+  const [showScanner, setShowScanner] = useState(false);
 
   const handleChange = (e, formType) => {
     const { name, value } = e.target;
@@ -237,19 +239,24 @@ const CadastrarContasBTG = () => {
             <div className="space-y-4 sm:space-y-6">
               <div className="form-group">
                 <label className="block text-gray-700 text-sm font-semibold mb-2">Linha Digitável *</label>
-                <input
-                  name="linhaDigitavel"
-                  value={boletoData.linhaDigitavel}
-                  onChange={e => handleChange(e, 'boleto')}
-                  placeholder="Digite os números da linha digitável (44 a 48 dígitos)"
-                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation mb-3"
-                  maxLength="48"
-                  inputMode="numeric"
-                />
-                <BoletoPhotoReader 
-                  onDetect={linha => setBoletoData(b => ({ ...b, linhaDigitavel: linha }))}
-                  onError={message => toast.error(message)}
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    name="linhaDigitavel"
+                    value={boletoData.linhaDigitavel}
+                    onChange={e => handleChange(e, 'boleto')}
+                    placeholder="Digite os números da linha digitável (44 a 48 dígitos)"
+                    className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                    maxLength="48"
+                    inputMode="numeric"
+                  />
+                  <button
+                    type="button"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-base cursor-pointer transition-colors"
+                    onClick={() => setShowScanner(true)}
+                  >
+                    Escanear boleto
+                  </button>
+                </div>
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/48 números</p>
               </div>
               
@@ -324,6 +331,17 @@ const CadastrarContasBTG = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Modal do Scanner de Código de Barras */}
+              {showScanner && (
+                <ScanBoleto
+                  onDetect={linha => {
+                    setBoletoData(b => ({ ...b, linhaDigitavel: linha }));
+                    setShowScanner(false);
+                  }}
+                  onClose={() => setShowScanner(false)}
+                />
+              )}
             </div>
           )}
 
