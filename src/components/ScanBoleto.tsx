@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType, NotFoundException } from "@zxing/library";
 import { Camera, X, Zap } from "lucide-react";
+import Tesseract from 'tesseract.js';
 
 interface ScanBoletoProps {
   onDetect: (linha: string) => void;
@@ -20,6 +21,8 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
   const [detected, setDetected] = useState(false);
   const [partialCodes, setPartialCodes] = useState<string[]>([]);
   const [concatCode, setConcatCode] = useState<string>("");
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrResult, setOcrResult] = useState<string | null>(null);
 
   useEffect(() => {
     let reader: BrowserMultiFormatReader;
@@ -193,6 +196,33 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
     }
   };
 
+  // Função para processar imagem com Tesseract.js
+  const handleOcrImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setOcrLoading(true);
+    setOcrResult(null);
+    try {
+      const { data } = await Tesseract.recognize(file, 'por', {
+        logger: m => console.log('[OCR]', m)
+      });
+      const text = data.text.replace(/\D/g, ' ');
+      // Procurar sequências de 44 a 48 dígitos
+      const match = text.match(/\d{44,48}/g);
+      if (match && match[0]) {
+        setOcrResult(match[0]);
+        onDetect(match[0]);
+        onClose();
+      } else {
+        setOcrResult('Não foi possível encontrar a linha digitável na imagem.');
+      }
+    } catch (err) {
+      setOcrResult('Erro ao processar imagem.');
+      console.error('[OCR] Erro:', err);
+    }
+    setOcrLoading(false);
+  };
+
   // Fallback para Quagga
   if (showFallback) {
     const ScanBoletoQuagga = require("./ScanBoletoQuagga.tsx").default;
@@ -228,6 +258,26 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
           </button>
         </div>
       </div>
+
+      {/* Botão OCR IA */}
+      <div className="flex justify-center gap-2 mb-2">
+        <label className="bg-green-600 text-white p-2 rounded-lg text-center cursor-pointer text-sm font-medium hover:bg-green-700 transition">
+          Ler por foto (IA)
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleOcrImage}
+            className="hidden"
+          />
+        </label>
+      </div>
+      {ocrLoading && (
+        <div className="p-2 text-center text-yellow-400">Processando imagem, aguarde...</div>
+      )}
+      {ocrResult && (
+        <div className="p-2 text-center text-white bg-black/70 rounded mb-2 text-xs break-all">{ocrResult}</div>
+      )}
 
       {/* Loading */}
       {loading && (
