@@ -1,6 +1,13 @@
 "use client";
 import { useState } from "react";
-import { BrowserBarcodeReader, ITFReader, DecodeHintType, BarcodeFormat } from "@zxing/library";
+import { 
+  BrowserBarcodeReader, 
+  ITFReader, 
+  DecodeHintType, 
+  BarcodeFormat,
+  Code128Reader,
+  Code39Reader
+} from "@zxing/library";
 
 interface BoletoPhotoReaderProps {
   onDetect: (linha: string) => void;
@@ -52,9 +59,21 @@ function validaLinhaDigitavel(linha: string): boolean {
   return modulo11(barra) === campo4;
 }
 
+// Função para tentar extrair números de uma string
+function extrairNumeros(texto: string): string {
+  return texto.replace(/\D/g, '');
+}
+
+// Função para validar se o texto parece uma linha digitável
+function pareceLinhaDigitavel(texto: string): boolean {
+  const numeros = extrairNumeros(texto);
+  return numeros.length >= 44 && numeros.length <= 48;
+}
+
 export default function BoletoPhotoReader({ onDetect, onError }: BoletoPhotoReaderProps) {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string>();
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   async function handleSnap(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -62,6 +81,7 @@ export default function BoletoPhotoReader({ onDetect, onError }: BoletoPhotoRead
     
     setLoading(true);
     setPreview(URL.createObjectURL(file));
+    setDebugInfo([]);
 
     try {
       // draw to canvas to keep EXIF-correct orientation
@@ -71,18 +91,56 @@ export default function BoletoPhotoReader({ onDetect, onError }: BoletoPhotoRead
       canvas.height = bmp.height;
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(bmp, 0, 0);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      
+      // Tentar diferentes processamentos de imagem
+      const processamentos = [
+        { quality: 0.9, rotation: 0 },
+        { quality: 0.8, rotation: 0 },
+        { quality: 0.9, rotation: 90 },
+        { quality: 0.9, rotation: 180 },
+        { quality: 0.9, rotation: 270 }
+      ];
 
-      const linha = await decodeOffline(dataUrl);
-      setLoading(false);
-
-      if (linha) {
-        onDetect(linha.replace(/\D/g, ""));
-        navigator.vibrate?.(50);
-      } else {
-        const errorMsg = "Não foi possível ler o código de barras. Tire uma nova foto mais nítida.";
-        onError ? onError(errorMsg) : alert(errorMsg);
+      for (const proc of processamentos) {
+        const canvasProcessado = document.createElement("canvas");
+        const ctxProcessado = canvasProcessado.getContext("2d")!;
+        
+        if (proc.rotation === 0) {
+          canvasProcessado.width = bmp.width;
+          canvasProcessado.height = bmp.height;
+          ctxProcessado.drawImage(bmp, 0, 0);
+        } else {
+          // Rotacionar imagem
+          const rad = (proc.rotation * Math.PI) / 180;
+          const cos = Math.cos(rad);
+          const sin = Math.sin(rad);
+          
+          canvasProcessado.width = Math.abs(bmp.width * cos) + Math.abs(bmp.height * sin);
+          canvasProcessado.height = Math.abs(bmp.width * sin) + Math.abs(bmp.height * cos);
+          
+          ctxProcessado.translate(canvasProcessado.width / 2, canvasProcessado.height / 2);
+          ctxProcessado.rotate(rad);
+          ctxProcessado.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+        }
+        
+        const dataUrl = canvasProcessado.toDataURL("image/jpeg", proc.quality);
+        const debugMsg = `Processamento: qualidade ${proc.quality}, rotação ${proc.rotation}°`;
+        console.log(debugMsg);
+        setDebugInfo(prev => [...prev, debugMsg]);
+        
+        const linha = await decodeOffline(dataUrl);
+        if (linha) {
+          setLoading(false);
+          onDetect(linha.replace(/\D/g, ""));
+          navigator.vibrate?.(50);
+          return;
+        }
       }
+      
+      setLoading(false);
+      const errorMsg = "Não foi possível ler o código de barras. Verifique se a foto está bem iluminada e o código está visível.";
+      onError ? onError(errorMsg) : alert(errorMsg);
+      
     } catch (error) {
       setLoading(false);
       console.error('Erro ao processar foto:', error);
@@ -92,26 +150,108 @@ export default function BoletoPhotoReader({ onDetect, onError }: BoletoPhotoRead
   }
 
   async function decodeOffline(url: string): Promise<string | null> {
-    try {
-      // Configuração robusta do ZXing
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.ITF]);
-      hints.set(DecodeHintType.TRY_HARDER, true);
-      hints.set(DecodeHintType.PURE_BARCODE, false);
+    // Configurações de decodificação - menos restritivas
+    const configs = [
+      // Configuração 1: ITF com hints relaxados
+      {
+        reader: new ITFReader(),
+        hints: new Map([
+          [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.ITF]],
+          [DecodeHintType.TRY_HARDER, true],
+          [DecodeHintType.PURE_BARCODE, false],
+          [DecodeHintType.NEED_RESULT_POINT_CALLBACK, false]
+        ])
+      },
+      // Configuração 2: Code128 (comum em boletos)
+      {
+        reader: new Code128Reader(),
+        hints: new Map([
+          [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128]],
+          [DecodeHintType.TRY_HARDER, true],
+          [DecodeHintType.PURE_BARCODE, false]
+        ])
+      },
+      // Configuração 3: Code39
+      {
+        reader: new Code39Reader(),
+        hints: new Map([
+          [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_39]],
+          [DecodeHintType.TRY_HARDER, true],
+          [DecodeHintType.PURE_BARCODE, false]
+        ])
+      },
+      // Configuração 4: Múltiplos formatos
+      {
+        reader: new BrowserBarcodeReader(),
+        hints: new Map([
+          [DecodeHintType.POSSIBLE_FORMATS, [
+            BarcodeFormat.ITF,
+            BarcodeFormat.CODE_128,
+            BarcodeFormat.CODE_39,
+            BarcodeFormat.EAN_13,
+            BarcodeFormat.EAN_8,
+            BarcodeFormat.UPC_A,
+            BarcodeFormat.UPC_E
+          ]],
+          [DecodeHintType.TRY_HARDER, true],
+          [DecodeHintType.PURE_BARCODE, false]
+        ])
+      }
+    ];
 
-      const reader = new BrowserBarcodeReader(500, new ITFReader());
-      reader.setHints(hints);
+    for (const config of configs) {
+      try {
+        const readerName = config.reader.constructor.name;
+        console.log(`Tentando decodificação com ${readerName}...`);
+        setDebugInfo(prev => [...prev, `Tentando ${readerName}...`]);
+        
+        const reader = new BrowserBarcodeReader(1000, config.reader);
+        reader.setHints(config.hints);
 
-      const result = await reader.decodeFromImageUrl(url);
-      const txt = result.getText();
-      
-      console.log('ZXing detectou:', txt);
-      
-      return validaLinhaDigitavel(txt) ? txt : null;
-    } catch (error) {
-      console.log('ZXing falhou:', error);
-      return null;
+        const result = await reader.decodeFromImageUrl(url);
+        const txt = result.getText();
+        
+        console.log(`${readerName} detectou:`, txt);
+        setDebugInfo(prev => [...prev, `${readerName}: "${txt}"`]);
+        
+        // Se parece uma linha digitável, validar
+        if (pareceLinhaDigitavel(txt)) {
+          const linhaLimpa = extrairNumeros(txt);
+          if (validaLinhaDigitavel(linhaLimpa)) {
+            console.log('Linha digitável válida encontrada:', linhaLimpa);
+            setDebugInfo(prev => [...prev, `✅ Válida: ${linhaLimpa}`]);
+            return linhaLimpa;
+          } else {
+            console.log('Linha digitável inválida (falha na validação):', linhaLimpa);
+            setDebugInfo(prev => [...prev, `⚠️ Inválida: ${linhaLimpa}`]);
+            // Retornar mesmo assim se tiver o comprimento correto
+            if (linhaLimpa.length >= 44 && linhaLimpa.length <= 48) {
+              console.log('Retornando linha sem validação rigorosa:', linhaLimpa);
+              setDebugInfo(prev => [...prev, `✅ Aceita sem validação: ${linhaLimpa}`]);
+              return linhaLimpa;
+            }
+          }
+        }
+        
+        // Se não parece linha digitável, mas tem muitos números, pode ser um código de barras
+        const numeros = extrairNumeros(txt);
+        if (numeros.length >= 44 && numeros.length <= 48) {
+          console.log('Código numérico encontrado (sem validação):', numeros);
+          setDebugInfo(prev => [...prev, `✅ Código numérico: ${numeros}`]);
+          return numeros;
+        }
+        
+      } catch (error) {
+        const readerName = config.reader.constructor.name;
+        console.log(`${readerName} falhou:`, error);
+        setDebugInfo(prev => [...prev, `❌ ${readerName} falhou`]);
+        continue;
+      }
     }
+    
+    console.log('Nenhuma decodificação funcionou');
+    setDebugInfo(prev => [...prev, '❌ Nenhuma decodificação funcionou']);
+    return null;
   }
 
   return (
@@ -142,6 +282,16 @@ export default function BoletoPhotoReader({ onDetect, onError }: BoletoPhotoRead
             alt="Preview do boleto" 
             className="max-w-full max-h-48 object-contain rounded-lg border border-gray-300 mx-auto" 
           />
+        </div>
+      )}
+
+      {/* Debug info */}
+      {debugInfo.length > 0 && (
+        <div className="mt-3 p-3 bg-gray-100 rounded-lg text-xs">
+          <div className="font-semibold mb-2">Debug:</div>
+          {debugInfo.map((info, index) => (
+            <div key={index} className="text-gray-700">{info}</div>
+          ))}
         </div>
       )}
     </div>
