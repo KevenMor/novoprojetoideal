@@ -101,7 +101,14 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
                 setDetected(true);
                 setTimeout(() => {
                   onDetect(currentConcat);
-                  if (reader && typeof reader.reset === 'function') reader.reset();
+                  try {
+                    if (reader && typeof reader.reset === 'function') {
+                      reader.reset();
+                      reader = undefined;
+                    }
+                  } catch (e) {
+                    console.error('[ZXing] Erro ao resetar:', e);
+                  }
                   onClose();
                 }, 300);
               } else if (code.length >= 44 && code.length <= 48) {
@@ -109,7 +116,14 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
                 setDetected(true);
                 setTimeout(() => {
                   onDetect(code);
-                  if (reader && typeof reader.reset === 'function') reader.reset();
+                  try {
+                    if (reader && typeof reader.reset === 'function') {
+                      reader.reset();
+                      reader = undefined;
+                    }
+                  } catch (e) {
+                    console.error('[ZXing] Erro ao resetar:', e);
+                  }
                   onClose();
                 }, 300);
               } else {
@@ -129,7 +143,14 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
         // Timeout de 10s para fallback
         timeoutId = setTimeout(() => {
           console.log("[ZXing] Timeout - ativando fallback Quagga");
-          if (reader && typeof reader.reset === 'function') reader.reset();
+          try {
+            if (reader && typeof reader.reset === 'function') {
+              reader.reset();
+              reader = undefined;
+            }
+          } catch (e) {
+            console.error('[ZXing] Erro ao resetar:', e);
+          }
           setShowFallback(true);
         }, 10000);
 
