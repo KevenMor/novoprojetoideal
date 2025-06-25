@@ -73,6 +73,41 @@ function showToast(msg: string) {
   window.alert(msg); // Substitua por toast real se desejar
 }
 
+// Função para capturar snapshot e enviar para API
+async function captureAndDecode(videoElement: HTMLVideoElement): Promise<string | null> {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    
+    ctx.drawImage(videoElement, 0, 0);
+    
+    const blob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+      }, 'image/jpeg', 0.8);
+    });
+    
+    const formData = new FormData();
+    formData.append('image', blob, 'boleto.jpg');
+    
+    const response = await fetch('/api/decode-boleto', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) return null;
+    
+    const result = await response.json();
+    return result.linha || null;
+  } catch (error) {
+    console.error('Erro no fallback:', error);
+    return null;
+  }
+}
+
 export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: ScanBoletoMobileProps) {
   const videoRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +116,7 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
   const [attempts, setAttempts] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
   const [isPortrait, setIsPortrait] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     // Verificar orientação atual
@@ -112,57 +148,51 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
 
     // Constraints otimizadas
     const constraints = {
-      audio: false,
-      video: {
-        facingMode: { exact: "environment" },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        advanced: [
-          { focusMode: "continuous" },  // Android
-          { zoom: 2 }                   // tenta 2× zoom (ignorado no iOS se não suportar)
-        ]
+      facingMode: "environment",
+      width: { min: 640, ideal: 1280 },
+      height: { min: 480, ideal: 720 },
+      focusMode: "continuous",
+      exposureMode: "continuous"
+    };
+
+    const start = (err: any) => {
+      if (err) {
+        console.error('Erro ao iniciar Quagga:', err);
+        setError('Erro ao iniciar câmera: ' + err.message);
+        return;
       }
+      console.log('Quagga iniciado com sucesso');
+      Quagga.start();
     };
 
     Quagga.init({
       inputStream: {
-        type: 'LiveStream',
+        type: "LiveStream",
         target: videoRef.current!,
         constraints,
         area: roi
       },
-      decoder: {
-        readers: ['i2of5_reader'],
-        debug: {
-          drawBoundingBox: true,
-          showFrequency: true,
-          drawScanline: true,
-          showPattern: true
-        }
+      decoder: { 
+        readers: ["i2of5_reader"], 
+        debug: { drawBoundingBox: false } 
       },
       locate: true,
-      singleChannel: true,
-      numOfWorkers: 2,
+      numOfWorkers: 0,       // iOS não suporta workers
       frequency: 5,
-    }, (err) => {
-      if (err) {
-        setError('Erro ao iniciar câmera: ' + err.message);
-        return;
-      }
-      Quagga.start();
+      singleChannel: true
+    }, start);
+
+    // Log de frames processados
+    Quagga.onProcessed(() => {
+      console.log("frame");
     });
 
-    // Timeout de 5 segundos
-    const tId = setTimeout(() => {
-      setError('Não foi possível ler o código. Tente alinhar melhor ou digite manualmente.');
-      Quagga.stop();
-    }, 5000);
-    setTimeoutId(tId);
-
-    // Detecção com tentativas múltiplas
-    Quagga.onDetected((data) => {
-      if (data && data.codeResult && data.codeResult.code) {
-        const code = data.codeResult.code.replace(/\D/g, '');
+    // Log de detecções
+    Quagga.onDetected(({ codeResult, err }) => {
+      console.log("lido:", codeResult?.code, "err:", err?.name);
+      
+      if (codeResult && codeResult.code) {
+        const code = codeResult.code.replace(/\D/g, '');
         setCandidates(prev => {
           const next = [...prev, code];
           if (next.length === VOTING_FRAMES) {
@@ -180,8 +210,8 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
                 setAttempts(newAttempts);
                 showToast(`Não reconheci corretamente, aproxime mais. Tentativa ${newAttempts + 1} de ${MAX_ATTEMPTS}.`);
               } else {
-                setShowFallback(true);
-                Quagga.stop();
+                // Tentar fallback com snapshot
+                handleSnapshotFallback();
               }
               return [];
             }
@@ -191,14 +221,58 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
       }
     });
 
+    // Timeout de 5 segundos
+    const tId = setTimeout(() => {
+      console.log('Timeout - tentando fallback');
+      handleSnapshotFallback();
+    }, 5000);
+    setTimeoutId(tId);
+
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
       try { 
         Quagga.offDetected(); 
+        Quagga.offProcessed();
         Quagga.stop(); 
       } catch {}
     };
   }, [onDetect, onClose, attempts, isPortrait]);
+
+  // Função para tentar fallback com snapshot
+  const handleSnapshotFallback = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    
+    try {
+      console.log('Tentando fallback com snapshot...');
+      const videoElement = videoRef.current?.querySelector('video') as HTMLVideoElement;
+      
+      if (videoElement && videoElement.readyState >= 2) {
+        const linha = await captureAndDecode(videoElement);
+        
+        if (linha && validaLinhaDigitavel(linha)) {
+          console.log('Fallback bem-sucedido:', linha);
+          onDetect(linha);
+          vibrateOk();
+          if (timeoutId) clearTimeout(timeoutId);
+          Quagga.stop();
+          onClose();
+          return;
+        }
+      }
+      
+      // Se fallback falhar, mostrar opção de foto
+      console.log('Fallback falhou - mostrando opção de foto');
+      setShowFallback(true);
+      Quagga.stop();
+    } catch (error) {
+      console.error('Erro no fallback:', error);
+      setShowFallback(true);
+      Quagga.stop();
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   if (showFallback) {
     return (
@@ -258,6 +332,13 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-lg text-center">
           {error}
           <button onClick={onClose} className="ml-4 underline">Fechar</button>
+        </div>
+      )}
+      
+      {/* Indicador de processamento */}
+      {isProcessing && (
+        <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg">
+          Processando...
         </div>
       )}
     </div>
