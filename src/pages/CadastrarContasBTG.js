@@ -319,7 +319,7 @@ const CadastrarContasBTG = () => {
                     value={boletoData.linhaDigitavel} 
                     onChange={(e) => handleChange(e, 'boleto')} 
                     placeholder="Digite os números da linha digitável (44 a 48 dígitos)" 
-                    className="input-field w-full p-3 sm:p-2 pr-12 border rounded-lg text-sm touch-manipulation"
+                    className="input-field w-full p-3 sm:p-2 pr-16 border rounded-lg text-sm touch-manipulation"
                     maxLength="48"
                     inputMode="numeric"
                   />
@@ -327,7 +327,7 @@ const CadastrarContasBTG = () => {
                     <button
                       type="button"
                       onClick={openScanner}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition z-50 border-2 border-red-500"
                       aria-label="Abrir leitor de código de barras"
                     >
                       <Camera className="w-4 h-4" />
