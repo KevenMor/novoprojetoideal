@@ -9,7 +9,7 @@ import UnitSelector from '../components/UnitSelector';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ScanBarcode from "../components/ScanBarcode";
 import ScanBoleto from "../components/ScanBoleto.tsx";
-import UploadBoleto from '../components/UploadBoleto';
+import UploadBoleto from '../components/UploadBoleto.tsx';
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();
