@@ -25,6 +25,49 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
 
     const initScanner = async () => {
       try {
+        // 1. Solicitar permissão para a câmera antes de listar devices
+        await navigator.mediaDevices.getUserMedia({ video: true });
+
+        // 2. Listar dispositivos após permissão
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        let backCamera = videoDevices.find(d =>
+          /back|traseira|rear/i.test(d.label)
+        )?.deviceId;
+
+        // 3. Fallback para a primeira câmera disponível
+        if (!backCamera && videoDevices.length > 0) {
+          backCamera = videoDevices[0].deviceId;
+        }
+
+        // 4. Se não encontrar deviceId, usar facingMode: 'environment'
+        let constraints;
+        if (backCamera) {
+          constraints = {
+            video: {
+              deviceId: { exact: backCamera },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: 'environment'
+            }
+          };
+        } else {
+          constraints = {
+            video: {
+              facingMode: 'environment',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }
+          };
+        }
+
+        // Verificar suporte à lanterna
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities();
+        setTorchSupported(capabilities.torch || false);
+        stream.getTracks().forEach(track => track.stop());
+
         // Configurar ZXing para ITF com TRY_HARDER
         const hints = new Map();
         hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.ITF]);
@@ -32,36 +75,9 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
 
         reader = new BrowserMultiFormatReader(hints, 5000); // 5s timeout
 
-        // Listar câmeras disponíveis
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        const backCamera = videoDevices.find(d => 
-          /back|traseira|rear/i.test(d.label)
-        )?.deviceId || videoDevices[0]?.deviceId;
-
-        if (!backCamera) {
-          throw new Error("Câmera traseira não encontrada");
-        }
-
-        // Configurar constraints para câmera traseira
-        const constraints = {
-          video: {
-            deviceId: { exact: backCamera },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'environment'
-          }
-        };
-
-        // Verificar suporte à lanterna
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        const track = stream.getVideoTracks()[0];
-        const capabilities = track.getCapabilities();
-        setTorchSupported(capabilities.torch || false);
-
         // Iniciar decodificação
         await reader.decodeFromVideoDevice(
-          backCamera,
+          backCamera || undefined,
           videoRef.current!,
           (result, err) => {
             if (result) {
