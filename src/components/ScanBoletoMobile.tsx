@@ -16,8 +16,8 @@ export default function ScanBoletoMobile({ onDetect, onClose }: ScanBoletoMobile
 
   useEffect(() => {
     // Lock orientation
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(() => {});
+    if (typeof window !== 'undefined' && window.screen.orientation && window.screen.orientation.lock) {
+      window.screen.orientation.lock('landscape').catch(() => {});
     }
     // Start Quagga
     Quagga.init({
@@ -71,8 +71,8 @@ export default function ScanBoletoMobile({ onDetect, onClose }: ScanBoletoMobile
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
       try { Quagga.offDetected(); Quagga.stop(); } catch {}
-      if (screen.orientation && screen.orientation.unlock) {
-        try { screen.orientation.unlock(); } catch {}
+      if (typeof window !== 'undefined' && window.screen.orientation && window.screen.orientation.unlock) {
+        try { window.screen.orientation.unlock(); } catch {}
       }
     };
   }, [onDetect, onClose]);
