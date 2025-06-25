@@ -203,18 +203,21 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
     setOcrLoading(true);
     setOcrResult(null);
     try {
-      const { data } = await Tesseract.recognize(file, 'por', {
+      // Trocar idioma para 'eng' (melhor para números)
+      const { data } = await Tesseract.recognize(file, 'eng', {
         logger: m => console.log('[OCR]', m)
       });
-      const text = data.text.replace(/\D/g, ' ');
-      // Procurar sequências de 44 a 48 dígitos
-      const match = text.match(/\d{44,48}/g);
+      const rawText = data.text;
+      // Exibir texto bruto para debug
+      console.log('[OCR] Texto extraído:', rawText);
+      // Procurar sequências de 40 a 60 dígitos
+      const match = rawText.replace(/\D/g, ' ').match(/\d{40,60}/g);
       if (match && match[0]) {
-        setOcrResult(match[0]);
+        setOcrResult('Linha digitável encontrada: ' + match[0]);
         onDetect(match[0]);
         onClose();
       } else {
-        setOcrResult('Não foi possível encontrar a linha digitável na imagem.');
+        setOcrResult('Não foi possível encontrar a linha digitável na imagem. Texto extraído: ' + rawText);
       }
     } catch (err) {
       setOcrResult('Erro ao processar imagem.');
@@ -272,6 +275,7 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
           />
         </label>
       </div>
+      <div className="text-xs text-center text-white mb-2">Tire a foto o mais próximo possível da linha digitável impressa no boleto para melhores resultados.</div>
       {ocrLoading && (
         <div className="p-2 text-center text-yellow-400">Processando imagem, aguarde...</div>
       )}
