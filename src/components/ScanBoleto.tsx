@@ -30,46 +30,60 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
 
     const initScanner = async () => {
       try {
-        // 1. Solicitar permissão para a câmera antes de listar devices
+        console.log('[ZXing] Solicitando permissão para câmera...');
         await navigator.mediaDevices.getUserMedia({ video: true });
 
-        // 2. Listar dispositivos após permissão
+        // Listar dispositivos após permissão
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        console.log('[ZXing] Dispositivos de vídeo encontrados:', videoDevices);
         let backCamera = videoDevices.find(d =>
           /back|traseira|rear/i.test(d.label)
         )?.deviceId;
 
-        // 3. Fallback para a primeira câmera disponível
         if (!backCamera && videoDevices.length > 0) {
           backCamera = videoDevices[0].deviceId;
         }
 
-        // 4. Se não encontrar deviceId, usar facingMode: 'environment'
+        // Constraints otimizadas
         let constraints;
         if (backCamera) {
           constraints = {
             video: {
               deviceId: { exact: backCamera },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              facingMode: 'environment'
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              facingMode: 'environment',
+              focusMode: 'continuous',
+              exposureMode: 'continuous',
+              advanced: [
+                { focusMode: 'continuous' },
+                { exposureMode: 'continuous' }
+              ]
             }
           };
         } else {
           constraints = {
             video: {
               facingMode: 'environment',
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              focusMode: 'continuous',
+              exposureMode: 'continuous',
+              advanced: [
+                { focusMode: 'continuous' },
+                { exposureMode: 'continuous' }
+              ]
             }
           };
         }
+        console.log('[ZXing] Constraints aplicadas:', constraints);
 
-        // Verificar suporte à lanterna
+        // Verificar suporte à lanterna e capabilities
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         const track = stream.getVideoTracks()[0];
         const capabilities = track.getCapabilities();
+        console.log('[ZXing] Capabilities da câmera:', capabilities);
         setTorchSupported(capabilities.torch || false);
         stream.getTracks().forEach(track => track.stop());
 
@@ -89,16 +103,13 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
               const code = result.getText().replace(/\D/g, "");
               console.log("[ZXing] Detectou:", code, "comprimento:", code.length);
               setPartialCodes(prev => {
-                // Evitar duplicatas consecutivas
                 if (prev[prev.length-1] === code) return prev;
                 return [...prev, code];
               });
               setConcatCode(prev => {
-                // Concatenar se ainda não atingiu o tamanho
                 if (prev.length < 44) return prev + code;
                 return prev;
               });
-              // Se concatenado atingir o tamanho esperado, finalizar
               const currentConcat = concatCode + code;
               if (currentConcat.length >= 44 && currentConcat.length <= 48) {
                 setDetected(true);
@@ -115,7 +126,6 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
                   onClose();
                 }, 300);
               } else if (code.length >= 44 && code.length <= 48) {
-                // Caso ZXing consiga ler tudo de uma vez
                 setDetected(true);
                 setTimeout(() => {
                   onDetect(code);
@@ -133,7 +143,6 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
                 console.log(`[ZXing] Código detectado mas fora do padrão esperado (44-48): ${code}`);
               }
             }
-            
             if (err && !(err instanceof NotFoundException)) {
               console.error("[ZXing] Erro:", err);
               setError(err.message);
@@ -143,7 +152,6 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
 
         setLoading(false);
 
-        // Timeout de 10s para fallback
         timeoutId = setTimeout(() => {
           console.log("[ZXing] Timeout - ativando fallback Quagga");
           try {
@@ -312,7 +320,7 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
         
         {/* Retângulo-guia */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="border-2 border-primary w-80 h-20 rounded-lg" />
+          <div className="border-4 border-green-400 shadow-lg w-96 max-w-full h-24 rounded-xl bg-black/10" />
         </div>
 
         {/* Flash verde em detecção */}
