@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
+import ScanBoletoMobile from './ScanBoletoMobile.tsx';
 
 interface MobileBarcodeButtonProps {
   onDetect: (linha: string) => void;
 }
 
 const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad/i.test(navigator.userAgent);
-const ScanBoletoMobile = dynamic(() => import('./ScanBoletoMobile.tsx'), { ssr: false });
 
 export default function MobileBarcodeButton({ onDetect }: MobileBarcodeButtonProps) {
   const [open, setOpen] = useState(false);
