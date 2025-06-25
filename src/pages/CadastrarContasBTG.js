@@ -9,6 +9,7 @@ import UnitSelector from '../components/UnitSelector';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ScanBarcode from "../components/ScanBarcode";
 import ScanBoleto from "../components/ScanBoleto.tsx";
+import UploadBoleto from '../components/UploadBoleto';
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();
@@ -313,34 +314,10 @@ const CadastrarContasBTG = () => {
             <div className="space-y-4 sm:space-y-6">
               <div className="form-group relative">
                 <label className="block text-gray-700 text-sm font-semibold mb-2">Linha Digitável *</label>
-                <div className="relative">
-                  <input 
-                    name="linhaDigitavel" 
-                    value={boletoData.linhaDigitavel} 
-                    onChange={(e) => handleChange(e, 'boleto')} 
-                    placeholder="Digite os números da linha digitável (44 a 48 dígitos)" 
-                    className="input-field w-full p-3 sm:p-2 pr-16 border rounded-lg text-sm touch-manipulation"
-                    maxLength="48"
-                    inputMode="numeric"
-                  />
-                  {(cameraSupported || isMobileDevice) && (
-                    <button
-                      type="button"
-                      onClick={openScanner}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition z-50 border-2 border-red-500"
-                      aria-label="Abrir leitor de código de barras"
-                    >
-                      <Camera className="w-4 h-4" />
-                    </button>
-                  )}
-                  {console.log('🔍 Debug botão câmera:', { cameraSupported, tipo, isMobileDevice })}
-                </div>
+                <UploadBoleto
+                  onDetect={linha => setBoletoData(b => ({ ...b, linhaDigitavel: linha }))}
+                />
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/48 números</p>
-                {!cameraSupported && (
-                  <p className="text-xs text-gray-400 mt-1 italic">
-                    💡 Seu dispositivo não suporta leitura de código de barras
-                  </p>
-                )}
               </div>
               
               <div className="form-group relative">
