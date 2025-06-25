@@ -19,28 +19,29 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
   const isSafari = typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   const isIOSorSafari = isIOS || isSafari;
 
-  // Função para validar código de barras
-  const validateBarcode = (code) => {
-    const cleanCode = code.replace(/\D/g, '');
-    return cleanCode.length >= 44 && cleanCode.length <= 48;
-  };
+  // Função para extrair linha digitável mantendo DVs
+  function extrairLinhaDigitavel(texto) {
+    // Extrai todos os grupos de números (inclusive dígitos isolados)
+    const grupos = texto.match(/\d+/g) || [];
+    return grupos.join('');
+  }
 
   // Função para processar código detectado
   const processDetectedCode = (code) => {
-    const cleanCode = code.replace(/\D/g, '');
+    // NOVO: usar extração refinada
+    const cleanCode = extrairLinhaDigitavel(code);
     console.log('Código detectado:', cleanCode, 'Comprimento:', cleanCode.length);
     
-    if (validateBarcode(cleanCode)) {
+    if ([47, 48].includes(cleanCode.length)) {
       setSuccess('Código de barras válido detectado!');
       setStatus('Processando...');
       setIsScanning(false);
-      
       setTimeout(() => {
         onScan(cleanCode);
         onClose();
       }, 1000);
     } else {
-      setError(`Código inválido (${cleanCode.length} dígitos). Deve ter entre 44 e 48 números.`);
+      setError(`Leitura incompleta (${cleanCode.length} dígitos). Ajuste o enquadramento e tente novamente.`);
       setStatus('Aguardando código válido...');
       setTimeout(() => setError(''), 3000);
     }
@@ -246,12 +247,12 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
   const handleManualInput = () => {
     const code = prompt('Digite o código de barras manualmente (somente números):');
     if (code) {
-      const cleanCode = code.replace(/\D/g, '');
-      if (validateBarcode(cleanCode)) {
+      const cleanCode = extrairLinhaDigitavel(code);
+      if ([47, 48].includes(cleanCode.length)) {
         onScan(cleanCode);
         onClose();
       } else {
-        alert(`Código inválido. Deve ter entre 44 e 48 números. (Digitado: ${cleanCode.length})`);
+        alert(`Código inválido. Deve ter 47 ou 48 números. (Digitado: ${cleanCode.length})`);
       }
     }
   };
