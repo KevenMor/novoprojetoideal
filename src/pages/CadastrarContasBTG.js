@@ -39,6 +39,13 @@ const CadastrarContasBTG = () => {
 
   const [showScanner, setShowScanner] = useState(false);
 
+  // Função para detectar mobile
+  function isMobile() {
+    if (typeof navigator === 'undefined') return false;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+  const mobile = isMobile();
+
   const handleChange = (e, formType) => {
     const { name, value } = e.target;
     
@@ -266,13 +273,16 @@ const CadastrarContasBTG = () => {
                     maxLength="48"
                     inputMode="numeric"
                   />
-                  <button
-                    type="button"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-base cursor-pointer transition-colors"
-                    onClick={() => setShowScanner(true)}
-                  >
-                    Escanear boleto
-                  </button>
+                  {/* Botão de escanear só aparece no mobile */}
+                  {mobile && (
+                    <button
+                      type="button"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-base cursor-pointer transition-colors"
+                      onClick={() => setShowScanner(true)}
+                    >
+                      Escanear boleto
+                    </button>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/48 números</p>
                 {/* Exibir linha digitável formatada para conferência */}
@@ -362,7 +372,7 @@ const CadastrarContasBTG = () => {
               </div>
 
               {/* Modal do Scanner de Código de Barras */}
-              {showScanner && (
+              {mobile && showScanner && (
                 <SimpleBarcodeScanner
                   isOpen={showScanner}
                   onScan={linha => {
