@@ -82,9 +82,7 @@ const CadastrarContasBTG = () => {
 
     checkCameraSupport();
     
-    // Verificar novamente quando a janela é redimensionada
     window.addEventListener('resize', checkMobile);
-    
     return () => {
       window.removeEventListener('resize', checkMobile);
     };
@@ -129,11 +127,11 @@ const CadastrarContasBTG = () => {
     console.log('📱 Mobile detectado:', isMobileDevice);
     console.log('📷 Camera suportada:', cameraSupported);
     
-    if (!cameraSupported) {
+    // Permitir tentativa mesmo se cameraSupported for false, se for mobile
+    if (!(cameraSupported || isMobileDevice)) {
       toast.error('Seu dispositivo não suporta acesso à câmera.');
       return;
     }
-    
     setShowScanner(true);
   };
 
@@ -325,7 +323,7 @@ const CadastrarContasBTG = () => {
                     maxLength="48"
                     inputMode="numeric"
                   />
-                  {cameraSupported && (
+                  {(cameraSupported || isMobileDevice) && (
                     <button
                       type="button"
                       onClick={openScanner}
