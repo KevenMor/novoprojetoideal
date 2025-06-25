@@ -10,14 +10,6 @@ interface ScanBoletoMobileProps {
 const VOTING_FRAMES = 5;
 const MAX_ATTEMPTS = 3;
 
-// ROI ajustado para vídeo rotacionado 90°: apenas 10% de altura útil
-const ROI = {
-  top: "45%",
-  right: "0%",
-  left: "0%",
-  bottom: "45%"
-};
-
 function mode(arr: string[]): string {
   const freq: Record<string, number> = {};
   let max = 0, res = '';
@@ -88,55 +80,35 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
   const [candidates, setCandidates] = useState<string[]>([]);
   const [attempts, setAttempts] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
-  const [isLandscape, setIsLandscape] = useState(false);
-  const [showRotateMessage, setShowRotateMessage] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(true);
 
   useEffect(() => {
     // Verificar orientação atual
     const checkOrientation = () => {
-      const landscape = window.matchMedia("(orientation: landscape)").matches;
-      setIsLandscape(landscape);
-      setShowRotateMessage(!landscape);
+      const portrait = window.innerHeight > window.innerWidth;
+      setIsPortrait(portrait);
     };
 
     // Verificar orientação inicial
     checkOrientation();
 
     // Listener para mudanças de orientação
-    const mediaQuery = window.matchMedia("(orientation: landscape)");
-    const handleOrientationChange = () => {
+    const handleResize = () => {
       checkOrientation();
     };
 
-    mediaQuery.addListener(handleOrientationChange);
-
-    // Tentar forçar landscape (funciona em alguns browsers)
-    const lock = async () => {
-      if (typeof window !== 'undefined' && window.screen?.orientation?.lock) {
-        try { 
-          await window.screen.orientation.lock("landscape"); 
-          checkOrientation();
-        } catch (e) {
-          console.log('Não foi possível forçar landscape:', e);
-          // Fallback: aguardar usuário girar manualmente
-        }
-      }
-    };
-    lock();
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      mediaQuery.removeListener(handleOrientationChange);
-      if (typeof window !== 'undefined' && window.screen?.orientation?.unlock) {
-        try { 
-          window.screen.orientation.unlock(); 
-        } catch {}
-      }
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
   useEffect(() => {
-    // Só iniciar Quagga se estiver em landscape
-    if (!isLandscape) return;
+    // ROI dinâmico baseado na orientação
+    const roi = isPortrait
+      ? { top: "35%", bottom: "35%", left: "10%", right: "10%" }   // portrait
+      : { top: "45%", bottom: "45%", left: "0%", right: "0%" };    // landscape
 
     // Constraints otimizadas
     const constraints = {
@@ -157,7 +129,7 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
         type: 'LiveStream',
         target: videoRef.current!,
         constraints,
-        area: ROI
+        area: roi
       },
       decoder: {
         readers: ['i2of5_reader'],
@@ -226,7 +198,7 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
         Quagga.stop(); 
       } catch {}
     };
-  }, [onDetect, onClose, attempts, isLandscape]);
+  }, [onDetect, onClose, attempts, isPortrait]);
 
   if (showFallback) {
     return (
@@ -246,58 +218,38 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
     );
   }
 
-  if (showRotateMessage) {
-    return (
-      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90">
-        <div className="text-white text-center">
-          <div className="text-2xl mb-4">📱</div>
-          <div className="text-lg mb-2">Gire o telefone para horizontal</div>
-          <div className="text-sm opacity-80">O scanner funciona melhor na orientação paisagem</div>
-          <button
-            className="mt-6 text-white underline"
-            onClick={onClose}
-          >Cancelar</button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden bg-black">
-      {/* Container do vídeo rotacionado */}
+      {/* Container do vídeo sem rotação */}
       <div 
         ref={videoRef} 
-        className="absolute inset-0 h-screen w-screen object-cover rotate-90 origin-center"
-        style={{
-          transform: 'rotate(90deg)',
-          transformOrigin: 'center center'
-        }}
+        className="absolute inset-0 w-full h-full object-cover"
       />
       
       {/* Overlay escuro */}
       <div className="absolute inset-0 bg-black/60 pointer-events-none" />
       
-      {/* "Furo" transparente acima do ROI */}
+      {/* "Furo" transparente dinâmico */}
       <div 
         className="absolute bg-transparent pointer-events-none"
         style={{
-          left: '0%',
-          right: '0%',
-          top: 'calc(50% - 5%)',
-          height: '10%',
+          left: isPortrait ? '10%' : '0%',
+          right: isPortrait ? '10%' : '0%',
+          top: isPortrait ? 'calc(33.33% - 8.33%)' : 'calc(50% - 8.33%)',
+          height: '16.67%',
           mixBlendMode: 'destination-out'
         }}
       />
       
-      {/* ROI: apenas 10% de altura útil */}
-      <div 
-        className="absolute border-4 border-blue-500/80 rounded-xl pointer-events-none"
+      {/* ROI dinâmico: portrait mais estreito, landscape full width */}
+      <div
+        className="absolute pointer-events-none border-4 border-blue-500/80 rounded-xl"
         style={{
-          left: '0%',
-          right: '0%',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          height: '10%'
+          left: isPortrait ? '10%' : '0%',
+          right: isPortrait ? '10%' : '0%',
+          top: isPortrait ? '33.33%' : '50%',
+          transform: isPortrait ? 'none' : 'translateY(-50%)',
+          height: '16.67%'
         }}
       />
       
