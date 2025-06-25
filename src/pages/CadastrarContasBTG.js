@@ -91,6 +91,23 @@ const CadastrarContasBTG = () => {
     return parseFloat(formattedValue.replace(/\./g, '').replace(',', '.'));
   };
 
+  // Função para formatar linha digitável
+  function formatarLinhaDigitavel(linha) {
+    if (!linha) return '';
+    const clean = linha.replace(/\D/g, '');
+    if (clean.length === 47) {
+      // Boleto bancário comum
+      return `${clean.substr(0,5)}.${clean.substr(5,5)} ${clean.substr(10,5)}.${clean.substr(15,6)} ${clean.substr(21,5)}.${clean.substr(26,6)} ${clean.substr(32,1)} ${clean.substr(33)}`;
+    } else if (clean.length === 48) {
+      // Boleto de concessionária
+      return `${clean.substr(0,11)}.${clean.substr(11,11)}.${clean.substr(22,11)}.${clean.substr(33,11)}`;
+    } else if (clean.length === 44) {
+      // Código de barras puro
+      return clean;
+    }
+    return clean;
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedUnit) {
@@ -258,6 +275,18 @@ const CadastrarContasBTG = () => {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/48 números</p>
+                {/* Exibir linha digitável formatada para conferência */}
+                {boletoData.linhaDigitavel && (
+                  <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-700">
+                    <span className="font-semibold">Conferir:</span> {formatarLinhaDigitavel(boletoData.linhaDigitavel)}
+                  </div>
+                )}
+                {/* Validação de quantidade de dígitos */}
+                {boletoData.linhaDigitavel && ![44,47,48].includes(boletoData.linhaDigitavel.replace(/\D/g, '').length) && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                    Atenção: A linha digitável deve ter 44, 47 ou 48 dígitos. Confira o boleto!
+                  </div>
+                )}
               </div>
               
               <div className="form-group relative">
