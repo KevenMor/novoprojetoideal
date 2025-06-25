@@ -10,12 +10,12 @@ interface ScanBoletoMobileProps {
 const VOTING_FRAMES = 5;
 const MAX_ATTEMPTS = 3;
 
-// ROI maior: 90% largura, 30% altura
+// ROI proporcional à largura real do vídeo: 10% altura útil
 const ROI = {
-  top: "35%",
-  right: "5%", 
-  left: "5%",
-  bottom: "35%"
+  top: "45%",
+  left: "0%",
+  right: "0%",
+  bottom: "45%"
 };
 
 function mode(arr: string[]): string {
@@ -88,19 +88,55 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
   const [candidates, setCandidates] = useState<string[]>([]);
   const [attempts, setAttempts] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [showRotateMessage, setShowRotateMessage] = useState(false);
 
   useEffect(() => {
-    // Forçar orientação horizontal ao abrir
+    // Verificar orientação atual
+    const checkOrientation = () => {
+      const landscape = window.matchMedia("(orientation: landscape)").matches;
+      setIsLandscape(landscape);
+      setShowRotateMessage(!landscape);
+    };
+
+    // Verificar orientação inicial
+    checkOrientation();
+
+    // Listener para mudanças de orientação
+    const mediaQuery = window.matchMedia("(orientation: landscape)");
+    const handleOrientationChange = () => {
+      checkOrientation();
+    };
+
+    mediaQuery.addListener(handleOrientationChange);
+
+    // Tentar forçar landscape (funciona em alguns browsers)
     const lock = async () => {
-      if (typeof window !== 'undefined' && window.screen?.orientation?.type?.startsWith("portrait")) {
+      if (typeof window !== 'undefined' && window.screen?.orientation?.lock) {
         try { 
           await window.screen.orientation.lock("landscape"); 
+          checkOrientation();
         } catch (e) {
           console.log('Não foi possível forçar landscape:', e);
+          // Fallback: aguardar usuário girar manualmente
         }
       }
     };
     lock();
+
+    return () => {
+      mediaQuery.removeListener(handleOrientationChange);
+      if (typeof window !== 'undefined' && window.screen?.orientation?.unlock) {
+        try { 
+          window.screen.orientation.unlock(); 
+        } catch {}
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // Só iniciar Quagga se estiver em landscape
+    if (!isLandscape) return;
 
     // Constraints otimizadas
     const constraints = {
@@ -189,13 +225,8 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
         Quagga.offDetected(); 
         Quagga.stop(); 
       } catch {}
-      if (typeof window !== 'undefined' && window.screen?.orientation?.unlock) {
-        try { 
-          window.screen.orientation.unlock(); 
-        } catch {}
-      }
     };
-  }, [onDetect, onClose, attempts]);
+  }, [onDetect, onClose, attempts, isLandscape]);
 
   if (showFallback) {
     return (
@@ -215,12 +246,28 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
     );
   }
 
+  if (showRotateMessage) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90">
+        <div className="text-white text-center">
+          <div className="text-2xl mb-4">📱</div>
+          <div className="text-lg mb-2">Gire o telefone para horizontal</div>
+          <div className="text-sm opacity-80">O scanner funciona melhor na orientação paisagem</div>
+          <button
+            className="mt-6 text-white underline"
+            onClick={onClose}
+          >Cancelar</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90">
       <div ref={videoRef} className="absolute inset-0 w-full h-full" />
       
       {/* Overlay visual correspondente ao ROI */}
-      <div className="absolute inset-y-1/3 mx-[5%] border-4 border-blue-500/90 rounded-lg pointer-events-none" />
+      <div className="absolute inset-y-[45%] border-4 border-blue-500/90 pointer-events-none" />
       
       {/* Mensagem erro/timeout */}
       {error && (
