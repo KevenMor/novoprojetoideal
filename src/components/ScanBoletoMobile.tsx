@@ -91,7 +91,7 @@ async function captureAndDecode(videoElement: HTMLVideoElement): Promise<string 
     });
     
     const formData = new FormData();
-    formData.append('image', blob, 'boleto.jpg');
+    formData.append('foto', blob, 'boleto.jpg');
     
     const response = await fetch('/api/decode-boleto', {
       method: 'POST',
@@ -110,6 +110,7 @@ async function captureAndDecode(videoElement: HTMLVideoElement): Promise<string 
 
 export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: ScanBoletoMobileProps) {
   const videoRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [candidates, setCandidates] = useState<string[]>([]);
@@ -117,6 +118,9 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
   const [showFallback, setShowFallback] = useState(false);
   const [isPortrait, setIsPortrait] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showVideo, setShowVideo] = useState(true);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // Verificar orientação atual
@@ -141,6 +145,15 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
   }, []);
 
   useEffect(() => {
+    if (showFallback) {
+      // Parar Quagga e ocultar vídeo quando mostrar fallback
+      try {
+        Quagga.stop();
+      } catch {}
+      setShowVideo(false);
+      return;
+    }
+
     // ROI dinâmico baseado na orientação
     const roi = isPortrait
       ? { top: "35%", bottom: "35%", left: "10%", right: "10%" }   // portrait
@@ -236,7 +249,7 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
         Quagga.stop(); 
       } catch {}
     };
-  }, [onDetect, onClose, attempts, isPortrait]);
+  }, [onDetect, onClose, attempts, isPortrait, showFallback]);
 
   // Função para tentar fallback com snapshot
   const handleSnapshotFallback = async () => {
@@ -274,16 +287,74 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
     }
   };
 
+  // Função para lidar com foto selecionada
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPreview(URL.createObjectURL(file));
+    setLoading(true);
+
+    try {
+      const form = new FormData();
+      form.append("foto", file);
+
+      const res = await fetch("/api/decode-boleto", { 
+        method: "POST", 
+        body: form 
+      });
+      
+      const json = await res.json();
+      
+      if (json.linha && validaLinhaDigitavel(json.linha)) {
+        onDetect(json.linha);
+        vibrateOk();
+        onClose();
+      } else {
+        showToast("Falha ao ler. Digite manualmente.");
+      }
+    } catch (error) {
+      console.error('Erro ao processar foto:', error);
+      showToast("Erro ao processar foto. Digite manualmente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (showFallback) {
     return (
       <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90">
         <div className="text-white text-lg mb-4">Não foi possível ler o código de barras.</div>
-        <button
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base mb-4"
-          onClick={() => { setShowFallback(false); onFallback && onFallback(); }}
-        >
-          Enviar foto do boleto
-        </button>
+        
+        {preview && (
+          <div className="mb-4">
+            <img 
+              src={preview} 
+              alt="Preview" 
+              className="max-w-xs max-h-48 object-contain rounded-lg"
+            />
+          </div>
+        )}
+        
+        {loading ? (
+          <div className="text-white text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+            <div>Processando foto...</div>
+          </div>
+        ) : (
+          <label className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base mb-4 cursor-pointer block text-center">
+            Enviar foto do boleto
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhoto}
+            />
+          </label>
+        )}
+        
         <button
           className="text-white underline"
           onClick={onClose}
@@ -294,38 +365,44 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden bg-black">
-      {/* Container do vídeo sem rotação */}
-      <div 
-        ref={videoRef} 
-        className="absolute inset-0 w-full h-full object-cover"
-      />
+      {/* Container do vídeo - só mostra se showVideo for true */}
+      {showVideo && (
+        <div 
+          ref={videoRef} 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
       
-      {/* Overlay escuro */}
-      <div className="absolute inset-0 bg-black/60 pointer-events-none" />
-      
-      {/* "Furo" transparente dinâmico */}
-      <div 
-        className="absolute bg-transparent pointer-events-none"
-        style={{
-          left: isPortrait ? '10%' : '0%',
-          right: isPortrait ? '10%' : '0%',
-          top: isPortrait ? 'calc(33.33% - 8.33%)' : 'calc(50% - 8.33%)',
-          height: '16.67%',
-          mixBlendMode: 'destination-out'
-        }}
-      />
-      
-      {/* ROI dinâmico: portrait mais estreito, landscape full width */}
-      <div
-        className="absolute pointer-events-none border-4 border-blue-500/80 rounded-xl"
-        style={{
-          left: isPortrait ? '10%' : '0%',
-          right: isPortrait ? '10%' : '0%',
-          top: isPortrait ? '33.33%' : '50%',
-          transform: isPortrait ? 'none' : 'translateY(-50%)',
-          height: '16.67%'
-        }}
-      />
+      {/* Overlay escuro - só mostra se showVideo for true */}
+      {showVideo && (
+        <>
+          <div className="absolute inset-0 bg-black/60 pointer-events-none" />
+          
+          {/* "Furo" transparente dinâmico */}
+          <div 
+            className="absolute bg-transparent pointer-events-none"
+            style={{
+              left: isPortrait ? '10%' : '0%',
+              right: isPortrait ? '10%' : '0%',
+              top: isPortrait ? 'calc(33.33% - 8.33%)' : 'calc(50% - 8.33%)',
+              height: '16.67%',
+              mixBlendMode: 'destination-out'
+            }}
+          />
+          
+          {/* ROI dinâmico: portrait mais estreito, landscape full width */}
+          <div
+            className="absolute pointer-events-none border-4 border-blue-500/80 rounded-xl"
+            style={{
+              left: isPortrait ? '10%' : '0%',
+              right: isPortrait ? '10%' : '0%',
+              top: isPortrait ? '33.33%' : '50%',
+              transform: isPortrait ? 'none' : 'translateY(-50%)',
+              height: '16.67%'
+            }}
+          />
+        </>
+      )}
       
       {/* Mensagem erro/timeout */}
       {error && (
