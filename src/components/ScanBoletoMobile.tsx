@@ -10,12 +10,12 @@ interface ScanBoletoMobileProps {
 const VOTING_FRAMES = 5;
 const MAX_ATTEMPTS = 3;
 
-// ROI: 90% largura, 25% altura, centralizado
+// ROI ajustado para vídeo rotacionado 90°: apenas 10% de altura útil
 const ROI = {
-  top: "37.5%",
-  bottom: "37.5%",
-  left: "5%",
-  right: "5%"
+  top: "45%",
+  right: "0%",
+  left: "0%",
+  bottom: "45%"
 };
 
 function mode(arr: string[]): string {
@@ -263,15 +263,14 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black">
-      {/* Container do vídeo com CSS inline */}
+    <div className="fixed inset-0 z-[9999] overflow-hidden bg-black">
+      {/* Container do vídeo rotacionado */}
       <div 
         ref={videoRef} 
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 h-screen w-screen object-cover rotate-90 origin-center"
         style={{
-          width: '100vw',
-          height: '100vh',
-          objectFit: 'cover'
+          transform: 'rotate(90deg)',
+          transformOrigin: 'center center'
         }}
       />
       
@@ -282,23 +281,23 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
       <div 
         className="absolute bg-transparent pointer-events-none"
         style={{
-          left: '5%',
-          right: '5%',
-          top: 'calc(50% - 12.5%)',
-          height: '25%',
+          left: '0%',
+          right: '0%',
+          top: 'calc(50% - 5%)',
+          height: '10%',
           mixBlendMode: 'destination-out'
         }}
       />
       
-      {/* ROI: 90% largura, 25% altura, centralizado */}
+      {/* ROI: apenas 10% de altura útil */}
       <div 
         className="absolute border-4 border-blue-500/80 rounded-xl pointer-events-none"
         style={{
-          left: '5%',
-          right: '5%',
+          left: '0%',
+          right: '0%',
           top: '50%',
           transform: 'translateY(-50%)',
-          height: '25%'
+          height: '10%'
         }}
       />
       
