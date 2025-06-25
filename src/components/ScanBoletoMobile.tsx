@@ -9,10 +9,73 @@ interface ScanBoletoMobileProps {
 const GUIDE_WIDTH = 320;
 const GUIDE_HEIGHT = 90;
 
+function mode(arr: string[]): string {
+  const freq: Record<string, number> = {};
+  let max = 0, res = '';
+  for (const v of arr) {
+    freq[v] = (freq[v] || 0) + 1;
+    if (freq[v] > max) {
+      max = freq[v];
+      res = v;
+    }
+  }
+  return res;
+}
+
+function modulo10(num: string): number {
+  let soma = 0, mult = 2;
+  for (let i = num.length - 1; i >= 0; i--) {
+    let res = Number(num[i]) * mult;
+    if (res > 9) res = 1 + (res - 10);
+    soma += res;
+    mult = mult === 2 ? 1 : 2;
+  }
+  const dv = (10 - (soma % 10)) % 10;
+  return dv;
+}
+
+function modulo11(num: string): number {
+  let soma = 0, peso = 2;
+  for (let i = num.length - 1; i >= 0; i--) {
+    soma += Number(num[i]) * peso;
+    peso = peso === 9 ? 2 : peso + 1;
+  }
+  const resto = soma % 11;
+  if (resto === 0 || resto === 1) return 1;
+  if (resto === 10) return 1;
+  return 11 - resto;
+}
+
+function validaLinhaDigitavel(linha: string): boolean {
+  linha = linha.replace(/\D/g, '');
+  if (linha.length !== 47 && linha.length !== 48) return false;
+  // Blocos
+  const b1 = linha.slice(0, 9), dv1 = Number(linha[9]);
+  const b2 = linha.slice(10, 20), dv2 = Number(linha[20]);
+  const b3 = linha.slice(21, 31), dv3 = Number(linha[31]);
+  if (modulo10(b1) !== dv1) return false;
+  if (modulo10(b2) !== dv2) return false;
+  if (modulo10(b3) !== dv3) return false;
+  // DV geral (posição 32)
+  const campo4 = Number(linha[32]);
+  // Para cálculo do DV geral, remover os DVs dos blocos
+  const barra = linha.slice(0, 4) + linha.slice(32, 47);
+  if (modulo11(barra) !== campo4) return false;
+  return true;
+}
+
+function vibrateOk() {
+  if (navigator.vibrate) navigator.vibrate(50);
+}
+function showToast(msg: string) {
+  window.alert(msg); // Substitua por toast real se desejar
+}
+
 export default function ScanBoletoMobile({ onDetect, onClose }: ScanBoletoMobileProps) {
   const videoRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [candidates, setCandidates] = useState<string[]>([]);
 
   useEffect(() => {
     // Lock orientation
@@ -59,13 +122,23 @@ export default function ScanBoletoMobile({ onDetect, onClose }: ScanBoletoMobile
     Quagga.onDetected((data) => {
       if (data && data.codeResult && data.codeResult.code) {
         const code = data.codeResult.code.replace(/\D/g, '');
-        if (code.length >= 44 && code.length <= 48) {
-          if (timeoutId) clearTimeout(timeoutId);
-          Quagga.stop();
-          if (navigator.vibrate) navigator.vibrate(50);
-          onDetect(code);
-          onClose();
-        }
+        setCandidates(prev => {
+          const next = [...prev, code];
+          if (next.length === 5) {
+            const maisFrequente = mode(next);
+            if (validaLinhaDigitavel(maisFrequente)) {
+              onDetect(maisFrequente);
+              vibrateOk();
+              if (timeoutId) clearTimeout(timeoutId);
+              Quagga.stop();
+              onClose();
+            } else {
+              showToast('Não reconheci corretamente, aproxime mais.');
+              return [];
+            }
+          }
+          return next;
+        });
       }
     });
     return () => {
