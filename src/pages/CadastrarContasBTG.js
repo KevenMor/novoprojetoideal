@@ -1,16 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { contasBTGService } from '../services/contasBTGService';
 import { lancamentosService } from '../services/lancamentosService';
 import toast from 'react-hot-toast';
-import { FileText, Smartphone, Camera } from 'lucide-react';
+import { FileText, Smartphone } from 'lucide-react';
 import UnitSelector from '../components/UnitSelector';
-import BarcodeScanner from '../components/BarcodeScanner';
-import ScanBarcode from "../components/ScanBarcode";
-import ScanBoleto from "../components/ScanBoleto.tsx";
-import UploadBoleto from '../components/UploadBoleto.tsx';
-import MobileBarcodeButton from '../components/MobileBarcodeButton.tsx';
+import BoletoPhotoReader from '../components/BoletoPhotoReader.tsx';
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();
@@ -18,10 +14,6 @@ const CadastrarContasBTG = () => {
 
   const [tipo, setTipo] = useState('pix');
   const [loading, setLoading] = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
-  const [codigoBarras, setCodigoBarras] = useState('');
-  const [cameraSupported, setCameraSupported] = useState(false);
 
   // Estados para cada formulário
   const [boletoData, setBoletoData] = useState({
@@ -44,51 +36,6 @@ const CadastrarContasBTG = () => {
     categoria: 'CONTA_BTG',
     formaPagamentoBaixa: 'PIX'
   });
-
-  // Detectar se está em mobile - Melhorada para detectar mais dispositivos
-  const isMobile = () => {
-    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-    const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
-    const isMobileDevice = mobileRegex.test(userAgent);
-    const isSmallScreen = window.innerWidth <= 768;
-    
-    console.log('🔍 Debug Mobile Detection:', {
-      userAgent: userAgent,
-      isMobileDevice: isMobileDevice,
-      isSmallScreen: isSmallScreen,
-      windowWidth: window.innerWidth,
-      finalResult: isMobileDevice || isSmallScreen
-    });
-    
-    return isMobileDevice || isSmallScreen;
-  };
-
-  // Verificar mobile quando o componente carrega
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile = isMobile();
-      setIsMobileDevice(mobile);
-      console.log('📱 Mobile status atualizado:', mobile);
-    };
-
-    checkMobile();
-    
-    // Verificar se a câmera é suportada
-    const checkCameraSupport = () => {
-      const supported = 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices;
-      setCameraSupported(supported);
-      console.log('📷 Camera support:', supported);
-      console.log('📷 Navigator mediaDevices:', 'mediaDevices' in navigator);
-      console.log('📷 getUserMedia available:', 'getUserMedia' in navigator.mediaDevices);
-    };
-
-    checkCameraSupport();
-    
-    window.addEventListener('resize', checkMobile);
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
-  }, []);
 
   const handleChange = (e, formType) => {
     const { name, value } = e.target;
@@ -115,31 +62,6 @@ const CadastrarContasBTG = () => {
         setPixData(prev => ({ ...prev, [name]: value }));
       }
     }
-  };
-
-  // Função para processar código de barras lido
-  const handleBarcodeScan = (scannedCode) => {
-    setBoletoData(prev => ({ ...prev, linhaDigitavel: scannedCode }));
-    toast.success('Código de barras lido com sucesso!');
-  };
-
-  // Função para abrir o scanner
-  const openScanner = () => {
-    console.log('📱 Tentando abrir scanner...');
-    console.log('📱 Mobile detectado:', isMobileDevice);
-    console.log('📷 Camera suportada:', cameraSupported);
-    
-    // Permitir tentativa mesmo se cameraSupported for false, se for mobile
-    if (!(cameraSupported || isMobileDevice)) {
-      toast.error('Seu dispositivo não suporta acesso à câmera.');
-      return;
-    }
-    setShowScanner(true);
-  };
-
-  // Função para fechar o scanner
-  const closeScanner = () => {
-    setShowScanner(false);
   };
 
   // Função para formatar valor monetário em tempo real
@@ -313,20 +235,21 @@ const CadastrarContasBTG = () => {
           {/* FORMULÁRIO BOLETO */}
           {tipo === 'boleto' && (
             <div className="space-y-4 sm:space-y-6">
-              <div className="form-group relative">
+              <div className="form-group">
                 <label className="block text-gray-700 text-sm font-semibold mb-2">Linha Digitável *</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    name="linhaDigitavel"
-                    value={boletoData.linhaDigitavel}
-                    onChange={e => handleChange(e, 'boleto')}
-                    placeholder="Digite os números da linha digitável (44 a 48 dígitos)"
-                    className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
-                    maxLength="48"
-                    inputMode="numeric"
-                  />
-                  <MobileBarcodeButton onDetect={linha => setBoletoData(b => ({ ...b, linhaDigitavel: linha }))} />
-                </div>
+                <input
+                  name="linhaDigitavel"
+                  value={boletoData.linhaDigitavel}
+                  onChange={e => handleChange(e, 'boleto')}
+                  placeholder="Digite os números da linha digitável (44 a 48 dígitos)"
+                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation mb-3"
+                  maxLength="48"
+                  inputMode="numeric"
+                />
+                <BoletoPhotoReader 
+                  onDetect={linha => setBoletoData(b => ({ ...b, linhaDigitavel: linha }))}
+                  onError={message => toast.error(message)}
+                />
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/48 números</p>
               </div>
               
@@ -548,14 +471,6 @@ const CadastrarContasBTG = () => {
           </div>
         </form>
       </div>
-
-      {/* Modal do Scanner de Código de Barras */}
-      {showScanner && (
-        <ScanBoleto
-          onDetect={handleBarcodeScan}
-          onClose={closeScanner}
-        />
-      )}
     </div>
   );
 };
