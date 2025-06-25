@@ -33,10 +33,11 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
         reader = new BrowserMultiFormatReader(hints, 5000); // 5s timeout
 
         // Listar câmeras disponíveis
-        const devices = await reader.listVideoInputDevices();
-        const backCamera = devices.find(d => 
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        const backCamera = videoDevices.find(d => 
           /back|traseira|rear/i.test(d.label)
-        )?.deviceId || devices[0]?.deviceId;
+        )?.deviceId || videoDevices[0]?.deviceId;
 
         if (!backCamera) {
           throw new Error("Câmera traseira não encontrada");

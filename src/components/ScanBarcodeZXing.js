@@ -26,11 +26,12 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
       reader = new BrowserMultiFormatReader(hints, 500);
       console.log("ZXing inicializado");
 
-      reader.listVideoInputDevices()
+      navigator.mediaDevices.enumerateDevices()
         .then(async (devices) => {
-          console.log("Câmeras disponíveis:", devices);
+          const videoDevices = devices.filter(device => device.kind === 'videoinput');
+          console.log("Câmeras disponíveis:", videoDevices);
           
-          if (!devices || devices.length === 0) {
+          if (!videoDevices || videoDevices.length === 0) {
             const err = new Error("Nenhuma câmera encontrada");
             console.error(err);
             setErrorMsg("Nenhuma câmera encontrada");
@@ -41,8 +42,8 @@ export default function ScanBarcodeZXing({ onResult, onClose, onError }) {
 
           // Tentar usar câmera traseira primeiro
           const deviceId =
-            devices.find((d) => /back|traseira|rear/i.test(d.label))?.deviceId ||
-            devices[0]?.deviceId;
+            videoDevices.find((d) => /back|traseira|rear/i.test(d.label))?.deviceId ||
+            videoDevices[0]?.deviceId;
             
           console.log("Usando câmera:", deviceId);
 
