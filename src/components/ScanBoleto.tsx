@@ -68,12 +68,12 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
         setTorchSupported(capabilities.torch || false);
         stream.getTracks().forEach(track => track.stop());
 
-        // Configurar ZXing para ITF com TRY_HARDER
+        // Configurar ZXing para ITF, CODE_128 e CODE_39 com TRY_HARDER
         const hints = new Map();
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.ITF]);
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.ITF, BarcodeFormat.CODE_128, BarcodeFormat.CODE_39]);
         hints.set(DecodeHintType.TRY_HARDER, true);
 
-        reader = new BrowserMultiFormatReader(hints, 5000); // 5s timeout
+        reader = new BrowserMultiFormatReader(hints, 10000); // 10s timeout
 
         // Iniciar decodificação
         await reader.decodeFromVideoDevice(
@@ -82,7 +82,7 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
           (result, err) => {
             if (result) {
               const code = result.getText().replace(/\D/g, "");
-              console.log("ZXing detectou:", code, "comprimento:", code.length);
+              console.log("[ZXing] Detectou:", code, "comprimento:", code.length);
               
               if (code.length >= 44 && code.length <= 48) {
                 setDetected(true);
@@ -92,11 +92,13 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
                   reader.reset();
                   onClose();
                 }, 300);
+              } else {
+                console.log(`[ZXing] Código detectado mas fora do padrão esperado (44-48): ${code}`);
               }
             }
             
             if (err && !(err instanceof NotFoundException)) {
-              console.error("Erro ZXing:", err);
+              console.error("[ZXing] Erro:", err);
               setError(err.message);
             }
           }
@@ -104,15 +106,15 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
 
         setLoading(false);
 
-        // Timeout de 5s para fallback
+        // Timeout de 10s para fallback
         timeoutId = setTimeout(() => {
-          console.log("ZXing timeout - ativando fallback Quagga");
+          console.log("[ZXing] Timeout - ativando fallback Quagga");
           reader.reset();
           setShowFallback(true);
-        }, 5000);
+        }, 10000);
 
       } catch (err) {
-        console.error("Erro ao inicializar ZXing:", err);
+        console.error("[ZXing] Erro ao inicializar:", err);
         setError(err instanceof Error ? err.message : "Erro desconhecido");
         setLoading(false);
       }
