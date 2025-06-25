@@ -8,6 +8,7 @@ import { FileText, Smartphone, Camera } from 'lucide-react';
 import UnitSelector from '../components/UnitSelector';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ScanBarcode from "../components/ScanBarcode";
+import ScanBoleto from "../components/ScanBoleto";
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();
@@ -18,6 +19,7 @@ const CadastrarContasBTG = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
   const [codigoBarras, setCodigoBarras] = useState('');
+  const [cameraSupported, setCameraSupported] = useState(false);
 
   // Estados para cada formulário
   const [boletoData, setBoletoData] = useState({
@@ -69,6 +71,15 @@ const CadastrarContasBTG = () => {
 
     checkMobile();
     
+    // Verificar se a câmera é suportada
+    const checkCameraSupport = () => {
+      const supported = 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices;
+      setCameraSupported(supported);
+      console.log('📷 Camera support:', supported);
+    };
+
+    checkCameraSupport();
+    
     // Verificar novamente quando a janela é redimensionada
     window.addEventListener('resize', checkMobile);
     
@@ -114,19 +125,19 @@ const CadastrarContasBTG = () => {
   const openScanner = () => {
     console.log('📱 Tentando abrir scanner...');
     console.log('📱 Mobile detectado:', isMobileDevice);
+    console.log('📷 Camera suportada:', cameraSupported);
     
-    if (!isMobileDevice) {
-      toast.error('Leitura de código de barras disponível apenas em dispositivos móveis.');
-      return;
-    }
-    
-    // Verificar se o navegador suporta getUserMedia (câmera)
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast.error('Seu navegador não suporta acesso à câmera.');
+    if (!cameraSupported) {
+      toast.error('Seu dispositivo não suporta acesso à câmera.');
       return;
     }
     
     setShowScanner(true);
+  };
+
+  // Função para fechar o scanner
+  const closeScanner = () => {
+    setShowScanner(false);
   };
 
   // Função para formatar valor monetário em tempo real
@@ -302,27 +313,31 @@ const CadastrarContasBTG = () => {
             <div className="space-y-4 sm:space-y-6">
               <div className="form-group relative">
                 <label className="block text-gray-700 text-sm font-semibold mb-2">Linha Digitável *</label>
-                <input 
-                  name="linhaDigitavel" 
-                  value={boletoData.linhaDigitavel} 
-                  onChange={(e) => handleChange(e, 'boleto')} 
-                  placeholder="Digite os números da linha digitável (44 a 48 dígitos)" 
-                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
-                  maxLength="48"
-                />
+                <div className="relative">
+                  <input 
+                    name="linhaDigitavel" 
+                    value={boletoData.linhaDigitavel} 
+                    onChange={(e) => handleChange(e, 'boleto')} 
+                    placeholder="Digite os números da linha digitável (44 a 48 dígitos)" 
+                    className="input-field w-full p-3 sm:p-2 pr-12 border rounded-lg text-sm touch-manipulation"
+                    maxLength="48"
+                    inputMode="numeric"
+                  />
+                  {cameraSupported && (
+                    <button
+                      type="button"
+                      onClick={openScanner}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                      aria-label="Abrir leitor de código de barras"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/48 números</p>
-                {isMobileDevice && (
-                  <button
-                    type="button"
-                    className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-medium shadow-lg transition flex items-center justify-center gap-2"
-                    onClick={openScanner}
-                  >
-                    <Camera className="w-5 h-5" /> Ler código de barras via câmera
-                  </button>
-                )}
-                {!isMobileDevice && (
+                {!cameraSupported && (
                   <p className="text-xs text-gray-400 mt-1 italic">
-                    💡 Dica: Acesse em um dispositivo móvel para usar a leitura de código de barras
+                    💡 Seu dispositivo não suporta leitura de código de barras
                   </p>
                 )}
               </div>
@@ -547,36 +562,10 @@ const CadastrarContasBTG = () => {
       </div>
 
       {/* Modal do Scanner de Código de Barras */}
-      <BarcodeScanner
-        isOpen={showScanner}
-        onClose={() => setShowScanner(false)}
-        onScan={handleBarcodeScan}
-        onError={(error) => toast.error(error)}
-      />
-
-      <div className="flex items-center gap-2">
-        <input
-          type="text"
-          value={codigoBarras}
-          onChange={e => setCodigoBarras(e.target.value)}
-          placeholder="Código de Barras do Boleto"
-          className="input"
-        />
-        <button
-          type="button"
-          onClick={() => setShowScanner(true)}
-          className="btn btn-primary"
-        >
-          <span role="img" aria-label="Ler código de barras">📷</span>
-        </button>
-      </div>
       {showScanner && (
-        <ScanBarcode
-          onResult={code => {
-            setCodigoBarras(code);
-            setShowScanner(false);
-          }}
-          onClose={() => setShowScanner(false)}
+        <ScanBoleto
+          onDetect={handleBarcodeScan}
+          onClose={closeScanner}
         />
       )}
     </div>
