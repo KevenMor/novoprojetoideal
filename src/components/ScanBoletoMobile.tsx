@@ -10,12 +10,12 @@ interface ScanBoletoMobileProps {
 const VOTING_FRAMES = 5;
 const MAX_ATTEMPTS = 3;
 
-// ROI proporcional à largura real do vídeo: 10% altura útil
+// ROI: 90% largura, 25% altura, centralizado
 const ROI = {
-  top: "45%",
-  left: "0%",
-  right: "0%",
-  bottom: "45%"
+  top: "37.5%",
+  bottom: "37.5%",
+  left: "5%",
+  right: "5%"
 };
 
 function mode(arr: string[]): string {
@@ -263,11 +263,44 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90">
-      <div ref={videoRef} className="absolute inset-0 w-full h-full" />
+    <div className="fixed inset-0 z-[9999] bg-black">
+      {/* Container do vídeo com CSS inline */}
+      <div 
+        ref={videoRef} 
+        className="absolute inset-0 w-full h-full"
+        style={{
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover'
+        }}
+      />
       
-      {/* Overlay visual correspondente ao ROI */}
-      <div className="absolute inset-y-[45%] border-4 border-blue-500/90 pointer-events-none" />
+      {/* Overlay escuro */}
+      <div className="absolute inset-0 bg-black/60 pointer-events-none" />
+      
+      {/* "Furo" transparente acima do ROI */}
+      <div 
+        className="absolute bg-transparent pointer-events-none"
+        style={{
+          left: '5%',
+          right: '5%',
+          top: 'calc(50% - 12.5%)',
+          height: '25%',
+          mixBlendMode: 'destination-out'
+        }}
+      />
+      
+      {/* ROI: 90% largura, 25% altura, centralizado */}
+      <div 
+        className="absolute border-4 border-blue-500/80 rounded-xl pointer-events-none"
+        style={{
+          left: '5%',
+          right: '5%',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          height: '25%'
+        }}
+      />
       
       {/* Mensagem erro/timeout */}
       {error && (
