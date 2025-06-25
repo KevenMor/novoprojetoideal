@@ -14,6 +14,11 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
   const [cameraError, setCameraError] = useState('');
   const [showFallback, setShowFallback] = useState(false);
 
+  // Detectar iOS/Safari
+  const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isSafari = typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const isIOSorSafari = isIOS || isSafari;
+
   // Função para validar código de barras
   const validateBarcode = (code) => {
     const cleanCode = code.replace(/\D/g, '');
@@ -277,14 +282,16 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
               mode === 'camera' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
             }`}
             onClick={() => setMode('camera')}
+            disabled={isIOSorSafari}
           >
             <Camera className="w-4 h-4" /> Câmera
           </button>
           <button
             className={`flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium transition ${
-              mode === 'image' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
+              mode === 'image' || isIOSorSafari ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
             }`}
             onClick={() => setMode('image')}
+            autoFocus={isIOSorSafari}
           >
             <Upload className="w-4 h-4" /> Imagem
           </button>
@@ -310,6 +317,16 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
             <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
               <WifiOff className="w-5 h-5 text-orange-600" />
               <span className="text-orange-700 text-sm">{cameraError}</span>
+            </div>
+          )}
+
+          {/* Aviso especial para iOS/Safari */}
+          {isIOSorSafari && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-yellow-600" />
+              <span className="text-yellow-700 text-sm">
+                Atenção: Em iPhone/iPad ou Safari, a leitura automática pode não funcionar. Use o modo <b>Imagem</b> para tirar uma foto do boleto ou digite manualmente.
+              </span>
             </div>
           )}
 
