@@ -10,7 +10,7 @@ import BarcodeScanner from '../components/BarcodeScanner';
 import ScanBarcode from "../components/ScanBarcode";
 import ScanBoleto from "../components/ScanBoleto.tsx";
 import UploadBoleto from '../components/UploadBoleto.tsx';
-import MobileBarcodeButton from '../components/MobileBarcodeButton';
+import MobileBarcodeButton from '../components/MobileBarcodeButton.tsx';
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();
