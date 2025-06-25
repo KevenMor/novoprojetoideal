@@ -113,26 +113,41 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
 
         setStatus('Procurando câmeras...');
 
-        // Listar câmeras disponíveis
-        const devices = await newReader.listVideoInputDevices();
-        console.log('Câmeras disponíveis:', devices);
-
-        if (!devices || devices.length === 0) {
-          throw new Error('Nenhuma câmera encontrada. Verifique se o dispositivo tem câmera.');
+        // Listar câmeras disponíveis (com fallback)
+        let deviceId = null;
+        let devices = [];
+        if (typeof newReader.listVideoInputDevices === 'function') {
+          devices = await newReader.listVideoInputDevices();
+          console.log('Câmeras disponíveis:', devices);
+          if (devices && devices.length > 0) {
+            const backCamera = devices.find(device => 
+              device.label.toLowerCase().includes('back') || 
+              device.label.toLowerCase().includes('traseira') ||
+              device.label.toLowerCase().includes('environment') ||
+              device.label.toLowerCase().includes('rear')
+            );
+            deviceId = backCamera ? backCamera.deviceId : devices[0]?.deviceId;
+          }
         }
-
-        // Encontrar câmera traseira (se disponível)
-        const backCamera = devices.find(device => 
-          device.label.toLowerCase().includes('back') || 
-          device.label.toLowerCase().includes('traseira') ||
-          device.label.toLowerCase().includes('environment') ||
-          device.label.toLowerCase().includes('rear')
-        );
-
-        const deviceId = backCamera ? backCamera.deviceId : devices[0]?.deviceId;
-
+        // Fallback: se não existe listVideoInputDevices, tenta getUserMedia direto
         if (!deviceId) {
-          throw new Error('Não foi possível selecionar uma câmera.');
+          setStatus('Tentando abrir a câmera padrão...');
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+              videoRef.current.play();
+            }
+            setStatus('Câmera aberta. Aguardando código de barras...');
+            // Não conseguimos usar ZXing para decodificar sem deviceId, então só mostramos a imagem
+            setCameraError('Seu navegador não suporta leitura automática neste modo. Use o modo Imagem ou digite manualmente.');
+            setShowFallback(true);
+            return;
+          } catch (e) {
+            setCameraError('Não foi possível acessar a câmera. Permita o acesso ou tente outro navegador.');
+            setShowFallback(true);
+            return;
+          }
         }
 
         setStatus('Iniciando câmera...');
