@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
-import { Camera, X, AlertCircle, CheckCircle, Upload } from 'lucide-react';
+import { Camera, X, AlertCircle, CheckCircle, Upload, Wifi, WifiOff } from 'lucide-react';
 
 const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
   const videoRef = useRef(null);
@@ -11,6 +11,8 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
   const [mode, setMode] = useState('camera'); // camera | image
   const [reader, setReader] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [showFallback, setShowFallback] = useState(false);
 
   // Função para validar código de barras
   const validateBarcode = (code) => {
@@ -39,20 +41,57 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
     }
   };
 
+  // Função para verificar se o ambiente suporta câmera
+  const checkCameraSupport = () => {
+    const isHTTPS = window.location.protocol === 'https:';
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' ||
+                       window.location.hostname.includes('192.168.');
+    
+    if (!isHTTPS && !isLocalhost) {
+      return {
+        supported: false,
+        error: 'Câmera só funciona em HTTPS ou localhost. Use HTTPS ou teste localmente.'
+      };
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return {
+        supported: false,
+        error: 'Seu navegador não suporta acesso à câmera. Use um navegador moderno.'
+      };
+    }
+
+    return { supported: true };
+  };
+
   // Inicializar scanner
   useEffect(() => {
     if (!isOpen || mode !== 'camera') return;
 
     setError('');
     setSuccess('');
-    setStatus('Iniciando câmera...');
+    setStatus('Verificando ambiente...');
     setIsScanning(false);
+    setCameraError('');
+    setShowFallback(false);
 
     const initScanner = async () => {
       try {
-        // Verificar se o navegador suporta câmera
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('Seu navegador não suporta acesso à câmera');
+        // Verificar suporte à câmera
+        const cameraCheck = checkCameraSupport();
+        if (!cameraCheck.supported) {
+          setCameraError(cameraCheck.error);
+          setShowFallback(true);
+          setStatus('Câmera não disponível');
+          return;
+        }
+
+        setStatus('Inicializando ZXing...');
+
+        // Verificar se ZXing está disponível
+        if (typeof BrowserMultiFormatReader === 'undefined') {
+          throw new Error('Biblioteca ZXing não carregada. Recarregue a página.');
         }
 
         // Configurar ZXing
@@ -72,24 +111,31 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
         const newReader = new BrowserMultiFormatReader(hints, 5000);
         setReader(newReader);
 
+        setStatus('Procurando câmeras...');
+
         // Listar câmeras disponíveis
         const devices = await newReader.listVideoInputDevices();
         console.log('Câmeras disponíveis:', devices);
+
+        if (!devices || devices.length === 0) {
+          throw new Error('Nenhuma câmera encontrada. Verifique se o dispositivo tem câmera.');
+        }
 
         // Encontrar câmera traseira (se disponível)
         const backCamera = devices.find(device => 
           device.label.toLowerCase().includes('back') || 
           device.label.toLowerCase().includes('traseira') ||
-          device.label.toLowerCase().includes('environment')
+          device.label.toLowerCase().includes('environment') ||
+          device.label.toLowerCase().includes('rear')
         );
 
         const deviceId = backCamera ? backCamera.deviceId : devices[0]?.deviceId;
 
         if (!deviceId) {
-          throw new Error('Nenhuma câmera encontrada');
+          throw new Error('Não foi possível selecionar uma câmera.');
         }
 
-        setStatus('Câmera iniciada. Posicione o código de barras...');
+        setStatus('Iniciando câmera...');
 
         // Iniciar decodificação
         await newReader.decodeFromVideoDevice(
@@ -103,7 +149,10 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
             
             if (err && err.name !== 'NotFoundException') {
               console.error('Erro na leitura:', err);
-              setError(`Erro na leitura: ${err.message}`);
+              // Não mostrar erro de NotFoundException (normal durante busca)
+              if (err.name !== 'NotFoundException') {
+                setError(`Erro na leitura: ${err.message}`);
+              }
             }
           }
         );
@@ -111,7 +160,8 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
         setStatus('Aguardando código de barras...');
       } catch (err) {
         console.error('Erro ao inicializar scanner:', err);
-        setError(`Erro ao inicializar: ${err.message}`);
+        setCameraError(`Erro ao inicializar: ${err.message}`);
+        setShowFallback(true);
         setStatus('Erro na inicialização');
       }
     };
@@ -241,6 +291,13 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
             </div>
           )}
 
+          {cameraError && (
+            <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
+              <WifiOff className="w-5 h-5 text-orange-600" />
+              <span className="text-orange-700 text-sm">{cameraError}</span>
+            </div>
+          )}
+
           <div className="text-center mb-4">
             <p className="text-gray-700 text-base font-medium mb-1">
               Aponte a câmera para o <b>código de barras do boleto</b>
@@ -256,7 +313,7 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
           </div>
 
           {/* Scanner Container */}
-          {mode === 'camera' && (
+          {mode === 'camera' && !showFallback && (
             <div className="relative flex items-center justify-center mb-4">
               <div 
                 ref={videoRef} 
@@ -271,6 +328,16 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="border-2 border-blue-500 w-4/5 h-16 rounded-lg bg-blue-500 bg-opacity-10"></div>
               </div>
+            </div>
+          )}
+
+          {mode === 'camera' && showFallback && (
+            <div className="text-center py-8">
+              <WifiOff className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 mb-4">Câmera não disponível</p>
+              <p className="text-sm text-gray-500 mb-4">
+                Use uma das opções alternativas abaixo
+              </p>
             </div>
           )}
 
@@ -306,6 +373,9 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
               <li>• Evite reflexos e sombras</li>
               <li>• Mantenha o dispositivo estável</li>
               <li>• Aproxime até o código ficar nítido</li>
+              {!window.location.protocol.includes('https') && window.location.hostname !== 'localhost' && (
+                <li>• <strong>Use HTTPS para melhor compatibilidade</strong></li>
+              )}
             </ul>
           </div>
         </div>
