@@ -7,10 +7,16 @@ interface ScanBoletoMobileProps {
   onFallback?: () => void;
 }
 
-const GUIDE_WIDTH = 320;
-const GUIDE_HEIGHT = 90;
 const VOTING_FRAMES = 5;
 const MAX_ATTEMPTS = 3;
+
+// ROI maior: 90% largura, 30% altura
+const ROI = {
+  top: "35%",
+  right: "5%", 
+  left: "5%",
+  bottom: "35%"
+};
 
 function mode(arr: string[]): string {
   const freq: Record<string, number> = {};
@@ -70,6 +76,7 @@ function validaLinhaDigitavel(linha: string): boolean {
 function vibrateOk() {
   if (navigator.vibrate) navigator.vibrate(50);
 }
+
 function showToast(msg: string) {
   window.alert(msg); // Substitua por toast real se desejar
 }
@@ -79,28 +86,42 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
   const [error, setError] = useState<string | null>(null);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [candidates, setCandidates] = useState<string[]>([]);
-  const [attempt, setAttempt] = useState(1);
+  const [attempts, setAttempts] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.screen.orientation && window.screen.orientation.lock) {
-      window.screen.orientation.lock('landscape').catch(() => {});
-    }
+    // Forçar orientação horizontal ao abrir
+    const lock = async () => {
+      if (typeof window !== 'undefined' && window.screen?.orientation?.type?.startsWith("portrait")) {
+        try { 
+          await window.screen.orientation.lock("landscape"); 
+        } catch (e) {
+          console.log('Não foi possível forçar landscape:', e);
+        }
+      }
+    };
+    lock();
+
+    // Constraints otimizadas
+    const constraints = {
+      audio: false,
+      video: {
+        facingMode: { exact: "environment" },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        advanced: [
+          { focusMode: "continuous" },  // Android
+          { zoom: 2 }                   // tenta 2× zoom (ignorado no iOS se não suportar)
+        ]
+      }
+    };
+
     Quagga.init({
       inputStream: {
         type: 'LiveStream',
         target: videoRef.current!,
-        constraints: {
-          facingMode: { exact: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        area: {
-          top: '35%',
-          right: '10%',
-          left: '10%',
-          bottom: '35%'
-        }
+        constraints,
+        area: ROI
       },
       decoder: {
         readers: ['i2of5_reader'],
@@ -122,11 +143,15 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
       }
       Quagga.start();
     });
+
+    // Timeout de 5 segundos
     const tId = setTimeout(() => {
       setError('Não foi possível ler o código. Tente alinhar melhor ou digite manualmente.');
       Quagga.stop();
     }, 5000);
     setTimeoutId(tId);
+
+    // Detecção com tentativas múltiplas
     Quagga.onDetected((data) => {
       if (data && data.codeResult && data.codeResult.code) {
         const code = data.codeResult.code.replace(/\D/g, '');
@@ -141,10 +166,11 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
               Quagga.stop();
               onClose();
             } else {
-              if (attempt < MAX_ATTEMPTS) {
+              const newAttempts = attempts + 1;
+              if (newAttempts < MAX_ATTEMPTS) {
                 setCandidates([]);
-                setAttempt(a => a + 1);
-                showToast('Não reconheci corretamente, aproxime mais. Tentativa ' + (attempt + 1) + ' de 3.');
+                setAttempts(newAttempts);
+                showToast(`Não reconheci corretamente, aproxime mais. Tentativa ${newAttempts + 1} de ${MAX_ATTEMPTS}.`);
               } else {
                 setShowFallback(true);
                 Quagga.stop();
@@ -156,14 +182,20 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
         });
       }
     });
+
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
-      try { Quagga.offDetected(); Quagga.stop(); } catch {}
-      if (typeof window !== 'undefined' && window.screen.orientation && window.screen.orientation.unlock) {
-        try { window.screen.orientation.unlock(); } catch {}
+      try { 
+        Quagga.offDetected(); 
+        Quagga.stop(); 
+      } catch {}
+      if (typeof window !== 'undefined' && window.screen?.orientation?.unlock) {
+        try { 
+          window.screen.orientation.unlock(); 
+        } catch {}
       }
     };
-  }, [onDetect, onClose, attempt]);
+  }, [onDetect, onClose, attempts]);
 
   if (showFallback) {
     return (
@@ -186,10 +218,10 @@ export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: Scan
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90">
       <div ref={videoRef} className="absolute inset-0 w-full h-full" />
-      {/* Overlay guia */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div style={{ width: GUIDE_WIDTH, height: GUIDE_HEIGHT }} className="border-4 border-blue-500 rounded-lg bg-black/10" />
-      </div>
+      
+      {/* Overlay visual correspondente ao ROI */}
+      <div className="absolute inset-y-1/3 mx-[5%] border-4 border-blue-500/90 rounded-lg pointer-events-none" />
+      
       {/* Mensagem erro/timeout */}
       {error && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-lg text-center">
