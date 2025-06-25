@@ -18,6 +18,8 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchActive, setTorchActive] = useState(false);
   const [detected, setDetected] = useState(false);
+  const [partialCodes, setPartialCodes] = useState<string[]>([]);
+  const [concatCode, setConcatCode] = useState<string>("");
 
   useEffect(() => {
     let reader: BrowserMultiFormatReader;
@@ -83,13 +85,31 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
             if (result) {
               const code = result.getText().replace(/\D/g, "");
               console.log("[ZXing] Detectou:", code, "comprimento:", code.length);
-              
-              if (code.length >= 44 && code.length <= 48) {
+              setPartialCodes(prev => {
+                // Evitar duplicatas consecutivas
+                if (prev[prev.length-1] === code) return prev;
+                return [...prev, code];
+              });
+              setConcatCode(prev => {
+                // Concatenar se ainda não atingiu o tamanho
+                if (prev.length < 44) return prev + code;
+                return prev;
+              });
+              // Se concatenado atingir o tamanho esperado, finalizar
+              const currentConcat = concatCode + code;
+              if (currentConcat.length >= 44 && currentConcat.length <= 48) {
                 setDetected(true);
-                // Flash verde por 300ms
+                setTimeout(() => {
+                  onDetect(currentConcat);
+                  if (reader && typeof reader.reset === 'function') reader.reset();
+                  onClose();
+                }, 300);
+              } else if (code.length >= 44 && code.length <= 48) {
+                // Caso ZXing consiga ler tudo de uma vez
+                setDetected(true);
                 setTimeout(() => {
                   onDetect(code);
-                  reader.reset();
+                  if (reader && typeof reader.reset === 'function') reader.reset();
                   onClose();
                 }, 300);
               } else {
@@ -109,7 +129,7 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
         // Timeout de 10s para fallback
         timeoutId = setTimeout(() => {
           console.log("[ZXing] Timeout - ativando fallback Quagga");
-          reader.reset();
+          if (reader && typeof reader.reset === 'function') reader.reset();
           setShowFallback(true);
         }, 10000);
 
@@ -224,6 +244,13 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
         {detected && (
           <div className="absolute inset-0 bg-green-500 animate-ping opacity-50" />
         )}
+
+        {/* Exibir códigos lidos em tempo real */}
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/70 text-white text-xs rounded px-2 py-1 max-w-[90%] break-all z-20">
+          <div><b>Códigos lidos:</b> {partialCodes.join(' | ')}</div>
+          {concatCode && <div><b>Concatenado:</b> {concatCode}</div>}
+          <div className="mt-1">Aproxime e alinhe o código. Se não conseguir, tente o modo fallback.</div>
+        </div>
       </div>
 
       {/* Instructions */}
