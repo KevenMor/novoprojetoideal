@@ -6,7 +6,7 @@ import { lancamentosService } from '../services/lancamentosService';
 import toast from 'react-hot-toast';
 import { FileText, Smartphone } from 'lucide-react';
 import UnitSelector from '../components/UnitSelector';
-import ScanBoleto from '../components/ScanBoleto.tsx';
+import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();
@@ -334,8 +334,9 @@ const CadastrarContasBTG = () => {
 
               {/* Modal do Scanner de Código de Barras */}
               {showScanner && (
-                <ScanBoleto
-                  onDetect={linha => {
+                <SimpleBarcodeScanner
+                  isOpen={showScanner}
+                  onScan={linha => {
                     setBoletoData(b => ({ ...b, linhaDigitavel: linha }));
                     setShowScanner(false);
                   }}
