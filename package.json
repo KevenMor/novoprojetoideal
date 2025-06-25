@@ -57,6 +57,7 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-transform-private-methods": "^7.27.1",
     "@craco/craco": "^7.1.0",
     "assert": "^2.1.0",
     "browserify-zlib": "^0.2.0",

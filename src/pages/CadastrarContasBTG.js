@@ -8,7 +8,7 @@ import { FileText, Smartphone, Camera } from 'lucide-react';
 import UnitSelector from '../components/UnitSelector';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ScanBarcode from "../components/ScanBarcode";
-import ScanBoleto from "../components/ScanBoleto";
+import ScanBoleto from "../components/ScanBoleto.tsx";
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();

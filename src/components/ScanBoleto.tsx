@@ -135,7 +135,7 @@ export default function ScanBoleto({ onDetect, onClose }: ScanBoletoProps) {
 
   // Fallback para Quagga
   if (showFallback) {
-    const ScanBoletoQuagga = require("./ScanBoletoQuagga").default;
+    const ScanBoletoQuagga = require("./ScanBoletoQuagga.tsx").default;
     return <ScanBoletoQuagga onDetect={onDetect} onClose={onClose} />;
   }
 
