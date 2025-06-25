@@ -6,7 +6,7 @@ interface MobileBarcodeButtonProps {
 }
 
 const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad/i.test(navigator.userAgent);
-const ScanBoletoMobile = dynamic(() => import('./ScanBoletoMobile'), { ssr: false });
+const ScanBoletoMobile = dynamic(() => import('./ScanBoletoMobile.tsx'), { ssr: false });
 
 export default function MobileBarcodeButton({ onDetect }: MobileBarcodeButtonProps) {
   const [open, setOpen] = useState(false);
