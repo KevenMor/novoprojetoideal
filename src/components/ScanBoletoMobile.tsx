@@ -4,10 +4,13 @@ import Quagga from '@ericblade/quagga2';
 interface ScanBoletoMobileProps {
   onDetect: (linha: string) => void;
   onClose: () => void;
+  onFallback?: () => void;
 }
 
 const GUIDE_WIDTH = 320;
 const GUIDE_HEIGHT = 90;
+const VOTING_FRAMES = 5;
+const MAX_ATTEMPTS = 3;
 
 function mode(arr: string[]): string {
   const freq: Record<string, number> = {};
@@ -71,24 +74,24 @@ function showToast(msg: string) {
   window.alert(msg); // Substitua por toast real se desejar
 }
 
-export default function ScanBoletoMobile({ onDetect, onClose }: ScanBoletoMobileProps) {
+export default function ScanBoletoMobile({ onDetect, onClose, onFallback }: ScanBoletoMobileProps) {
   const videoRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [candidates, setCandidates] = useState<string[]>([]);
+  const [attempt, setAttempt] = useState(1);
+  const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
-    // Lock orientation
     if (typeof window !== 'undefined' && window.screen.orientation && window.screen.orientation.lock) {
       window.screen.orientation.lock('landscape').catch(() => {});
     }
-    // Start Quagga
     Quagga.init({
       inputStream: {
         type: 'LiveStream',
         target: videoRef.current!,
         constraints: {
-          facingMode: 'environment',
+          facingMode: { exact: 'environment' },
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
@@ -100,9 +103,16 @@ export default function ScanBoletoMobile({ onDetect, onClose }: ScanBoletoMobile
         }
       },
       decoder: {
-        readers: ['i2of5_reader']
+        readers: ['i2of5_reader'],
+        debug: {
+          drawBoundingBox: true,
+          showFrequency: true,
+          drawScanline: true,
+          showPattern: true
+        }
       },
       locate: true,
+      singleChannel: true,
       numOfWorkers: 2,
       frequency: 5,
     }, (err) => {
@@ -112,19 +122,17 @@ export default function ScanBoletoMobile({ onDetect, onClose }: ScanBoletoMobile
       }
       Quagga.start();
     });
-    // Timeout
     const tId = setTimeout(() => {
       setError('Não foi possível ler o código. Tente alinhar melhor ou digite manualmente.');
       Quagga.stop();
     }, 5000);
     setTimeoutId(tId);
-    // On detect
     Quagga.onDetected((data) => {
       if (data && data.codeResult && data.codeResult.code) {
         const code = data.codeResult.code.replace(/\D/g, '');
         setCandidates(prev => {
           const next = [...prev, code];
-          if (next.length === 5) {
+          if (next.length === VOTING_FRAMES) {
             const maisFrequente = mode(next);
             if (validaLinhaDigitavel(maisFrequente)) {
               onDetect(maisFrequente);
@@ -133,7 +141,14 @@ export default function ScanBoletoMobile({ onDetect, onClose }: ScanBoletoMobile
               Quagga.stop();
               onClose();
             } else {
-              showToast('Não reconheci corretamente, aproxime mais.');
+              if (attempt < MAX_ATTEMPTS) {
+                setCandidates([]);
+                setAttempt(a => a + 1);
+                showToast('Não reconheci corretamente, aproxime mais. Tentativa ' + (attempt + 1) + ' de 3.');
+              } else {
+                setShowFallback(true);
+                Quagga.stop();
+              }
               return [];
             }
           }
@@ -148,7 +163,25 @@ export default function ScanBoletoMobile({ onDetect, onClose }: ScanBoletoMobile
         try { window.screen.orientation.unlock(); } catch {}
       }
     };
-  }, [onDetect, onClose]);
+  }, [onDetect, onClose, attempt]);
+
+  if (showFallback) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90">
+        <div className="text-white text-lg mb-4">Não foi possível ler o código de barras.</div>
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base mb-4"
+          onClick={() => { setShowFallback(false); onFallback && onFallback(); }}
+        >
+          Enviar foto do boleto
+        </button>
+        <button
+          className="text-white underline"
+          onClick={onClose}
+        >Cancelar</button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90">
