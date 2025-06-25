@@ -10,6 +10,7 @@ import BarcodeScanner from '../components/BarcodeScanner';
 import ScanBarcode from "../components/ScanBarcode";
 import ScanBoleto from "../components/ScanBoleto.tsx";
 import UploadBoleto from '../components/UploadBoleto.tsx';
+import MobileBarcodeButton from '../components/MobileBarcodeButton';
 
 const CadastrarContasBTG = () => {
   const { user, loading: authLoading } = useAuth();
@@ -314,9 +315,18 @@ const CadastrarContasBTG = () => {
             <div className="space-y-4 sm:space-y-6">
               <div className="form-group relative">
                 <label className="block text-gray-700 text-sm font-semibold mb-2">Linha Digitável *</label>
-                <UploadBoleto
-                  onDetect={linha => setBoletoData(b => ({ ...b, linhaDigitavel: linha }))}
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    name="linhaDigitavel"
+                    value={boletoData.linhaDigitavel}
+                    onChange={e => handleChange(e, 'boleto')}
+                    placeholder="Digite os números da linha digitável (44 a 48 dígitos)"
+                    className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                    maxLength="48"
+                    inputMode="numeric"
+                  />
+                  <MobileBarcodeButton onDetect={linha => setBoletoData(b => ({ ...b, linhaDigitavel: linha }))} />
+                </div>
                 <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/48 números</p>
               </div>
               
