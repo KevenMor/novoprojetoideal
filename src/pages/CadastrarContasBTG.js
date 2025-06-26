@@ -53,9 +53,9 @@ const CadastrarContasBTG = () => {
       if (name === 'linhaDigitavel') {
         // Aceita códigos copiados do PDF e limpa automaticamente
         const cleanValue = value.replace(/\D/g, ''); // Remove tudo que não é dígito
-        if (cleanValue.length <= 48) {
-          setBoletoData(prev => ({ ...prev, [name]: cleanValue }));
-        }
+        // Limita a 48 dígitos após a limpeza (padrão de boletos)
+        const limitedValue = cleanValue.slice(0, 48);
+        setBoletoData(prev => ({ ...prev, [name]: limitedValue }));
       } else if (name === 'valor') {
         // Formatação automática do valor em tempo real
         const formattedValue = formatCurrencyInput(value);
@@ -461,7 +461,7 @@ const CadastrarContasBTG = () => {
                     onChange={e => handleChange(e, 'boleto')}
                     placeholder="Cole o código do PDF ou digite os números (caracteres especiais serão removidos automaticamente)"
                     className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
-                    maxLength="48"
+                    maxLength="60"
                     inputMode="numeric"
                   />
                   {/* Botão de escanear só aparece no mobile */}
@@ -476,7 +476,7 @@ const CadastrarContasBTG = () => {
                   )}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  {boletoData.linhaDigitavel.length}/48 números • 
+                  {boletoData.linhaDigitavel.replace(/\D/g, '').length}/48 números • 
                   <span className="text-blue-600 ml-1">💡 Dica: Cole diretamente do PDF do boleto!</span>
                 </p>
                 {/* Exibir linha digitável formatada para conferência */}
