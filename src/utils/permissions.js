@@ -191,6 +191,40 @@ export const DEFAULT_PROFILES = {
     name: 'Administrador',
     permissions: Object.values(PERMISSIONS) // Todas as permissões
   },
+  
+  // NOVO PERFIL TESTE - Para as meninas (versão de teste)
+  teste: {
+    name: 'Usuário Teste',
+    description: 'Perfil para versão de teste - acesso limitado conforme solicitado',
+    permissions: [
+      // Dashboard básico
+      PERMISSIONS.DASHBOARD_VIEW,
+      
+      // Mensagens (enviar mensagem e histórico)
+      PERMISSIONS.MESSAGES_ACCESS,
+      PERMISSIONS.MESSAGES_SEND,
+      PERMISSIONS.MESSAGES_HISTORY,
+      
+      // Contas BTG (apenas cadastrar e gestão das próprias contas)
+      PERMISSIONS.BTG_ACCESS,
+      PERMISSIONS.BTG_CREATE,
+      PERMISSIONS.BTG_VIEW_OWN, // Apenas contas registradas por ela
+      
+      // Cobranças (apenas registrar e histórico dos próprios registros)
+      PERMISSIONS.CHARGES_ACCESS,
+      PERMISSIONS.CHARGES_CREATE,
+      PERMISSIONS.CHARGES_VIEW_OWN, // Apenas cobranças registradas por ela
+      
+      // Extratos (apenas visualizar)
+      PERMISSIONS.EXTRACTS_ACCESS,
+      PERMISSIONS.EXTRACTS_VIEW_OWN, // Apenas próprios lançamentos
+      
+      // Configurações básicas (apenas perfil próprio)
+      PERMISSIONS.SETTINGS_ACCESS,
+      PERMISSIONS.SETTINGS_PROFILE
+    ]
+  },
+  
   manager: {
     name: 'Gerente',
     permissions: [
@@ -233,13 +267,14 @@ export const DEFAULT_PROFILES = {
       PERMISSIONS.SETTINGS_PROFILE
     ]
   },
+  
   operator: {
-    name: 'Funcionária/Operador',
+    name: 'Operador',
     permissions: [
       // Dashboard básico
       PERMISSIONS.DASHBOARD_VIEW,
       
-      // Mensagens (enviar e acompanhar)
+      // Mensagens básicas
       PERMISSIONS.MESSAGES_ACCESS,
       PERMISSIONS.MESSAGES_SEND,
       PERMISSIONS.MESSAGES_HISTORY,
@@ -249,33 +284,29 @@ export const DEFAULT_PROFILES = {
       PERMISSIONS.BTG_CREATE,
       PERMISSIONS.BTG_VIEW_OWN,
       
-      // Cobranças (sem excluir)
+      // Cobranças (apenas próprias)
       PERMISSIONS.CHARGES_ACCESS,
       PERMISSIONS.CHARGES_CREATE,
-      PERMISSIONS.CHARGES_MANAGE_PAYMENTS,
+      PERMISSIONS.CHARGES_VIEW_OWN,
       
       // Extratos (apenas próprios)
       PERMISSIONS.EXTRACTS_ACCESS,
       PERMISSIONS.EXTRACTS_VIEW_OWN,
       
-      // Cadastros rápidos
-      PERMISSIONS.QUICK_REGISTRATION_ACCESS,
-      PERMISSIONS.QUICK_REGISTRATION_EMPLOYEES,
-      
-      // Perfil próprio
+      // Configurações básicas
+      PERMISSIONS.SETTINGS_ACCESS,
       PERMISSIONS.SETTINGS_PROFILE
     ]
   },
+  
   viewer: {
     name: 'Visualizador',
     permissions: [
-      // Apenas visualização básica
+      // Apenas visualização
       PERMISSIONS.DASHBOARD_VIEW,
-      PERMISSIONS.MESSAGES_ACCESS,
-      PERMISSIONS.BTG_ACCESS,
+      PERMISSIONS.MESSAGES_HISTORY,
       PERMISSIONS.BTG_VIEW_OWN,
-      PERMISSIONS.CHARGES_ACCESS,
-      PERMISSIONS.EXTRACTS_ACCESS,
+      PERMISSIONS.CHARGES_VIEW_OWN,
       PERMISSIONS.EXTRACTS_VIEW_OWN,
       PERMISSIONS.SETTINGS_PROFILE
     ]

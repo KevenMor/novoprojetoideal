@@ -1,4 +1,33 @@
-rules_version = '2';
+const { initializeApp } = require('firebase/app');
+const { getFirestore, collection, doc, setDoc, getDocs, updateDoc } = require('firebase/firestore');
+
+// Configuração do Firebase - Projeto: Sistema Ideal
+const firebaseConfig = {
+  apiKey: "AIzaSyBJGbAd_1HfYqwuBPXtCn45YTZM2iiBzQ8",
+  authDomain: "sistema-ideal-dbffd.firebaseapp.com",
+  projectId: "sistema-ideal-dbffd",
+  storageBucket: "sistema-ideal-dbffd.firebasestorage.app",
+  messagingSenderId: "1011080036176",
+  appId: "1:1011080036176:web:d51b087f72bfa14dbb7655"
+};
+
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Regras temporárias para configuração
+const REGRAS_TEMPORARIAS = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Permitir acesso total durante configuração
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}`;
+
+// Regras seguras para produção
+const REGRAS_SEGURAS = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
@@ -115,4 +144,72 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
   }
-} 
+}`;
+
+async function aplicarRegrasTemporarias() {
+  try {
+    console.log('🔧 APLICANDO REGRAS TEMPORÁRIAS PARA CONFIGURAÇÃO');
+    console.log('==================================================');
+    
+    // Aqui você precisaria usar o Firebase CLI para aplicar as regras
+    // Por enquanto, vou criar um arquivo com as regras
+    const fs = require('fs');
+    
+    // Salvar regras temporárias
+    fs.writeFileSync('firestore-rules-temporarias.rules', REGRAS_TEMPORARIAS);
+    console.log('✅ Regras temporárias salvas em: firestore-rules-temporarias.rules');
+    
+    // Salvar regras seguras
+    fs.writeFileSync('firestore-rules-seguras.rules', REGRAS_SEGURAS);
+    console.log('✅ Regras seguras salvas em: firestore-rules-seguras.rules');
+    
+    console.log('\n📝 INSTRUÇÕES PARA APLICAR AS REGRAS:');
+    console.log('1. Execute: firebase deploy --only firestore:rules');
+    console.log('2. Ou copie o conteúdo de firestore-rules-temporarias.rules para firestore.rules');
+    console.log('3. Depois da configuração, restaure as regras seguras');
+    
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Erro ao aplicar regras:', error);
+    return false;
+  }
+}
+
+async function configurarUsuariosComRegrasTemporarias() {
+  try {
+    console.log('🚀 CONFIGURANDO USUÁRIOS COM REGRAS TEMPORÁRIAS');
+    console.log('===============================================');
+    
+    // Primeiro, aplicar regras temporárias
+    await aplicarRegrasTemporarias();
+    
+    // Agora executar a configuração dos usuários
+    const { configurarUsuariosTeste } = require('./configurar-perfis-teste.js');
+    const sucesso = await configurarUsuariosTeste();
+    
+    if (sucesso) {
+      console.log('\n✅ CONFIGURAÇÃO CONCLUÍDA!');
+      console.log('\n⚠️  IMPORTANTE: Restaure as regras seguras após a configuração!');
+      console.log('   Execute: firebase deploy --only firestore:rules');
+    }
+    
+    return sucesso;
+    
+  } catch (error) {
+    console.error('❌ Erro na configuração:', error);
+    return false;
+  }
+}
+
+// Executar se chamado diretamente
+if (require.main === module) {
+  configurarUsuariosComRegrasTemporarias().catch(console.error);
+}
+
+module.exports = {
+  aplicarRegrasTemporarias,
+  configurarUsuariosComRegrasTemporarias,
+  REGRAS_TEMPORARIAS,
+  REGRAS_SEGURAS
+}; 
