@@ -125,12 +125,17 @@ export default function GerenciarUsuarios() {
       return;
     }
 
-    if (formData.perfil === 'operator' && formData.unidades.length === 0) {
+    // Garantir que unidades e permissions nunca sejam undefined
+    const safeUnidades = Array.isArray(formData.unidades) ? formData.unidades : [];
+    const safePermissions = Array.isArray(formData.perfil === 'custom' ? formData.permissions : getPermissionsByProfile(formData.perfil))
+      ? (formData.perfil === 'custom' ? formData.permissions : getPermissionsByProfile(formData.perfil))
+      : [];
+
+    if ((formData.perfil === 'operator' || formData.perfil === 'custom') && safeUnidades.length === 0) {
       toast.error('Usuários devem ter pelo menos uma unidade associada');
       return;
     }
-
-    if (formData.perfil === 'custom' && formData.permissions.length === 0) {
+    if (formData.perfil === 'custom' && safePermissions.length === 0) {
       toast.error('Perfil personalizado deve ter pelo menos uma permissão');
       return;
     }
@@ -139,9 +144,7 @@ export default function GerenciarUsuarios() {
     
     try {
       // Definir permissões baseadas no perfil
-      const permissions = formData.perfil === 'custom' 
-        ? formData.permissions 
-        : getPermissionsByProfile(formData.perfil);
+      const permissions = safePermissions;
 
       if (editingUser) {
         // Atualizar usuário existente - USANDO A COLEÇÃO CORRETA 'usuarios'
@@ -152,7 +155,7 @@ export default function GerenciarUsuarios() {
           nome: formData.nome,
           email: formData.email,
           perfil: formData.perfil,
-          unidades: formData.unidades,
+          unidades: safeUnidades,
           permissions: permissions,
           ativo: formData.ativo,
           updatedAt: new Date()
@@ -197,7 +200,7 @@ export default function GerenciarUsuarios() {
           nome: formData.nome,
           email: formData.email,
           perfil: formData.perfil,
-          unidades: formData.unidades,
+          unidades: safeUnidades,
           permissions: permissions
         });
         
@@ -230,7 +233,7 @@ export default function GerenciarUsuarios() {
             nome: formData.nome,
             email: formData.email,
             perfil: formData.perfil,
-            unidades: formData.unidades,
+            unidades: safeUnidades,
             permissions: permissions,
             ativo: formData.ativo,
             criadoEm: new Date(),
@@ -734,8 +737,7 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                   <div>
                     <span className="font-medium">Unidades:</span> {usuario.perfil === 'admin' 
                       ? '🏢 Todas as unidades' 
-                      : (usuario.unidades || []).join(', ') || 'Nenhuma unidade'
-                    }
+                      : (usuario.unidades || []).join(', ') || 'Nenhuma unidade'}
                   </div>
                   <div>
                     <span className="font-medium">Permissões:</span> {usuario.permissions && usuario.permissions.length > 0 ? (
