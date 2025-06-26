@@ -290,7 +290,7 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
-            <Camera className="w-5 h-5 text-blue-600" />
+            <Upload className="w-5 h-5 text-blue-600" />
             <h3 className="text-lg font-semibold text-gray-900">Leitor de Código de Barras</h3>
           </div>
           <button
@@ -301,30 +301,12 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
           </button>
         </div>
 
-        {/* Modo de leitura */}
-        <div className="flex justify-center gap-2 mt-2 mb-2">
-          <button
-            className={`flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium transition ${
-              mode === 'camera' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
-            }`}
-            onClick={() => setMode('camera')}
-            disabled={isIOSorSafari}
-          >
-            <Camera className="w-4 h-4" /> Câmera
-          </button>
-          <button
-            className={`flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium transition ${
-              mode === 'image' || isIOSorSafari ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
-            }`}
-            onClick={() => setMode('image')}
-            autoFocus={isIOSorSafari}
-          >
-            <Upload className="w-4 h-4" /> Imagem
-          </button>
-        </div>
-
-        {/* Content */}
+        {/* Orientação para upload */}
         <div className="p-4">
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-sm">
+            <b>Orientação:</b> Tire uma foto centralizando <b>apenas o código de barras</b> do boleto, evitando outras informações. Certifique-se de que o código esteja nítido e sem cortes.
+          </div>
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-600" />
@@ -339,80 +321,18 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
             </div>
           )}
 
-          {cameraError && (
-            <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
-              <WifiOff className="w-5 h-5 text-orange-600" />
-              <span className="text-orange-700 text-sm">{cameraError}</span>
-            </div>
-          )}
-
-          {/* Aviso especial para iOS/Safari */}
-          {isIOSorSafari && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-yellow-600" />
-              <span className="text-yellow-700 text-sm">
-                Atenção: Em iPhone/iPad ou Safari, a leitura automática pode não funcionar. Use o modo <b>Imagem</b> para tirar uma foto do boleto ou digite manualmente.
-              </span>
-            </div>
-          )}
-
-          <div className="text-center mb-4">
-            <p className="text-gray-700 text-base font-medium mb-1">
-              Aponte a câmera para o <b>código de barras do boleto</b>
-            </p>
-            <p className="text-xs text-gray-500 mb-2">
-              A linha digitável deve conter <b>entre 44 e 48 números</b>
-            </p>
-            <div className="flex items-center justify-center mb-2">
-              <span className="text-xs text-gray-600 bg-gray-100 rounded px-2 py-1 animate-pulse">
-                {status}
-              </span>
-            </div>
+          <div className="flex flex-col items-center gap-2 py-6">
+            <input 
+              type="file" 
+              accept="image/*" 
+              capture="environment" 
+              onChange={handleImageUpload} 
+              className="mb-2" 
+            />
+            <span className="text-xs text-gray-500">
+              Selecione uma foto nítida do código de barras do boleto
+            </span>
           </div>
-
-          {/* Scanner Container */}
-          {mode === 'camera' && !showFallback && (
-            <div className="relative flex items-center justify-center mb-4">
-              <div 
-                ref={videoRef} 
-                className="w-full h-64 rounded-lg overflow-hidden border-2 border-blue-500"
-                style={{ 
-                  background: 'linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%)',
-                  backgroundSize: '20px 20px',
-                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
-                }}
-              />
-              {/* Quadro de alinhamento */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="border-2 border-blue-500 w-4/5 h-16 rounded-lg bg-blue-500 bg-opacity-10"></div>
-              </div>
-            </div>
-          )}
-
-          {mode === 'camera' && showFallback && (
-            <div className="text-center py-8">
-              <WifiOff className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">Câmera não disponível</p>
-              <p className="text-sm text-gray-500 mb-4">
-                Use uma das opções alternativas abaixo
-              </p>
-            </div>
-          )}
-
-          {mode === 'image' && (
-            <div className="flex flex-col items-center gap-2 py-6">
-              <input 
-                type="file" 
-                accept="image/*" 
-                capture="environment" 
-                onChange={handleImageUpload} 
-                className="mb-2" 
-              />
-              <span className="text-xs text-gray-500">
-                Selecione uma foto nítida do código de barras
-              </span>
-            </div>
-          )}
 
           {/* Botão de entrada manual */}
           <button
@@ -426,14 +346,11 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
             <h4 className="font-medium text-blue-900 text-sm mb-2">Dicas para melhor leitura:</h4>
             <ul className="text-xs text-blue-800 space-y-1">
+              <li>• Centralize apenas o código de barras na foto</li>
               <li>• Mantenha o código bem iluminado</li>
-              <li>• Alinhe o código dentro da área azul</li>
               <li>• Evite reflexos e sombras</li>
               <li>• Mantenha o dispositivo estável</li>
               <li>• Aproxime até o código ficar nítido</li>
-              {!window.location.protocol.includes('https') && window.location.hostname !== 'localhost' && (
-                <li>• <strong>Use HTTPS para melhor compatibilidade</strong></li>
-              )}
             </ul>
           </div>
         </div>
