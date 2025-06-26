@@ -63,7 +63,49 @@ const CadastrarContasBTG = () => {
         setBoletoData(prev => ({ ...prev, [name]: value }));
       }
     } else {
-      if (name === 'valor') {
+      // Formulário PIX
+      if (name === 'tipoChave') {
+        // Quando mudar o tipo de chave, limpar e aplicar formatação
+        setPixData(prev => ({ 
+          ...prev, 
+          [name]: value,
+          chavePix: '', // Limpar chave PIX
+          cpfCnpjFavorecido: '' // Limpar CPF/CNPJ
+        }));
+      } else if (name === 'chavePix') {
+        let formattedValue = value;
+        
+        // Aplicar formatação baseada no tipo de chave
+        if (pixData.tipoChave === 'celular') {
+          formattedValue = formatPhoneNumber(value);
+        } else if (pixData.tipoChave === 'CPF') {
+          formattedValue = formatCPF(value);
+        } else if (pixData.tipoChave === 'CNPJ') {
+          formattedValue = formatCNPJ(value);
+        }
+        
+        setPixData(prev => ({ 
+          ...prev, 
+          [name]: formattedValue,
+          // Se for CPF ou CNPJ, copiar automaticamente para o campo CPF/CNPJ do favorecido
+          ...(pixData.tipoChave === 'CPF' || pixData.tipoChave === 'CNPJ' ? {
+            cpfCnpjFavorecido: formattedValue
+          } : {})
+        }));
+      } else if (name === 'cpfCnpjFavorecido') {
+        // Formatação do CPF/CNPJ do favorecido
+        let formattedValue = value;
+        const cleanValue = value.replace(/\D/g, '');
+        
+        // Determinar se é CPF (11 dígitos) ou CNPJ (14 dígitos)
+        if (cleanValue.length <= 11) {
+          formattedValue = formatCPF(value);
+        } else {
+          formattedValue = formatCNPJ(value);
+        }
+        
+        setPixData(prev => ({ ...prev, [name]: formattedValue }));
+      } else if (name === 'valor') {
         // Formatação automática do valor em tempo real
         const formattedValue = formatCurrencyInput(value);
         setPixData(prev => ({ ...prev, [name]: formattedValue }));
@@ -89,6 +131,135 @@ const CadastrarContasBTG = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
+  };
+
+  // Função para formatar celular
+  const formatPhoneNumber = (value) => {
+    // Remove tudo que não é dígito
+    const digits = value.replace(/\D/g, '');
+    
+    // Se não há dígitos, retorna vazio
+    if (!digits) return '';
+    
+    // Limita a 11 dígitos (DDD + 9 dígitos)
+    const limitedDigits = digits.slice(0, 11);
+    
+    // Formata: (DDD) NÚMERO
+    if (limitedDigits.length <= 2) {
+      return limitedDigits;
+    } else if (limitedDigits.length <= 7) {
+      return `(${limitedDigits.slice(0, 2)}) ${limitedDigits.slice(2)}`;
+    } else {
+      return `(${limitedDigits.slice(0, 2)}) ${limitedDigits.slice(2, 7)}-${limitedDigits.slice(7)}`;
+    }
+  };
+
+  // Função para formatar CPF
+  const formatCPF = (value) => {
+    // Remove tudo que não é dígito
+    const digits = value.replace(/\D/g, '');
+    
+    // Se não há dígitos, retorna vazio
+    if (!digits) return '';
+    
+    // Limita a 11 dígitos
+    const limitedDigits = digits.slice(0, 11);
+    
+    // Formata: 000.000.000-00
+    if (limitedDigits.length <= 3) {
+      return limitedDigits;
+    } else if (limitedDigits.length <= 6) {
+      return `${limitedDigits.slice(0, 3)}.${limitedDigits.slice(3)}`;
+    } else if (limitedDigits.length <= 9) {
+      return `${limitedDigits.slice(0, 3)}.${limitedDigits.slice(3, 6)}.${limitedDigits.slice(6)}`;
+    } else {
+      return `${limitedDigits.slice(0, 3)}.${limitedDigits.slice(3, 6)}.${limitedDigits.slice(6, 9)}-${limitedDigits.slice(9)}`;
+    }
+  };
+
+  // Função para formatar CNPJ
+  const formatCNPJ = (value) => {
+    // Remove tudo que não é dígito
+    const digits = value.replace(/\D/g, '');
+    
+    // Se não há dígitos, retorna vazio
+    if (!digits) return '';
+    
+    // Limita a 14 dígitos
+    const limitedDigits = digits.slice(0, 14);
+    
+    // Formata: 00.000.000/0000-00
+    if (limitedDigits.length <= 2) {
+      return limitedDigits;
+    } else if (limitedDigits.length <= 5) {
+      return `${limitedDigits.slice(0, 2)}.${limitedDigits.slice(2)}`;
+    } else if (limitedDigits.length <= 8) {
+      return `${limitedDigits.slice(0, 2)}.${limitedDigits.slice(2, 5)}.${limitedDigits.slice(5)}`;
+    } else if (limitedDigits.length <= 12) {
+      return `${limitedDigits.slice(0, 2)}.${limitedDigits.slice(2, 5)}.${limitedDigits.slice(5, 8)}/${limitedDigits.slice(8)}`;
+    } else {
+      return `${limitedDigits.slice(0, 2)}.${limitedDigits.slice(2, 5)}.${limitedDigits.slice(5, 8)}/${limitedDigits.slice(8, 12)}-${limitedDigits.slice(12)}`;
+    }
+  };
+
+  // Função para validar CPF
+  const validateCPF = (cpf) => {
+    const cleanCPF = cpf.replace(/\D/g, '');
+    if (cleanCPF.length !== 11) return false;
+    
+    // Verifica se todos os dígitos são iguais
+    if (/^(\d)\1{10}$/.test(cleanCPF)) return false;
+    
+    // Validação do primeiro dígito verificador
+    let sum = 0;
+    for (let i = 0; i < 9; i++) {
+      sum += parseInt(cleanCPF.charAt(i)) * (10 - i);
+    }
+    let remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== parseInt(cleanCPF.charAt(9))) return false;
+    
+    // Validação do segundo dígito verificador
+    sum = 0;
+    for (let i = 0; i < 10; i++) {
+      sum += parseInt(cleanCPF.charAt(i)) * (11 - i);
+    }
+    remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== parseInt(cleanCPF.charAt(10))) return false;
+    
+    return true;
+  };
+
+  // Função para validar CNPJ
+  const validateCNPJ = (cnpj) => {
+    const cleanCNPJ = cnpj.replace(/\D/g, '');
+    if (cleanCNPJ.length !== 14) return false;
+    
+    // Verifica se todos os dígitos são iguais
+    if (/^(\d)\1{13}$/.test(cleanCNPJ)) return false;
+    
+    // Validação do primeiro dígito verificador
+    let sum = 0;
+    const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    for (let i = 0; i < 12; i++) {
+      sum += parseInt(cleanCNPJ.charAt(i)) * weights1[i];
+    }
+    let remainder = sum % 11;
+    let digit1 = remainder < 2 ? 0 : 11 - remainder;
+    if (digit1 !== parseInt(cleanCNPJ.charAt(12))) return false;
+    
+    // Validação do segundo dígito verificador
+    sum = 0;
+    const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    for (let i = 0; i < 13; i++) {
+      sum += parseInt(cleanCNPJ.charAt(i)) * weights2[i];
+    }
+    remainder = sum % 11;
+    let digit2 = remainder < 2 ? 0 : 11 - remainder;
+    if (digit2 !== parseInt(cleanCNPJ.charAt(13))) return false;
+    
+    return true;
   };
 
   // Função para converter valor formatado de volta para número
@@ -151,6 +322,25 @@ const CadastrarContasBTG = () => {
         ...pixData,
         valor: parseCurrencyValue(pixData.valor) // Converte valor formatado para número
       };
+      
+      // Validação específica para PIX
+      if (pixData.tipoChave === 'CPF' && pixData.chavePix && !validateCPF(pixData.chavePix)) {
+        toast.error('CPF da chave PIX inválido. Verifique os números.');
+        setLoading(false);
+        return;
+      }
+      
+      if (pixData.tipoChave === 'CNPJ' && pixData.chavePix && !validateCNPJ(pixData.chavePix)) {
+        toast.error('CNPJ da chave PIX inválido. Verifique os números.');
+        setLoading(false);
+        return;
+      }
+      
+      if (pixData.cpfCnpjFavorecido && !validateCPF(pixData.cpfCnpjFavorecido) && !validateCNPJ(pixData.cpfCnpjFavorecido)) {
+        toast.error('CPF/CNPJ do favorecido inválido. Verifique os números.');
+        setLoading(false);
+        return;
+      }
     }
     
     // Validação
@@ -410,9 +600,30 @@ const CadastrarContasBTG = () => {
                   name="chavePix" 
                   value={pixData.chavePix} 
                   onChange={(e) => handleChange(e, 'pix')} 
-                  placeholder="Digite a chave PIX do favorecido" 
-                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                  placeholder={
+                    pixData.tipoChave === 'celular' ? '(11) 99999-9999' :
+                    pixData.tipoChave === 'CPF' ? '000.000.000-00' :
+                    pixData.tipoChave === 'CNPJ' ? '00.000.000/0000-00' :
+                    pixData.tipoChave === 'email' ? 'exemplo@email.com' :
+                    'Digite a chave PIX'
+                  }
+                  className={`input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation ${
+                    pixData.tipoChave === 'CPF' && pixData.chavePix && !validateCPF(pixData.chavePix) ? 'border-red-500' :
+                    pixData.tipoChave === 'CNPJ' && pixData.chavePix && !validateCNPJ(pixData.chavePix) ? 'border-red-500' :
+                    'border-gray-300'
+                  }`}
                 />
+                {/* Validação visual para CPF/CNPJ */}
+                {pixData.tipoChave === 'CPF' && pixData.chavePix && (
+                  <div className={`mt-1 text-xs ${validateCPF(pixData.chavePix) ? 'text-green-600' : 'text-red-600'}`}>
+                    {validateCPF(pixData.chavePix) ? '✅ CPF válido' : '❌ CPF inválido'}
+                  </div>
+                )}
+                {pixData.tipoChave === 'CNPJ' && pixData.chavePix && (
+                  <div className={`mt-1 text-xs ${validateCNPJ(pixData.chavePix) ? 'text-green-600' : 'text-red-600'}`}>
+                    {validateCNPJ(pixData.chavePix) ? '✅ CNPJ válido' : '❌ CNPJ inválido'}
+                  </div>
+                )}
               </div>
               
               <div className="form-group">
@@ -427,14 +638,38 @@ const CadastrarContasBTG = () => {
               </div>
               
               <div className="form-group">
-                <label className="block text-gray-700 text-sm font-semibold mb-2">CPF/CNPJ do Favorecido *</label>
+                <label className="block text-gray-700 text-sm font-semibold mb-2">
+                  CPF/CNPJ do Favorecido *
+                  {(pixData.tipoChave === 'CPF' || pixData.tipoChave === 'CNPJ') && (
+                    <span className="text-blue-600 text-xs ml-2">(Preenchido automaticamente)</span>
+                  )}
+                </label>
                 <input 
                   name="cpfCnpjFavorecido" 
                   value={pixData.cpfCnpjFavorecido} 
                   onChange={(e) => handleChange(e, 'pix')} 
-                  placeholder="000.000.000-00 ou 00.000.000/0000-00" 
-                  className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
+                  placeholder={
+                    pixData.tipoChave === 'CPF' ? '000.000.000-00 (preenchido automaticamente)' :
+                    pixData.tipoChave === 'CNPJ' ? '00.000.000/0000-00 (preenchido automaticamente)' :
+                    '000.000.000-00 ou 00.000.000/0000-00'
+                  }
+                  className={`input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation ${
+                    (pixData.tipoChave === 'CPF' || pixData.tipoChave === 'CNPJ') ? 'bg-gray-50' : ''
+                  } ${
+                    pixData.cpfCnpjFavorecido && !validateCPF(pixData.cpfCnpjFavorecido) && !validateCNPJ(pixData.cpfCnpjFavorecido) ? 'border-red-500' :
+                    'border-gray-300'
+                  }`}
+                  readOnly={pixData.tipoChave === 'CPF' || pixData.tipoChave === 'CNPJ'}
                 />
+                {/* Validação visual para CPF/CNPJ do favorecido */}
+                {pixData.cpfCnpjFavorecido && (
+                  <div className={`mt-1 text-xs ${
+                    validateCPF(pixData.cpfCnpjFavorecido) || validateCNPJ(pixData.cpfCnpjFavorecido) ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {validateCPF(pixData.cpfCnpjFavorecido) ? '✅ CPF válido' : 
+                     validateCNPJ(pixData.cpfCnpjFavorecido) ? '✅ CNPJ válido' : '❌ CPF/CNPJ inválido'}
+                  </div>
+                )}
               </div>
               
               <div className="form-group relative">
