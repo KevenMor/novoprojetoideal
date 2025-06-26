@@ -107,9 +107,18 @@ export default function GerenciarUsuarios() {
     }
   };
 
-  // Função utilitária para remover campos undefined
-  function removeUndefinedFields(obj) {
-    return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined));
+  // Função utilitária para remover undefined de forma profunda
+  function deepRemoveUndefined(obj) {
+    if (Array.isArray(obj)) {
+      return obj.map(deepRemoveUndefined);
+    } else if (obj && typeof obj === 'object') {
+      return Object.fromEntries(
+        Object.entries(obj)
+          .filter(([_, v]) => v !== undefined)
+          .map(([k, v]) => [k, deepRemoveUndefined(v)])
+      );
+    }
+    return obj;
   }
 
   const handleSubmit = async (e) => {
@@ -161,7 +170,7 @@ export default function GerenciarUsuarios() {
           updatedAt: new Date()
         };
 
-        await updateDoc(userRef, removeUndefinedFields(updateData));
+        await updateDoc(userRef, deepRemoveUndefined(updateData));
         
         // Se o usuário quer alterar a senha
         if (alterarSenha) {
@@ -251,7 +260,7 @@ export default function GerenciarUsuarios() {
               tentativas++;
               console.log(`📝 Tentativa ${tentativas}/${maxTentativas} de salvar no Firestore...`);
               
-              await setDoc(doc(db, 'usuarios', newUserCredential.user.uid), removeUndefinedFields(userData));
+              await setDoc(doc(db, 'usuarios', newUserCredential.user.uid), deepRemoveUndefined(userData));
               
               console.log('✅ Dados salvos no Firestore com sucesso!');
               break; // Sucesso, sair do loop
