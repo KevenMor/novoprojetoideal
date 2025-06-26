@@ -62,20 +62,68 @@ export default function GerenciarUsuarios() {
       }
 
       console.log('🔄 Buscando usuários...');
+      console.log('👤 Usuário atual:', user.email, '(UID:', user.uid, ')');
       
       // Buscar usuários diretamente do Firestore
       const usuariosSnapshot = await getDocs(collection(db, 'usuarios'));
-      const usuariosList = usuariosSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      console.log('📊 Total de documentos encontrados:', usuariosSnapshot.docs.length);
       
-      console.log('✅ Usuários encontrados:', usuariosList.length);
+      const usuariosList = usuariosSnapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log(`📄 Documento ${doc.id}:`, {
+          nome: data.nome,
+          email: data.email,
+          perfil: data.perfil,
+          ativo: data.ativo,
+          unidades: Array.isArray(data.unidades) ? data.unidades.length : 'NÃO É ARRAY',
+          permissions: Array.isArray(data.permissions) ? data.permissions.length : 'NÃO É ARRAY'
+        });
+        
+        return {
+          id: doc.id,
+          ...data,
+          // Garantir que arrays nunca sejam undefined
+          unidades: Array.isArray(data.unidades) ? data.unidades : [],
+          permissions: Array.isArray(data.permissions) ? data.permissions : [],
+          // Garantir campos obrigatórios
+          nome: data.nome || 'Nome não definido',
+          email: data.email || 'Email não definido',
+          perfil: data.perfil || 'operator',
+          ativo: typeof data.ativo === 'boolean' ? data.ativo : true
+        };
+      });
+      
+      console.log('✅ Usuários processados:', usuariosList.length);
+      console.log('📋 Lista final:', usuariosList.map(u => ({
+        id: u.id,
+        nome: u.nome,
+        email: u.email,
+        perfil: u.perfil,
+        ativo: u.ativo,
+        unidadesCount: u.unidades.length,
+        permissionsCount: u.permissions.length
+      })));
+      
       setUsuarios(usuariosList);
       
     } catch (error) {
       console.error('❌ Erro ao buscar usuários:', error);
-      toast.error(`Erro ao carregar usuários: ${error.message}`);
+      console.error('🔍 Detalhes do erro:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      let errorMessage = 'Erro ao carregar usuários';
+      if (error.code === 'permission-denied') {
+        errorMessage = 'Sem permissão para acessar usuários. Verifique se você é administrador.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Serviço temporariamente indisponível. Tente novamente em alguns minutos.';
+      } else {
+        errorMessage = `${errorMessage}: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -109,16 +157,82 @@ export default function GerenciarUsuarios() {
 
   // Função utilitária para remover undefined de forma profunda
   function deepRemoveUndefined(obj) {
+    if (obj === undefined || obj === null) {
+      return null;
+    }
+    
     if (Array.isArray(obj)) {
-      return obj.map(deepRemoveUndefined);
+      return obj.map(deepRemoveUndefined).filter(item => item !== null);
     } else if (obj && typeof obj === 'object') {
-      return Object.fromEntries(
-        Object.entries(obj)
-          .filter(([_, v]) => v !== undefined)
-          .map(([k, v]) => [k, deepRemoveUndefined(v)])
-      );
+      const cleaned = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          const cleanedValue = deepRemoveUndefined(value);
+          if (cleanedValue !== null) {
+            cleaned[key] = cleanedValue;
+          }
+        }
+      }
+      return cleaned;
     }
     return obj;
+  }
+
+  // Função para validar e limpar dados do usuário antes de salvar
+  function validateAndCleanUserData(userData) {
+    console.log('🔍 Validando dados do usuário antes de salvar...');
+    console.log('📋 Dados originais:', JSON.stringify(userData, null, 2));
+    
+    // Garantir campos obrigatórios
+    const cleanedData = {
+      // Campos obrigatórios
+      nome: userData.nome || '',
+      email: userData.email || '',
+      perfil: userData.perfil || 'operator',
+      ativo: typeof userData.ativo === 'boolean' ? userData.ativo : true,
+      
+      // Arrays sempre definidos
+      unidades: Array.isArray(userData.unidades) ? userData.unidades : [],
+      permissions: Array.isArray(userData.permissions) ? userData.permissions : [],
+      
+      // Timestamps
+      criadoEm: userData.criadoEm || new Date(),
+      updatedAt: new Date(),
+      
+      // Campos opcionais
+      ...(userData.criadoPor && { criadoPor: userData.criadoPor }),
+      ...(userData.criadoPorEmail && { criadoPorEmail: userData.criadoPorEmail }),
+      ...(userData.versao && { versao: userData.versao }),
+      ...(userData.uid && { uid: userData.uid }),
+      
+      // Campos de controle
+      telefone: userData.telefone || '',
+      cargo: userData.cargo || '',
+      role: userData.role || userData.perfil,
+      isAdmin: userData.perfil === 'admin',
+      superUser: userData.perfil === 'admin',
+      acessoTotal: userData.perfil === 'admin'
+    };
+    
+    // Remover undefined de forma profunda
+    const finalData = deepRemoveUndefined(cleanedData);
+    
+    console.log('✅ Dados validados e limpos:', JSON.stringify(finalData, null, 2));
+    
+    // Validações finais
+    if (!finalData.nome || !finalData.email) {
+      throw new Error('Nome e email são obrigatórios');
+    }
+    
+    if (!Array.isArray(finalData.unidades)) {
+      throw new Error('Unidades deve ser um array');
+    }
+    
+    if (!Array.isArray(finalData.permissions)) {
+      throw new Error('Permissions deve ser um array');
+    }
+    
+    return finalData;
   }
 
   const handleSubmit = async (e) => {
@@ -170,7 +284,7 @@ export default function GerenciarUsuarios() {
           updatedAt: new Date()
         };
 
-        await updateDoc(userRef, deepRemoveUndefined(updateData));
+        await updateDoc(userRef, validateAndCleanUserData(updateData));
         
         // Se o usuário quer alterar a senha
         if (alterarSenha) {
@@ -179,7 +293,7 @@ export default function GerenciarUsuarios() {
             const emailEnviado = await enviarEmailRedefinicaoSenha(formData.email);
             if (emailEnviado) {
               await updateDoc(userRef, {
-                ...updateData,
+                ...validateAndCleanUserData(updateData),
                 emailRedefinicaoEnviado: true,
                 dataEmailRedefinicao: new Date()
               });
@@ -190,7 +304,7 @@ export default function GerenciarUsuarios() {
           } else {
             // Salvar informação de que a senha deve ser alterada (para implementação futura com Admin SDK)
             await updateDoc(userRef, {
-              ...updateData,
+              ...validateAndCleanUserData(updateData),
               novaSenhaPendente: formData.senha,
               dataSolicitacaoSenha: new Date()
             });
@@ -260,7 +374,7 @@ export default function GerenciarUsuarios() {
               tentativas++;
               console.log(`📝 Tentativa ${tentativas}/${maxTentativas} de salvar no Firestore...`);
               
-              await setDoc(doc(db, 'usuarios', newUserCredential.user.uid), deepRemoveUndefined(userData));
+              await setDoc(doc(db, 'usuarios', newUserCredential.user.uid), validateAndCleanUserData(userData));
               
               console.log('✅ Dados salvos no Firestore com sucesso!');
               break; // Sucesso, sair do loop
