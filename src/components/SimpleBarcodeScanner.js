@@ -27,6 +27,15 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
     return grupos.join('');
   }
 
+  // Função para extrair linha digitável de texto OCR
+  function extrairLinhaDigitavelOCR(texto) {
+    // Busca sequências de 44, 47 ou 48 dígitos
+    const matches = Array.from(texto.matchAll(/\d{44,48}/g)).map(m => m[0]);
+    if (matches.length === 0) return '';
+    // Prioriza a maior sequência encontrada
+    return matches.sort((a, b) => b.length - a.length)[0];
+  }
+
   // Função para processar código detectado
   const processDetectedCode = (code) => {
     // NOVO: usar extração refinada
@@ -78,13 +87,13 @@ const SimpleBarcodeScanner = ({ isOpen, onClose, onScan }) => {
     try {
       const { data: { text } } = await Tesseract.recognize(dataUrl, 'por');
       // Extrair linha digitável dos números reconhecidos
-      const linha = extrairLinhaDigitavel(text);
-      if ([47, 48].includes(linha.length)) {
+      const linha = extrairLinhaDigitavelOCR(text);
+      if ([44, 47, 48].includes(linha.length)) {
         setStatus('Linha digitável extraída via OCR!');
         onResult(linha);
         return true;
       } else {
-        setError('Não foi possível extrair a linha digitável via OCR. Tente uma foto mais nítida ou digite manualmente.');
+        setError('Não foi possível extrair a linha digitável via OCR. Centralize apenas os números do boleto e tente novamente.');
         setStatus('Aguardando nova imagem...');
         return false;
       }
