@@ -983,8 +983,8 @@ Tente fazer login com as credenciais do novo usuário para verificar.`;
                   </div>
                 </div>
 
-                {/* Unidades (apenas para usuários) */}
-                {formData.perfil === 'operator' && (
+                {/* Unidades (para operator e custom) */}
+                {(formData.perfil === 'operator' || formData.perfil === 'custom') && (
                   <div className="md:col-span-2 lg:col-span-3">
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Unidades *
