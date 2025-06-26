@@ -13,13 +13,13 @@ import {
   Building2,
   Receipt
 } from 'lucide-react';
-import { PERMISSIONS } from '../../utils/permissions';
+import { PERMISSIONS, hasPermission } from '../../utils/permissions';
 import UnitSelector from '../UnitSelector';
 import { useUnitFilter } from '../../contexts/UnitFilterContext';
 import logo from '../../assets/logo.png';
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setIsCollapsed }) {
-  const { user } = useAuth();
+  const { user, hasPermission: checkPermission } = useAuth();
   const location = useLocation();
   const [expandedMenus, setExpandedMenus] = useState({});
   const [isMobile, setIsMobile] = useState(false);
@@ -52,7 +52,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
     {
       name: 'Mensagens',
       icon: MessageSquare,
-      permission: PERMISSIONS.MESSAGES_VIEW,
+      permission: PERMISSIONS.MESSAGES_ACCESS,
       description: 'Envio e histórico de mensagens',
       submenu: [
         {
@@ -76,7 +76,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
     {
       name: 'Contas BTG',
       icon: Building2,
-      permission: PERMISSIONS.BTG_ACCOUNTS_VIEW,
+      permission: PERMISSIONS.BTG_ACCESS,
       description: 'Gestão de contas BTG',
       submenu: [
         {
@@ -92,14 +92,15 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
         {
           name: 'Folha de Pagamento',
           href: '/folha-pagamento',
-          description: 'Gestão de funcionários'
+          description: 'Gestão de funcionários',
+          permission: PERMISSIONS.PAYROLL_ACCESS // Permissão específica para folha de pagamento
         }
       ]
     },
     {
       name: 'Cobranças',
       icon: Receipt,
-      permission: PERMISSIONS.CHARGES_VIEW,
+      permission: PERMISSIONS.CHARGES_ACCESS,
       description: 'Gestão de cobranças',
       submenu: [
         {
@@ -117,7 +118,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
     {
       name: 'Extratos',
       icon: BarChart3,
-      permission: PERMISSIONS.EXTRACTS_VIEW,
+      permission: PERMISSIONS.EXTRACTS_ACCESS,
       description: 'Relatórios financeiros',
       submenu: [
         { name: 'Ver Extrato', href: '/extratos', description: 'Visualizar extrato financeiro' },
@@ -137,14 +138,14 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
       name: 'Configuração Sheets',
       href: '/configuracao-sheets',
       icon: Settings,
-      permission: PERMISSIONS.SETTINGS_VIEW,
+      permission: PERMISSIONS.SETTINGS_ACCESS,
       description: 'Configurar Google Sheets'
     },
     {
       name: 'Gerenciar Usuários',
       href: '/gerenciar-usuarios',
       icon: Users,
-      permission: PERMISSIONS.USERS_VIEW,
+      permission: PERMISSIONS.USERS_ACCESS,
       description: 'Gerenciar usuários do sistema'
     }
   ], [user?.perfil]);
@@ -152,15 +153,39 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
   // Filtrar menus por permissão usando useMemo
   const filteredMenuItems = useMemo(() => {
     if (!menuItems) return [];
+    
     return menuItems.filter(item => {
       // Dashboard sempre deve aparecer
       if (item.name === 'Dashboard') return true;
+      
       // Se não tem permissão definida, mostrar
       if (!item.permission) return true;
-      // Verificar permissão
-      return user?.permissions?.[item.permission] || false;
+      
+      // Verificar permissão usando a função hasPermission
+      const hasAccess = hasPermission(user?.permissions, item.permission);
+      
+      console.log(`🔍 Menu "${item.name}": ${hasAccess ? '✅ VISÍVEL' : '❌ OCULTO'} (permissão: ${item.permission})`);
+      
+      return hasAccess;
     });
   }, [user?.permissions, menuItems]);
+
+  // Função para filtrar submenus por permissão
+  const filterSubmenuByPermission = useCallback((submenu) => {
+    if (!submenu) return [];
+    
+    return submenu.filter(subItem => {
+      // Se não tem permissão definida, mostrar
+      if (!subItem.permission) return true;
+      
+      // Verificar permissão
+      const hasAccess = hasPermission(user?.permissions, subItem.permission);
+      
+      console.log(`  🔍 Submenu "${subItem.name}": ${hasAccess ? '✅ VISÍVEL' : '❌ OCULTO'} (permissão: ${subItem.permission})`);
+      
+      return hasAccess;
+    });
+  }, [user?.permissions]);
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
@@ -298,7 +323,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
                       {/* Submenu items */}
                       {isExpanded && (
                         <div className="ml-8 space-y-1">
-                          {item.submenu.map((subItem) => {
+                          {filterSubmenuByPermission(item.submenu).map((subItem) => {
                             // Se subItem tem submenu (sub-submenu)
                             if (subItem.submenu) {
                               const isSubExpanded = isSubmenuExpanded(item.name + '-' + subItem.name);
