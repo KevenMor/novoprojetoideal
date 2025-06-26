@@ -35,6 +35,7 @@ export const PERMISSIONS = {
   EXTRACTS_ALL_UNITS: 'extracts.all_units',
   EXTRACTS_VIEW_ALL: 'extracts.view_all', // Ver lançamentos de todos
   EXTRACTS_VIEW_OWN: 'extracts.view_own', // Ver apenas próprios lançamentos
+  EXTRACTS_MANAGE_CADASTROS: 'extracts.manage_cadastros', // ADMIN: Gerenciar cadastros (categorias, formas de pagamento, etc.)
   
   // Folha de Pagamento (ADMIN ONLY)
   PAYROLL_ACCESS: 'payroll.access',
@@ -126,7 +127,8 @@ export const PERMISSION_GROUPS = {
       PERMISSIONS.EXTRACTS_EXPORT,
       PERMISSIONS.EXTRACTS_ALL_UNITS,
       PERMISSIONS.EXTRACTS_VIEW_ALL,
-      PERMISSIONS.EXTRACTS_VIEW_OWN
+      PERMISSIONS.EXTRACTS_VIEW_OWN,
+      PERMISSIONS.EXTRACTS_MANAGE_CADASTROS
     ]
   },
   payroll: {
@@ -350,6 +352,7 @@ export const PERMISSION_DESCRIPTIONS = {
   [PERMISSIONS.EXTRACTS_ALL_UNITS]: 'Ver extratos de todas as unidades',
   [PERMISSIONS.EXTRACTS_VIEW_ALL]: 'Ver lançamentos de todos os usuários',
   [PERMISSIONS.EXTRACTS_VIEW_OWN]: 'Ver apenas os próprios lançamentos criados',
+  [PERMISSIONS.EXTRACTS_MANAGE_CADASTROS]: '🔒 ADMIN: Gerenciar cadastros (categorias, formas de pagamento, etc.)',
   
   // Folha de Pagamento
   [PERMISSIONS.PAYROLL_ACCESS]: '🔒 ADMIN: Acessar folha de pagamento',

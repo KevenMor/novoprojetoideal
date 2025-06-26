@@ -125,6 +125,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, isCollapsed, setI
         {
           name: 'Cadastros',
           description: 'Cadastros auxiliares',
+          permission: PERMISSIONS.EXTRACTS_MANAGE_CADASTROS,
           submenu: [
             { name: 'Categorias', href: '/extratos/cadastros/categorias', description: 'Gerenciar categorias' },
             { name: 'Formas de Pagamento', href: '/extratos/cadastros/formas-pagamento', description: 'Gerenciar formas de pagamento' },
