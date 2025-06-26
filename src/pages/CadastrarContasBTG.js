@@ -51,9 +51,10 @@ const CadastrarContasBTG = () => {
     
     if (formType === 'boleto') {
       if (name === 'linhaDigitavel') {
-        const numericValue = value.replace(/\D/g, ''); // Permite apenas números
-        if (numericValue.length <= 48) {
-          setBoletoData(prev => ({ ...prev, [name]: numericValue }));
+        // Aceita códigos copiados do PDF e limpa automaticamente
+        const cleanValue = value.replace(/\D/g, ''); // Remove tudo que não é dígito
+        if (cleanValue.length <= 48) {
+          setBoletoData(prev => ({ ...prev, [name]: cleanValue }));
         }
       } else if (name === 'valor') {
         // Formatação automática do valor em tempo real
@@ -458,7 +459,7 @@ const CadastrarContasBTG = () => {
                     name="linhaDigitavel"
                     value={boletoData.linhaDigitavel}
                     onChange={e => handleChange(e, 'boleto')}
-                    placeholder="Digite os números da linha digitável (44 a 48 dígitos)"
+                    placeholder="Cole o código do PDF ou digite os números (caracteres especiais serão removidos automaticamente)"
                     className="input-field w-full p-3 sm:p-2 border rounded-lg text-sm touch-manipulation"
                     maxLength="48"
                     inputMode="numeric"
@@ -474,7 +475,10 @@ const CadastrarContasBTG = () => {
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{boletoData.linhaDigitavel.length}/48 números</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {boletoData.linhaDigitavel.length}/48 números • 
+                  <span className="text-blue-600 ml-1">💡 Dica: Cole diretamente do PDF do boleto!</span>
+                </p>
                 {/* Exibir linha digitável formatada para conferência */}
                 {boletoData.linhaDigitavel && (
                   <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-700">
