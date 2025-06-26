@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { dashboardService } from '../services/dashboardService';
 import toast from 'react-hot-toast';
+import DebugPermissions from '../components/DebugPermissions';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -229,6 +230,9 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* DEBUG: Componente de verificação de permissões */}
+      <DebugPermissions />
+      
       {/* Header com seletor de unidade e filtros */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
