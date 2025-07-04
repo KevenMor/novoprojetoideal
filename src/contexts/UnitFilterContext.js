@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth } from './AuthContext';
+import { normalizeUnitName, areUnitsEquivalent } from '../utils/unitNormalizer';
 
 const UnitFilterContext = createContext();
 
@@ -60,11 +61,15 @@ export function UnitFilterProvider({ children }) {
     
     // Se uma unidade específica está selecionada, mostrar apenas ela
     if (selectedUnit && selectedUnit !== 'all') {
-      return unidade === selectedUnit;
+      return areUnitsEquivalent(unidade, selectedUnit);
     }
     
-    // Se o usuário tem acesso à unidade
-    return user?.unidades?.includes(unidade);
+    // Se o usuário tem acesso à unidade (verificar com normalização)
+    if (user?.unidades && Array.isArray(user.unidades)) {
+      return user.unidades.some(userUnit => areUnitsEquivalent(unidade, userUnit));
+    }
+    
+    return false;
   };
 
   // Função para alterar a unidade selecionada

@@ -2,6 +2,7 @@ import { collection, query, where, getDocs, Timestamp, limit } from 'firebase/fi
 import { db } from '../firebase/config';
 import { asaasService } from './asaasService';
 import { extratosService } from './extratosService';
+import { normalizeUnitName } from '../utils/unitNormalizer';
 
 export const dashboardService = {
   // Novos métodos para filtro de unidades
@@ -21,13 +22,17 @@ export const dashboardService = {
       // Para cada unidade, buscar mensagens
       for (const unidade of unidades) {
         try {
-          const q = query(
-            collection(db, 'mensagens'),
-            where('unidade', '==', unidade)
-          );
-          
+          // Buscar todas as mensagens e filtrar por unidade normalizada
+          const q = query(collection(db, 'mensagens'));
           const snapshot = await getDocs(q);
-          const mensagens = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const todasMensagens = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Filtrar por unidade usando normalização
+          const mensagens = todasMensagens.filter(m => {
+            const unidadeMensagem = normalizeUnitName(m.unidade || '');
+            const unidadeFiltro = normalizeUnitName(unidade);
+            return unidadeMensagem === unidadeFiltro;
+          });
           
           totalMensagens += mensagens.length;
           totalEnviadas += mensagens.filter(m => m.status === 'enviada' || m.status === 'SUCCESS').length;
@@ -67,13 +72,17 @@ export const dashboardService = {
       // Para cada unidade, buscar contas BTG
       for (const unidade of unidades) {
         try {
-          const q = query(
-            collection(db, 'contas_btg'),
-            where('unidade', '==', unidade)
-          );
-          
+          // Buscar todas as contas BTG e filtrar por unidade normalizada
+          const q = query(collection(db, 'contas_btg'));
           const snapshot = await getDocs(q);
-          const contas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const todasContas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Filtrar por unidade usando normalização
+          const contas = todasContas.filter(c => {
+            const unidadeConta = normalizeUnitName(c.unidade || '');
+            const unidadeFiltro = normalizeUnitName(unidade);
+            return unidadeConta === unidadeFiltro;
+          });
           
           totalContas += contas.length;
           totalAtivas += contas.filter(c => c.status === 'ativa' || c.ativo === true).length;
@@ -112,13 +121,17 @@ export const dashboardService = {
       // Para cada unidade, buscar cobranças
       for (const unidade of unidades) {
         try {
-          const q = query(
-            collection(db, 'cobrancas'),
-            where('unidade', '==', unidade)
-          );
-          
+          // Buscar todas as cobranças e filtrar por unidade normalizada
+          const q = query(collection(db, 'cobrancas'));
           const snapshot = await getDocs(q);
-          const cobrancas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const todasCobrancas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Filtrar por unidade usando normalização
+          const cobrancas = todasCobrancas.filter(c => {
+            const unidadeCobranca = normalizeUnitName(c.unidade || '');
+            const unidadeFiltro = normalizeUnitName(unidade);
+            return unidadeCobranca === unidadeFiltro;
+          });
           
           totalCobrancas += cobrancas.length;
           totalAtivas += cobrancas.filter(c => c.status === 'PENDING' || c.status === 'ativa').length;
@@ -231,18 +244,18 @@ export const dashboardService = {
       // Para cada unidade, buscar atividades recentes
       for (const unidade of unidades) {
         try {
-          // Buscar mensagens recentes (sem orderBy para evitar índice composto)
-          const qMensagens = query(
-            collection(db, 'mensagens'),
-            where('unidade', '==', unidade),
-            limit(10) // Buscar mais para poder ordenar em memória
-          );
-          
+          // Buscar todas as mensagens e filtrar por unidade normalizada
+          const qMensagens = query(collection(db, 'mensagens'), limit(50));
           const mensagensSnapshot = await getDocs(qMensagens);
           
-          // Ordenar por data de criação e pegar apenas as 3 mais recentes
+          // Filtrar por unidade usando normalização e ordenar
           const mensagensRecentes = mensagensSnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(m => {
+              const unidadeMensagem = normalizeUnitName(m.unidade || '');
+              const unidadeFiltro = normalizeUnitName(unidade);
+              return unidadeMensagem === unidadeFiltro;
+            })
             .sort((a, b) => {
               const dataA = a.createdAt?.toDate() || new Date(0);
               const dataB = b.createdAt?.toDate() || new Date(0);
@@ -262,18 +275,18 @@ export const dashboardService = {
             });
           });
 
-          // Buscar cobranças recentes (sem orderBy para evitar índice composto)
-          const qCobrancas = query(
-            collection(db, 'cobrancas'),
-            where('unidade', '==', unidade),
-            limit(10) // Buscar mais para poder ordenar em memória
-          );
-          
+          // Buscar todas as cobranças e filtrar por unidade normalizada
+          const qCobrancas = query(collection(db, 'cobrancas'), limit(50));
           const cobrancasSnapshot = await getDocs(qCobrancas);
           
-          // Ordenar por data de criação e pegar apenas as 3 mais recentes
+          // Filtrar por unidade usando normalização e ordenar
           const cobrancasRecentes = cobrancasSnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(c => {
+              const unidadeCobranca = normalizeUnitName(c.unidade || '');
+              const unidadeFiltro = normalizeUnitName(unidade);
+              return unidadeCobranca === unidadeFiltro;
+            })
             .sort((a, b) => {
               const dataA = a.createdAt?.toDate() || new Date(0);
               const dataB = b.createdAt?.toDate() || new Date(0);
@@ -293,18 +306,18 @@ export const dashboardService = {
             });
           });
 
-          // Buscar contas BTG recentes (sem orderBy para evitar índice composto)
-          const qContas = query(
-            collection(db, 'contas_btg'),
-            where('unidade', '==', unidade),
-            limit(10) // Buscar mais para poder ordenar em memória
-          );
-          
+          // Buscar todas as contas BTG e filtrar por unidade normalizada
+          const qContas = query(collection(db, 'contas_btg'), limit(50));
           const contasSnapshot = await getDocs(qContas);
           
-          // Ordenar por data de criação e pegar apenas os 2 mais recentes
+          // Filtrar por unidade usando normalização e ordenar
           const contasRecentes = contasSnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(c => {
+              const unidadeConta = normalizeUnitName(c.unidade || '');
+              const unidadeFiltro = normalizeUnitName(unidade);
+              return unidadeConta === unidadeFiltro;
+            })
             .sort((a, b) => {
               const dataA = a.createdAt?.toDate() || a.dataCriacao || new Date(0);
               const dataB = b.createdAt?.toDate() || b.dataCriacao || new Date(0);
@@ -579,20 +592,28 @@ export const dashboardService = {
   // Buscar cobranças por unidade
   async getCobrancasPorUnidade(unidade) {
     try {
-      let q = collection(db, 'charges');
-      
-      if (unidade) {
-        q = query(q, where('unidade', '==', unidade));
-      }
-
+      // Buscar todas as cobranças e filtrar por unidade normalizada
+      const q = collection(db, 'cobrancas');
       const snapshot = await getDocs(q);
-      const cobrancas = [];
+      const todasCobrancas = [];
       
       snapshot.forEach(doc => {
-        cobrancas.push({
+        todasCobrancas.push({
           id: doc.id,
           ...doc.data()
         });
+      });
+
+      // Se não há filtro de unidade, retornar todas
+      if (!unidade) {
+        return todasCobrancas;
+      }
+
+      // Filtrar por unidade usando normalização
+      const cobrancas = todasCobrancas.filter(c => {
+        const unidadeCobranca = normalizeUnitName(c.unidade || '');
+        const unidadeFiltro = normalizeUnitName(unidade);
+        return unidadeCobranca === unidadeFiltro;
       });
 
       return cobrancas;

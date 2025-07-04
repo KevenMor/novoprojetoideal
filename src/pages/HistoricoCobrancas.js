@@ -5,6 +5,7 @@ import { X, ChevronDown, ChevronUp, Eye, CheckCircle, Trash2, Download, Filter, 
 import { useUnitFilter } from '../contexts/UnitFilterContext';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
+import { normalizeUnitName, filterDataByUnit } from '../utils/unitNormalizer';
 
 function formatDate(date) {
   if (!date) return '-';
@@ -240,13 +241,19 @@ export default function HistoricoCobrancas() {
     load();
   }, []);
 
-  // Filtro (removido temporariamente para debug)
-  // const filtradas = cobrancas.filter(...)
-  const filtradas = cobrancas.filter(c =>
-    (!filtros.unidade || c.unidade === filtros.unidade)
-    // ... outros filtros se houver
-  );
-  // Para restaurar o filtro, volte a usar a lógica original aqui.
+  // Filtro com normalização de unidades
+  const filtradas = cobrancas.filter(c => {
+    // Se não há filtro de unidade, incluir todas
+    if (!filtros.unidade) {
+      return true;
+    }
+    
+    // Usar normalização para comparar unidades
+    const unidadeCobranca = normalizeUnitName(c.unidade);
+    const unidadeFiltro = normalizeUnitName(filtros.unidade);
+    
+    return unidadeCobranca === unidadeFiltro;
+  });
 
   // Filtrar apenas parcelas com valor igual ou maior que 5 reais
   const valorMinimo = 5;

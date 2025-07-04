@@ -2,6 +2,7 @@ import { db } from '../firebase/config';
 import { collection, getDocs, query, where, orderBy, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { googleSheetsService } from './googleSheetsService';
 import { SHEETS_CONFIG } from '../config/sheetsConfig';
+import { normalizeUnitName } from '../utils/unitNormalizer';
 
 async function buscarLancamentosFirebase(filtros) {
   try {
@@ -189,15 +190,15 @@ async function buscarExtratos(filtros = {}) {
       console.log(`🏢 Unidades encontradas nos extratos:`, unidadesEncontradas);
       console.log(`🔍 Filtrando por unidade: "${unidade}"`);
       
-      // Filtro case-insensitive
+      // Filtro com normalização de unidades
       todosExtratos = todosExtratos.filter(ext => {
-        const unidadeExtrato = (ext.unidade || '').toString().toLowerCase().trim();
-        const unidadeFiltro = (unidade || '').toString().toLowerCase().trim();
+        const unidadeExtrato = normalizeUnitName(ext.unidade || '');
+        const unidadeFiltro = normalizeUnitName(unidade || '');
         const match = unidadeExtrato === unidadeFiltro;
         
         // Log detalhado para lançamentos automáticos
         if (ext.origem === 'COBRANCA_AUTOMATICA') {
-          console.log(`🤖 Lançamento automático - Unidade: "${ext.unidade}" vs Filtro: "${unidade}" | Match: ${match}`);
+          console.log(`🤖 Lançamento automático - Unidade: "${ext.unidade}" (normalizada: "${unidadeExtrato}") vs Filtro: "${unidade}" (normalizada: "${unidadeFiltro}") | Match: ${match}`);
         }
         
         return match;
