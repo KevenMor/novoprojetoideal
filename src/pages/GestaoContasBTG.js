@@ -18,6 +18,7 @@ import {
 import toast from 'react-hot-toast';
 import { contasBTGService } from '../services/contasBTGService';
 import * as XLSX from 'xlsx';
+import { normalizeUnitName } from '../utils/unitNormalizer';
 
 export default function GestaoContasBTG() {
   const { isAdmin } = useAuth();
@@ -36,7 +37,7 @@ export default function GestaoContasBTG() {
   const [contaParaEditar, setContaParaEditar] = useState(null);
   const [filtros, setFiltros] = useState({
     unidade: '',  // Iniciar vazio para não filtrar por unidade inicialmente
-    status: '',
+    status: 'AGUARDANDO', // Sempre abrir com status aguardando
     tipo: '',
     dataInicial: '',
     dataFinal: ''
@@ -99,23 +100,25 @@ export default function GestaoContasBTG() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUnit, filtros, initialLoad]);
 
+  // Atualizar filtro de unidade para usar normalização ao filtrar contas
   const carregarContas = async () => {
     try {
       setLoading(true);
       console.log('🔄 Carregando contas BTG com filtros:', filtros);
       console.log('🔄 selectedUnit:', selectedUnit);
       
-      // Preparar filtros para o serviço - NÃO aplicar filtro de unidade se for "all" ou "Geral"
-      const filtrosParaServico = {
+      // Buscar todas as contas SEM filtro de unidade no backend
+      let todasContas = await contasBTGService.listarContasBTG({
         ...filtros,
-        unidade: (selectedUnit && selectedUnit !== 'all' && selectedUnit !== 'Geral') ? selectedUnit : (filtros.unidade !== '' ? filtros.unidade : undefined)
-      };
-      
-      console.log('🔄 Filtros para serviço:', filtrosParaServico);
-      
-      // Carregar contas com filtros aplicados
-      const todasContas = await contasBTGService.listarContasBTG(filtrosParaServico);
-      console.log('✅ Contas carregadas:', todasContas.length);
+        unidade: undefined // Remove filtro de unidade do backend
+      });
+      console.log('✅ Contas carregadas (todas):', todasContas.length);
+
+      // Filtrar por unidade usando normalização no frontend
+      if (selectedUnit && selectedUnit !== 'all' && selectedUnit !== 'Geral') {
+        const unidadeFiltroNorm = normalizeUnitName(selectedUnit);
+        todasContas = todasContas.filter(conta => normalizeUnitName(conta.unidade) === unidadeFiltroNorm);
+      }
 
       // Garantir que todas as contas têm os campos necessários
       const contasNormalizadas = todasContas.map(conta => ({
